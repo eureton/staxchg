@@ -2,7 +2,7 @@
   (:require [clojure.string :as string])
   (:require [clj-http.client :as http])
   (:require [cheshire.core :as ccore])
-  (:require [lanterna.terminal :refer :all])
+  (:require [lanterna.terminal :as terminal])
   (:require [lanterna.screen :as screen])
   (:gen-class))
 
@@ -117,7 +117,7 @@
   [terminal {:as args :keys [left top width height] :or {left 0 top 0}}]
   (let [blank (string/join (repeat width \space))]
     (dotimes [y height]
-      (put-string terminal blank left (+ top y)))))
+      (terminal/put-string terminal blank left (+ top y)))))
 
 (defn put-boxed-string
   [terminal s {:as args :keys [left top width height line-offset] :or {left 0 top 0 line-offset 0}}]
@@ -128,12 +128,12 @@
         s-plot (plot s-seq [left top] args)]
     (clear-box terminal args)
     (doseq [[c [x y]] (map vector s-seq s-plot)]
-      (put-character terminal c x y))))
+      (terminal/put-character terminal c x y))))
 
 (defn render-question-list [terminal world]
   (doseq [[i q] (map-indexed vector (world :questions))]
-    (move-cursor terminal 1 (+ i 1))
-    (put-string terminal (q "title"))))
+    (terminal/move-cursor terminal 1 (+ i 1))
+    (terminal/put-string terminal (q "title"))))
 
 (defn selected-line-offset [world]
   ((world :line-offsets) (get-in (world :questions) [(world :selected-question) "question_id"])))
@@ -165,26 +165,26 @@
      :questions questions}))
 
 (defn test-printing [terminal]
-  (in-terminal
+  (terminal/in-terminal
     terminal
     (let [multi-liner "_234567890\r\n_bcdefghij\r\n1_34567890\r\na_cdefghij\r\n12_4567890\r\nab_defghij\r\n123_567890\r\nabc_efghij\r\n"
-          [cols rows] (lanterna.terminal/get-size terminal)
-          scr (lanterna.screen/get-screen :auto {:cols cols :rows rows})]
-      (put-string terminal (str "TERMINAL SIZE: " [cols rows]) 60 0)
-      (put-string terminal (str "  SCREEN SIZE: " (lanterna.screen/get-size scr)) 60 1)
-      (put-string terminal multi-liner 1 1)
+          [cols rows] (terminal/get-size terminal)
+          scr (screen/get-screen :auto {:cols cols :rows rows})]
+      (terminal/put-string terminal (str "TERMINAL SIZE: " [cols rows]) 60 0)
+      (terminal/put-string terminal (str "  SCREEN SIZE: " (screen/get-size scr)) 60 1)
+      (terminal/put-string terminal multi-liner 1 1)
       (put-boxed-string terminal multi-liner {:left 12 :top 12 :width 8 :height 31})
-      (get-key-blocking terminal))))
+      (terminal/get-key-blocking terminal))))
 
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (let [terminal (get-terminal)]
-    ;(test-printing terminal)
-    (in-terminal
+  (let [terminal (terminal/get-terminal)]
+    (test-printing terminal)
+    (terminal/in-terminal
       terminal
       (loop [world-before (initialize-world items)]
-        (let [keycode (get-key-blocking terminal)
+        (let [keycode (terminal/get-key-blocking terminal)
               world-after (update-world world-before keycode)]
           (render terminal world-after)
           (when-not (= keycode \q) (recur world-after)))))))
