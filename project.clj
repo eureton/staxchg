@@ -6,7 +6,12 @@
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [clj-http "3.10.3"]
                  [cheshire "5.10.0"]
-                 [clojure-lanterna "0.9.7"]]
+                 [com.googlecode.lanterna/lanterna "3.0.4"]]
+  :java-source-paths ["./java"]
+  :repositories {"releases" {:url "https://clojars.org/repo"
+                             :username :env
+                             :password :env
+                             :sign-releases false}}
   :main ^:skip-aot staxchg.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all

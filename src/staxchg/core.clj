@@ -2,8 +2,11 @@
   (:require [clojure.string :as string])
   (:require [clj-http.client :as http])
   (:require [cheshire.core :as ccore])
-  (:require [lanterna.terminal :as terminal])
-  (:require [lanterna.screen :as screen])
+  (:import com.googlecode.lanterna.terminal.DefaultTerminalFactory)
+  (:import com.googlecode.lanterna.screen.TerminalScreen)
+  (:import com.googlecode.lanterna.TextCharacter)
+  (:import com.googlecode.lanterna.TerminalPosition)
+  (:import com.googlecode.lanterna.TerminalSize)
   (:gen-class))
 
 (defn search-url [tags]
@@ -31,6 +34,13 @@
   (let [response (http/get (search-url ["clojure"]))
         items (->> response :body ccore/parse-string)]
     items))
+
+(defn put-string
+  [screen x y s]
+  (let [x (int x)
+        y (int y)
+        graphics (.newTextGraphics screen)]
+    (.putString graphics x y s)))
 
 ; sample response for testing purposes
 (def items 
@@ -113,27 +123,23 @@
                       :else (plot tail [(+ cx 1) cy] args))]
       (conj tail-plot [cx cy]))))
 
-(defn clear-box
-  [terminal {:as args :keys [left top width height] :or {left 0 top 0}}]
-  (let [blank (string/join (repeat width \space))]
-    (dotimes [y height]
-      (terminal/put-string terminal blank left (+ top y)))))
-
 (defn put-boxed-string
   [terminal s {:as args :keys [left top width height line-offset] :or {left 0 top 0 line-offset 0}}]
-  (let [line-count (->> s string/split-lines count)
-        boxed-offset (max 0 (min line-offset (- line-count 1)))
-        offset-s (->> s string/split-lines (drop boxed-offset) (string/join "\r\n"))
-        s-seq (seq offset-s)
-        s-plot (plot s-seq [left top] args)]
-    (clear-box terminal args)
-    (doseq [[c [x y]] (map vector s-seq s-plot)]
-      (terminal/put-character terminal c x y))))
+  (let [s-seq (seq s)
+        s-plot (plot s-seq [left (- top line-offset)] args)
+        plotted-string (filter (fn [[c [x y]]] (>= y top)) (map vector s-seq s-plot))
+        graphics (.newTextGraphics terminal)]
+    (.drawRectangle
+      graphics
+      (TerminalPosition. (dec left) (dec top))
+      (TerminalSize. (+ 2 width) (+ 2 height))
+      \*)
+    (doseq [[c [x y]] plotted-string]
+      (put-string terminal x y (str c)))))
 
 (defn render-question-list [terminal world]
   (doseq [[i q] (map-indexed vector (world :questions))]
-    (terminal/move-cursor terminal 1 (+ i 1))
-    (terminal/put-string terminal (q "title"))))
+    (put-string terminal 1 (+ i 1) (q "title"))))
 
 (defn selected-line-offset [world]
   ((world :line-offsets) (get-in (world :questions) [(world :selected-question) "question_id"])))
@@ -142,11 +148,17 @@
   (put-boxed-string
     terminal
     (get-in world [:questions (world :selected-question) "body_markdown"])
-    {:left 0 :top 6 :width 118 :height 30 :line-offset (selected-line-offset world)}))
+    {:left 1
+     :top 6
+     :width (- (world :width) 2)
+     :height (- (world :height) 2)
+     :line-offset (selected-line-offset world)}))
 
-(defn render [terminal world]
-  (render-question-list terminal world)
-  (render-selected-question terminal world))
+(defn render [screen world]
+  (.clear screen)
+  (render-question-list screen world)
+  (render-selected-question screen world)
+  (.refresh screen))
 
 (defn update-world [world keycode]
   (let [selected-question (world :selected-question)
@@ -158,34 +170,63 @@
       \J (assoc world :selected-question (inc selected-question))
       world)))
 
-(defn initialize-world [items]
-  (let [questions (items "items")]
+(defn initialize-world [items screen]
+  (let [questions (items "items")
+        cols 120
+        rows 27]
     {:line-offsets (->> questions (map #(% "question_id")) (reduce #(assoc %1 %2 0) {}))
      :selected-question 0
-     :questions questions}))
+     :questions questions
+     :width cols
+     :height rows}))
 
-(defn test-printing [terminal]
-  (terminal/in-terminal
-    terminal
-    (let [multi-liner "_234567890\r\n_bcdefghij\r\n1_34567890\r\na_cdefghij\r\n12_4567890\r\nab_defghij\r\n123_567890\r\nabc_efghij\r\n"
-          [cols rows] (terminal/get-size terminal)
-          scr (screen/get-screen :auto {:cols cols :rows rows})]
-      (terminal/put-string terminal (str "TERMINAL SIZE: " [cols rows]) 60 0)
-      (terminal/put-string terminal (str "  SCREEN SIZE: " (screen/get-size scr)) 60 1)
-      (terminal/put-string terminal multi-liner 1 1)
-      (put-boxed-string terminal multi-liner {:left 12 :top 12 :width 8 :height 31})
-      (terminal/get-key-blocking terminal))))
+;(defn test-printing [terminal]
+  ;(terminal/in-terminal
+    ;terminal
+    ;(let [multi-liner "_234567890\r\n_bcdefghij\r\n1_34567890\r\na_cdefghij\r\n12_4567890\r\nab_defghij\r\n123_567890\r\nabc_efghij\r\n"
+          ;[cols rows] (terminal/get-size terminal)
+          ;scr (screen/get-screen :auto {:cols cols :rows rows})]
+      ;(terminal/put-string terminal (str "TERMINAL SIZE: " [cols rows]) 60 0)
+      ;(terminal/put-string terminal (str "  SCREEN SIZE: " (screen/in-screen scr (screen/get-size scr))) 60 1)
+      ;(terminal/put-string terminal multi-liner 1 1)
+      ;(put-boxed-string terminal multi-liner {:left 12 :top 12 :width 8 :height 31})
+      ;(terminal/get-key-blocking terminal))))
+
+(defn block-on
+  ([func args] (block-on func args {}))
+  ([func args {:as opts
+               :keys [interval timeout]
+               :or {interval 50
+                    timeout Double/POSITIVE_INFINITY}}]
+   (loop [timeout timeout]
+     (when (pos? timeout)
+       (let [val (apply func args)]
+         (if (nil? val)
+           (do (Thread/sleep interval)
+               (recur (- timeout interval)))
+           val))))))
+
+(defn get-key
+  [screen]
+  (.getCharacter (.readInput screen)))
+
+(defn get-key-blocking
+  ([screen] (get-key-blocking screen {}))
+  ([screen {:keys [interval timeout] :as opts}]
+   (block-on get-key [screen] opts)))
 
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (let [terminal (terminal/get-terminal)]
-    (test-printing terminal)
-    (terminal/in-terminal
-      terminal
-      (loop [world-before (initialize-world items)]
-        (let [keycode (terminal/get-key-blocking terminal)
-              world-after (update-world world-before keycode)]
-          (render terminal world-after)
-          (when-not (= keycode \q) (recur world-after)))))))
+  (let [terminal (.createTerminal (DefaultTerminalFactory.))
+        screen (TerminalScreen. terminal)
+        tgs (.newTextGraphics screen)]
+    ;(test-printing terminal)
+    (.startScreen screen)
+    (loop [world-before (initialize-world items screen)]
+      (let [keycode (get-key-blocking screen)
+            world-after (update-world world-before keycode)]
+        (render screen world-after)
+        (when-not (= keycode \q) (recur world-after))))
+    (.stopScreen screen)))
 
