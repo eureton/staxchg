@@ -156,11 +156,11 @@
         top 6
         width (- (world :width) 2)
         height (- (world :height) top 1)]
-  (.drawRectangle
+  (.drawLine
     (.newTextGraphics screen)
     (TerminalPosition. (dec left) (dec top))
-    (TerminalSize. (+ 2 width) (+ 2 height))
-    \*)
+    (TerminalPosition. width (dec top))
+    \-)
   (put-bounded-string
     screen
     (get-in world [:questions (world :selected-question) "body_markdown"])
