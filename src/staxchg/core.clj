@@ -127,7 +127,8 @@
   [terminal s {:as args :keys [left top width height line-offset] :or {left 0 top 0 line-offset 0}}]
   (let [s-seq (seq s)
         s-plot (plot s-seq [left (- top line-offset)] args)
-        plotted-string (filter (fn [[c [x y]]] (>= y top)) (map vector s-seq s-plot))
+        within-bounds? (fn [[c [x y]]] (>= y top))
+        plotted-string (filter within-bounds? (map vector s-seq s-plot))
         graphics (.newTextGraphics terminal)]
     (.drawRectangle
       graphics
