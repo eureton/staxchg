@@ -187,12 +187,21 @@
       \J (assoc world :selected-question (inc selected-question))
       world)))
 
+(defn unescape-html [string]
+  (org.jsoup.parser.Parser/unescapeEntities string true))
+
+(defn scrub-question [question]
+  (reduce
+    #(assoc %1 %2 (unescape-html (%1 %2)))
+    question
+    ["title" "body_markdown"]))
+
 (defn initialize-world [items screen]
   (let [questions (items "items")
         size (.getTerminalSize screen)]
     {:line-offsets (->> questions (map #(% "question_id")) (reduce #(assoc %1 %2 0) {}))
      :selected-question 0
-     :questions questions
+     :questions (mapv scrub-question questions)
      :width (.getColumns size)
      :height (.getRows size)}))
 

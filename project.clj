@@ -6,7 +6,8 @@
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [clj-http "3.10.3"]
                  [cheshire "5.10.0"]
-                 [com.googlecode.lanterna/lanterna "3.0.4"]]
+                 [com.googlecode.lanterna/lanterna "3.0.4"]
+                 [org.jsoup/jsoup "1.7.3"]]
   :java-source-paths ["./java"]
   :repositories {"releases" {:url "https://clojars.org/repo"
                              :username :env
