@@ -196,29 +196,6 @@
       ;(put-bounded-string terminal multi-liner {:left 12 :top 12 :width 8 :height 31})
       ;(terminal/get-key-blocking terminal))))
 
-(defn block-on
-  ([func args] (block-on func args {}))
-  ([func args {:as opts
-               :keys [interval timeout]
-               :or {interval 50
-                    timeout Double/POSITIVE_INFINITY}}]
-   (loop [timeout timeout]
-     (when (pos? timeout)
-       (let [val (apply func args)]
-         (if (nil? val)
-           (do (Thread/sleep interval)
-               (recur (- timeout interval)))
-           val))))))
-
-(defn get-key
-  [screen]
-  (.getCharacter (.readInput screen)))
-
-(defn get-key-blocking
-  ([screen] (get-key-blocking screen {}))
-  ([screen {:keys [interval timeout] :as opts}]
-   (block-on get-key [screen] opts)))
-
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
@@ -228,7 +205,7 @@
     ;(test-printing terminal)
     (.startScreen screen)
     (loop [world-before (initialize-world items screen)]
-      (let [keycode (get-key-blocking screen)
+      (let [keycode (.getCharacter (.readInput screen))
             world-after (update-world world-before keycode)]
         (render screen world-after)
         (when-not (= keycode \q) (recur world-after))))
