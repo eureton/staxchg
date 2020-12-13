@@ -7,6 +7,7 @@
   (:import com.googlecode.lanterna.TextCharacter)
   (:import com.googlecode.lanterna.TerminalPosition)
   (:import com.googlecode.lanterna.TerminalSize)
+  (:import com.googlecode.lanterna.SGR)
   (:gen-class))
 
 (defn search-url [tags]
@@ -36,11 +37,13 @@
     items))
 
 (defn put-string
-  [screen x y s]
+  [screen x y s & mods]
   (let [x (int x)
         y (int y)
         graphics (.newTextGraphics screen)]
-    (.putString graphics x y s)))
+    (if (empty? mods) ; TODO: find a better solution
+      (.putString graphics x y s)
+      (.putString graphics x y s (vec mods)))))
 
 ; sample response for testing purposes
 (def items 
@@ -132,9 +135,18 @@
     (doseq [[c [x y]] plotted-string]
       (put-string terminal x y (str c)))))
 
+(defn question-index-to-list-y [index] (inc index))
+
 (defn render-question-list [terminal world]
   (doseq [[i q] (map-indexed vector (world :questions))]
-    (put-string terminal 1 (+ i 1) (q "title"))))
+    (put-string terminal 1 (question-index-to-list-y i) (q "title")))
+  (let [selected-question (world :selected-question)]
+    (put-string
+      terminal
+      1
+      (question-index-to-list-y selected-question)
+      (format (str "%-" (- (world :width) 2) "s") (get-in world [:questions selected-question "title"]))
+      SGR/REVERSE)))
 
 (defn selected-line-offset [world]
   ((world :line-offsets) (get-in (world :questions) [(world :selected-question) "question_id"])))
@@ -156,7 +168,8 @@
      :top top
      :width width
      :height height
-     :line-offset (selected-line-offset world)})))
+     :line-offset (selected-line-offset world)})
+  ))
 
 (defn render [screen world]
   (.clear screen)
