@@ -127,22 +127,22 @@
       (conj tail-plot [cx cy]))))
 
 (defn put-bounded-string
-  [terminal s {:as args :keys [left top width height line-offset] :or {left 0 top 0 line-offset 0}}]
+  [screen s {:as args :keys [left top width height line-offset] :or {left 0 top 0 line-offset 0}}]
   (let [s-seq (seq s)
         s-plot (plot s-seq [left (- top line-offset)] args)
         within-bounds? (fn [[c [x y]]] (>= y top))
         plotted-string (filter within-bounds? (map vector s-seq s-plot))]
     (doseq [[c [x y]] plotted-string]
-      (put-string terminal x y (str c)))))
+      (put-string screen x y (str c)))))
 
 (defn question-index-to-list-y [index] (inc index))
 
-(defn render-question-list [terminal world]
+(defn render-question-list [screen world]
   (doseq [[i q] (map-indexed vector (world :questions))]
-    (put-string terminal 1 (question-index-to-list-y i) (q "title")))
+    (put-string screen 1 (question-index-to-list-y i) (q "title")))
   (let [selected-question (world :selected-question)]
     (put-string
-      terminal
+      screen
       1
       (question-index-to-list-y selected-question)
       (format (str "%-" (- (world :width) 2) "s") (get-in world [:questions selected-question "title"]))
@@ -151,18 +151,18 @@
 (defn selected-line-offset [world]
   ((world :line-offsets) (get-in (world :questions) [(world :selected-question) "question_id"])))
 
-(defn render-selected-question [terminal world]
+(defn render-selected-question [screen world]
   (let [left 1
         top 6
         width (- (world :width) 2)
         height (- (world :height) top 1)]
   (.drawRectangle
-    (.newTextGraphics terminal)
+    (.newTextGraphics screen)
     (TerminalPosition. (dec left) (dec top))
     (TerminalSize. (+ 2 width) (+ 2 height))
     \*)
   (put-bounded-string
-    terminal
+    screen
     (get-in world [:questions (world :selected-question) "body_markdown"])
     {:left left
      :top top
