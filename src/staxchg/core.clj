@@ -123,18 +123,12 @@
                       :else (plot tail [(+ cx 1) cy] args))]
       (conj tail-plot [cx cy]))))
 
-(defn put-boxed-string
+(defn put-bounded-string
   [terminal s {:as args :keys [left top width height line-offset] :or {left 0 top 0 line-offset 0}}]
   (let [s-seq (seq s)
         s-plot (plot s-seq [left (- top line-offset)] args)
         within-bounds? (fn [[c [x y]]] (>= y top))
-        plotted-string (filter within-bounds? (map vector s-seq s-plot))
-        graphics (.newTextGraphics terminal)]
-    (.drawRectangle
-      graphics
-      (TerminalPosition. (dec left) (dec top))
-      (TerminalSize. (+ 2 width) (+ 2 height))
-      \*)
+        plotted-string (filter within-bounds? (map vector s-seq s-plot))]
     (doseq [[c [x y]] plotted-string]
       (put-string terminal x y (str c)))))
 
@@ -146,14 +140,23 @@
   ((world :line-offsets) (get-in (world :questions) [(world :selected-question) "question_id"])))
 
 (defn render-selected-question [terminal world]
-  (put-boxed-string
+  (let [left 1
+        top 6
+        width (- (world :width) 2)
+        height (- (world :height) top 1)]
+  (.drawRectangle
+    (.newTextGraphics terminal)
+    (TerminalPosition. (dec left) (dec top))
+    (TerminalSize. (+ 2 width) (+ 2 height))
+    \*)
+  (put-bounded-string
     terminal
     (get-in world [:questions (world :selected-question) "body_markdown"])
-    {:left 1
-     :top 6
-     :width (- (world :width) 2)
-     :height (- (world :height) 2)
-     :line-offset (selected-line-offset world)}))
+    {:left left
+     :top top
+     :width width
+     :height height
+     :line-offset (selected-line-offset world)})))
 
 (defn render [screen world]
   (.clear screen)
@@ -174,7 +177,7 @@
 (defn initialize-world [items screen]
   (let [questions (items "items")
         cols 120
-        rows 27]
+        rows 37]
     {:line-offsets (->> questions (map #(% "question_id")) (reduce #(assoc %1 %2 0) {}))
      :selected-question 0
      :questions questions
@@ -190,7 +193,7 @@
       ;(terminal/put-string terminal (str "TERMINAL SIZE: " [cols rows]) 60 0)
       ;(terminal/put-string terminal (str "  SCREEN SIZE: " (screen/in-screen scr (screen/get-size scr))) 60 1)
       ;(terminal/put-string terminal multi-liner 1 1)
-      ;(put-boxed-string terminal multi-liner {:left 12 :top 12 :width 8 :height 31})
+      ;(put-bounded-string terminal multi-liner {:left 12 :top 12 :width 8 :height 31})
       ;(terminal/get-key-blocking terminal))))
 
 (defn block-on
