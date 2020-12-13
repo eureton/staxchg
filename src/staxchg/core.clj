@@ -176,13 +176,12 @@
 
 (defn initialize-world [items screen]
   (let [questions (items "items")
-        cols 120
-        rows 37]
+        size (.getTerminalSize screen)]
     {:line-offsets (->> questions (map #(% "question_id")) (reduce #(assoc %1 %2 0) {}))
      :selected-question 0
      :questions questions
-     :width cols
-     :height rows}))
+     :width (.getColumns size)
+     :height (.getRows size)}))
 
 ;(defn test-printing [terminal]
   ;(terminal/in-terminal
