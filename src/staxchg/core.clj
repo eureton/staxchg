@@ -191,8 +191,12 @@
   (org.jsoup.parser.Parser/unescapeEntities string true))
 
 (defn scrub-question [question]
+  ;(->
+    ;question
+    ;(update "title" unescape-html)
+    ;(update "body_markdown" unescape-html)))
   (reduce
-    #(assoc %1 %2 (unescape-html (%1 %2)))
+    #(update %1 %2 unescape-html)
     question
     ["title" "body_markdown"]))
 
