@@ -5,6 +5,7 @@
   (:import com.googlecode.lanterna.terminal.DefaultTerminalFactory)
   (:import com.googlecode.lanterna.screen.TerminalScreen)
   (:import com.googlecode.lanterna.TextCharacter)
+  (:import com.googlecode.lanterna.TerminalTextUtils)
   (:import com.googlecode.lanterna.TerminalPosition)
   (:import com.googlecode.lanterna.TerminalSize)
   (:import com.googlecode.lanterna.SGR)
@@ -126,14 +127,34 @@
                       :else (plot tail [(+ cx 1) cy] args))]
       (conj tail-plot [cx cy]))))
 
+(defn categorize
+  [string-sequence {:keys [bold italic monospace code-block]}]
+  (map-indexed
+    (fn [i c]
+      (let [within? (fn [[from to]] (and (<= from i) (< i to)))]
+        (cond
+          (some within? bold) :bold
+          (some within? italic) :italic
+          (some within? monospace) :monospace
+          (some within? code-block) :code-block)))
+    string-sequence))
+
 (defn put-bounded-string
-  [screen s {:as args :keys [left top width height line-offset] :or {left 0 top 0 line-offset 0}}]
-  (let [s-seq (seq s)
-        s-plot (plot s-seq [left (- top line-offset)] args)
-        within-bounds? (fn [[c [x y]]] (>= y top))
-        plotted-string (filter within-bounds? (map vector s-seq s-plot))]
-    (doseq [[c [x y]] plotted-string]
-      (put-string screen x y (str c)))))
+  [screen
+   string
+   markdown-info
+   {:as args :keys [left top width height line-offset] :or {left 0 top 0 line-offset 0}}]
+  (let [string-sequence (seq string)
+        plot (plot string-sequence [left (- top line-offset)] args)
+        clipped? (fn [[_ [x y] _]] (< y top))
+        categories (categorize string-sequence markdown-info)
+        annotated-string (remove clipped? (map vector string-sequence plot categories))
+        graphics (.newTextGraphics screen)]
+    (doseq [[character [x y] category] annotated-string]
+      (when-not (TerminalTextUtils/isControlCharacter character)
+        (if (= category :bold)
+          (.setCharacter graphics x y (.withModifier (TextCharacter. character) SGR/BOLD))
+          (.setCharacter graphics x y character))))))
 
 (defn question-index-to-list-y [index] (inc index))
 
@@ -155,7 +176,8 @@
   (let [left 1
         top 6
         width (- (world :width) 2)
-        height (- (world :height) top 1)]
+        height (- (world :height) top 1)
+        selected-question (get-in world [:questions (world :selected-question)])]
   (.drawLine
     (.newTextGraphics screen)
     (TerminalPosition. (dec left) (dec top))
@@ -163,7 +185,8 @@
     \-)
   (put-bounded-string
     screen
-    (get-in world [:questions (world :selected-question) "body_markdown"])
+    (selected-question "body_markdown")
+    (get-in world [:markdown-info (selected-question "question_id")])
     {:left left
      :top top
      :width width
@@ -191,35 +214,36 @@
   (org.jsoup.parser.Parser/unescapeEntities string true))
 
 (defn scrub-question [question]
-  ;(->
-    ;question
-    ;(update "title" unescape-html)
-    ;(update "body_markdown" unescape-html)))
   (reduce
     #(update %1 %2 unescape-html)
     question
     ["title" "body_markdown"]))
 
+(defn regions [s re]
+  (let [matcher (.matcher re s)]
+    (loop [coordinates []]
+      (if (.find matcher)
+        (recur (conj coordinates [(.start matcher 1) (.end matcher 1)]))
+        coordinates))))
+
+(defn parse-markdown [s]
+  (reduce
+    (fn [aggregator [category pattern]] (assoc aggregator category (regions s pattern)))
+    {}
+    [[:bold #"[^*](\*\*[^*]+\*\*)[^*]"]
+     [:italic #"[^*](\*[^*]+\*)[^*]"]
+     [:monospace #"[^`](`[^`]+`)[^`]"]
+     [:code-block #"[^`](```[^`]+```)[^`]"]]))
+
 (defn initialize-world [items screen]
-  (let [questions (items "items")
+  (let [questions (mapv scrub-question (items "items"))
         size (.getTerminalSize screen)]
     {:line-offsets (->> questions (map #(% "question_id")) (reduce #(assoc %1 %2 0) {}))
      :selected-question 0
-     :questions (mapv scrub-question questions)
+     :questions questions
+     :markdown-info (->> questions (reduce #(assoc %1 (%2 "question_id") (parse-markdown (%2 "body_markdown"))) {}))
      :width (.getColumns size)
      :height (.getRows size)}))
-
-;(defn test-printing [terminal]
-  ;(terminal/in-terminal
-    ;terminal
-    ;(let [multi-liner "_234567890\r\n_bcdefghij\r\n1_34567890\r\na_cdefghij\r\n12_4567890\r\nab_defghij\r\n123_567890\r\nabc_efghij\r\n"
-          ;[cols rows] (terminal/get-size terminal)
-          ;scr (screen/get-screen :auto {:cols cols :rows rows})]
-      ;(terminal/put-string terminal (str "TERMINAL SIZE: " [cols rows]) 60 0)
-      ;(terminal/put-string terminal (str "  SCREEN SIZE: " (screen/in-screen scr (screen/get-size scr))) 60 1)
-      ;(terminal/put-string terminal multi-liner 1 1)
-      ;(put-bounded-string terminal multi-liner {:left 12 :top 12 :width 8 :height 31})
-      ;(terminal/get-key-blocking terminal))))
 
 (defn -main
   "I don't do a whole lot ... yet."
@@ -227,7 +251,6 @@
   (let [terminal (.createTerminal (DefaultTerminalFactory.))
         screen (TerminalScreen. terminal)
         tgs (.newTextGraphics screen)]
-    ;(test-printing terminal)
     (.startScreen screen)
     (loop [world-before (initialize-world items screen)]
       (let [keycode (.getCharacter (.readInput screen))
