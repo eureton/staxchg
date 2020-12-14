@@ -2,6 +2,7 @@
   (:require [clojure.string :as string])
   (:require [clj-http.client :as http])
   (:require [cheshire.core :as ccore])
+  (:require [staxchg.markdown :as markdown])
   (:import com.googlecode.lanterna.terminal.DefaultTerminalFactory)
   (:import com.googlecode.lanterna.screen.TerminalScreen)
   (:import com.googlecode.lanterna.TextCharacter)
@@ -127,20 +128,6 @@
                       :else (plot tail [(+ cx 1) cy] args))]
       (conj tail-plot [cx cy]))))
 
-(defn categorize
-  [string-sequence markdown-info]
-  (map-indexed
-    (fn [i c]
-      (let [within? (fn [[from to]] (and (<= from i) (< i to)))]
-        (reduce
-          (fn [aggregator [category ranges]]
-            (if (some within? ranges)
-              (conj aggregator category)
-              aggregator))
-          #{}
-          markdown-info)))
-    string-sequence))
-
 (defn put-bounded-string
   [screen
    string
@@ -149,7 +136,7 @@
   (let [string-sequence (seq string)
         plot (plot string-sequence [left (- top line-offset)] args)
         clipped? (fn [[_ [x y] _]] (< y top))
-        categories (categorize string-sequence markdown-info)
+        categories (->> string count range (map (partial markdown/categories markdown-info)))
         annotated-string (remove clipped? (map vector string-sequence plot categories))
         graphics (.newTextGraphics screen)]
     (doseq [[character [x y] categories] annotated-string]
@@ -158,12 +145,9 @@
           graphics
           x
           y
-          (reduce
-            #(cond
-               (= %2 :bold) (.withModifier %1 SGR/BOLD)
-               (= %2 :italic) (.withModifier %1 SGR/REVERSE))
-            (TextCharacter. character)
-            categories))))))
+          (markdown/decorate (TextCharacter. character) categories
+                          :bold #(.withModifier % SGR/BOLD)
+                          :italic #(.withModifier % SGR/REVERSE)))))))
 
 (defn question-index-to-list-y [index] (inc index))
 
@@ -228,29 +212,13 @@
     question
     ["title" "body_markdown"]))
 
-(defn regions [s re]
-  (let [matcher (.matcher re s)]
-    (loop [coordinates []]
-      (if (.find matcher)
-        (recur (conj coordinates [(.start matcher 1) (.end matcher 1)]))
-        coordinates))))
-
-(defn parse-markdown [s]
-  (reduce
-    (fn [aggregator [category pattern]] (assoc aggregator category (regions s pattern)))
-    {}
-    [[:bold #"[^*](\*\*[^*]+\*\*)[^*]"]
-     [:italic #"[^*](\*[^*]+\*)[^*]"]
-     [:monospace #"[^`](`[^`]+`)[^`]"]
-     [:code-block #"[^`](```[^`]+```)[^`]"]]))
-
 (defn initialize-world [items screen]
   (let [questions (mapv scrub-question (items "items"))
         size (.getTerminalSize screen)]
     {:line-offsets (->> questions (map #(% "question_id")) (reduce #(assoc %1 %2 0) {}))
      :selected-question 0
      :questions questions
-     :markdown-info (->> questions (reduce #(assoc %1 (%2 "question_id") (parse-markdown (%2 "body_markdown"))) {}))
+     :markdown-info (->> questions (reduce #(assoc %1 (%2 "question_id") (markdown/parse (%2 "body_markdown"))) {}))
      :width (.getColumns size)
      :height (.getRows size)}))
 
