@@ -103,7 +103,7 @@
                        "is_accepted" false,
                        "score" 3,
                        "last_activity_date" 1593639763,
-                       "body_markdown" "This flowchart is still good advice, nine years later: https://cemerick.com/2011/07/05/flowchart-for-choosing-the-right-clojure-type-definition-form/\r\n\r\nMy rule of thumb is: always use plain hash maps until you really need polymorphism and then decide whether you want multi-methods (dispatch on one or more arguments/attributes) or protocols (dispatch on just the type)."}
+                       "body_Markdown" "This flowchart is still good advice, nine years later: https://cemerick.com/2011/07/05/flowchart-for-choosing-the-right-clojure-type-definition-form/\r\n\r\nMy rule of thumb is: always use plain hash maps until you really need polymorphism and then decide whether you want multi-methods (dispatch on one or more arguments/attributes) or protocols (dispatch on just the type)."}
                       {"owner" {"reputation" 22606, "display_name" "Alan Thompson"},
                        "is_accepted" false,
                        "score" 1,
@@ -128,14 +128,14 @@
                       :else (plot tail [(+ cx 1) cy] args))]
       (conj tail-plot [cx cy]))))
 
-(defn put-bounded-string
+(defn put-markdown
   [screen
    string
-   markdown-info
    {:as args :keys [left top width height line-offset] :or {left 0 top 0 line-offset 0}}]
   (let [string-sequence (seq string)
         plot (plot string-sequence [left (- top line-offset)] args)
         clipped? (fn [[_ [x y] _]] (< y top))
+        markdown-info (markdown/parse string)
         categories (->> string count range (map (partial markdown/categories markdown-info)))
         annotated-string (remove clipped? (map vector string-sequence plot categories))
         graphics (.newTextGraphics screen)]
@@ -176,10 +176,9 @@
     (TerminalPosition. (dec left) (dec top))
     (TerminalPosition. width (dec top))
     \-)
-  (put-bounded-string
+  (put-markdown
     screen
     (selected-question "body_markdown")
-    (get-in world [:markdown-info (selected-question "question_id")])
     {:left left
      :top top
      :width width
@@ -218,7 +217,6 @@
     {:line-offsets (->> questions (map #(% "question_id")) (reduce #(assoc %1 %2 0) {}))
      :selected-question 0
      :questions questions
-     :markdown-info (->> questions (reduce #(assoc %1 (%2 "question_id") (markdown/parse (%2 "body_markdown"))) {}))
      :width (.getColumns size)
      :height (.getRows size)}))
 
