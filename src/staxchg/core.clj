@@ -131,7 +131,13 @@
 (defn put-markdown
   [screen
    string
-   {:as args :keys [left top width height line-offset] :or {left 0 top 0 line-offset 0}}]
+   {:as args
+    :keys [left top width height line-offset]
+    :or {left 0
+         top 0
+         width (->> screen .getTerminalSize .getColumns)
+         height (->> screen .getTerminalSize .getRows)
+         line-offset 0}}]
   (let [string-sequence (seq string)
         plot (plot string-sequence [left (- top line-offset)] args)
         clipped? (fn [[_ [x y] _]] (< y top))
