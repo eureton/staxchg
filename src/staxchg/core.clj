@@ -60,7 +60,7 @@
                        "last_activity_date" 1607675799,
                        "body_markdown" "Least square method is also called linear regression.\r\nIn Python you use `numpy` and `scikitlearn` (`sklearn`).\r\nIn Cloure, you can use `incanter`.\r\n\r\n## Python linear regression\r\n```\r\nimport numpy as np\r\nfrom sklearn.linear_model import LinearRegression\r\n\r\nx = np.array([1, 2, 3, 4, 5]).reshape((-1, 1))\r\ny = np.array([5, 9 11, 20, 24])\r\nmodel = LinearRegression().fit(x, y)\r\nr_sq = model.score(x, y) ## 0.9573365231259968\r\n(model.intercept_, model.coef_[0])\r\n# (-0.8999999999999986, 4.8999999999999995)\r\n```\r\n## Clojure linear regression\r\n```\r\n;; I install with:\r\n;; $ lein try incanter &quot;1.9.3&quot;\r\n\r\n;; basic linear regression with `incanter`\r\n(ns linreg\r\n  (:use [incanter.charts :only [histogram scatter-plot pie-chart add-points add-lines]]\r\n        [incanter.core :only [view]]\r\n        [incanter.stats :only [sample-normal linear-model]]))\r\n\r\n(def x [1 2 3 4 5])\r\n(def y [5 9 11 20 24])\r\n;; linear regression\r\n(def model (linear-model y x))\r\n;; this plots the regression\r\n(view (add-lines (scatter-plot x y) \r\n                 x (:fitted model)))\r\n\r\n(:coefs model)\r\n;; =&gt; (-0.8999999999999915 4.900000000000002)\r\n(:r-square model)\r\n;; =&gt; 0.9573365231259969\r\n```\r\n[![This is the plot incanter plotted][1]][1]\r\n\r\n  [1]: https://i.stack.imgur.com/rQ7Cm.png\r\n\r\n`model` contains much more infos:\r\n```\r\n{:y [5 9 11 20 24], \r\n:sse 10.7, \r\n:msr 240.1000000000002, \r\n:design-matrix #vectorz/array [[1.0,1.0],[1.0,2.0],[1.0,3.0],[1.0,4.0],[1.0,5.0]], \r\n:mse 3.5666666666666664, \r\n:t-probs [0.6804197120333224 0.003789007903698405], \r\n:adj-r-square 0.9146730462519939, \r\n:df [1 3], \r\n:coef-var #vectorz/matrix [[3.9233333333333333,-1.0699999999999998],\r\n[-1.0699999999999998,0.3566666666666667]], \r\n:residuals (0.9999999999999893 0.09999999999998721 -2.800000000000015 1.299999999999983 0.3999999999999808), \r\n:ssr 240.1000000000002, \r\n:sst 250.80000000000018, \r\n:coefs (-0.8999999999999915 4.900000000000002), \r\n:f-stat 67.31775700934585, \r\n:r-square 0.9573365231259969, \r\n:f-prob 0.0037890079036982938, \r\n:t-tests [-0.4543754992377534 8.204739911133434], \r\n:x #vectorz/array [[1.0,1.0],[1.0,2.0],[1.0,3.0],[1.0,4.0],[1.0,5.0]], \r\n:std-errors #vectorz/vector [1.980740602232744,0.5972157622389639], \r\n:fitted (4.000000000000011 8.900000000000013 13.800000000000015 18.700000000000017 23.60000000000002), \r\n:coefs-ci ((-7.203539087942197 5.403539087942214) (2.999411453996058 6.800588546003946))}\r\n```"}],
            "title" "Can&#39;t find least square function in Clojure",
-           "body_markdown" "Can&#39;t find least square function in Clojure. I try to translate the following python code into Clojure. However, I don&#39;t see any function that is similar in Clojure. Please feel fee to comment how to implement least square in Clojure.\r\n\r\n**problem statement; how to translate into clojure?**\r\n&gt; **p_lsq = leastsq(residuals_func, p_init, args=(x, y))**\r\n\r\n\r\n**List of code (Python)**\r\n\r\n        def fit_func(p, x):\r\n            f = np.poly1d(p)\r\n            return f(x)\r\n    \r\n        def residuals_func(p, x, y):\r\n            ret = fit_func(p, x) - y\r\n            return ret\r\n    \r\n        p_init = np.random.rand(3 + 1)\r\n\r\n        # least square\r\n        p_lsq = leastsq(residuals_func, p_init, args=(x, y))\r\n\r\n        print(&#39;Fitting Parameters:&#39;, p_lsq[0])\r\n\r\n**List of code (Clojure)**\r\n\r\n    (defn horner [coeffs x]\r\n      (reduce #(-&gt; %1 (* x) (+ %2)) (reverse coeffs)))\r\n    \r\n    (defn fit_func [p x]\r\n      (horner p x))\r\n    \r\n    (defn residuals_func [p x y]\r\n      (let [ret (- (fit_func p x) y)]))\r\n    \r\n    (def p_init (take 4 (repeatedly #(rand 0.1))))\r\n    ;; least square\r\n    ;; Can&#39;t find similar function in clojure\r\n    ;; p_lsq = leastsq(residuals_func, p_init, args=(x, y))\r\n    ;;\r\n    (println (first p_lsq))\r\n\r\n\r\n"}
+           "body_markdown" "Can&#39;t find least square function in Clojure. I try to translate the following python code into Clojure. However, I don&#39;t see *any* function that is similar in Clojure. Please feel fee to comment how to implement least square in Clojure.\r\n\r\n**problem statement; how to translate into clojure?**\r\n&gt; **p_lsq = leastsq(residuals_func, p_init, args=(x, y))**\r\n\r\n\r\n**List of code (Python)**\r\n\r\n        def fit_func(p, x):\r\n            f = np.poly1d(p)\r\n            return f(x)\r\n    \r\n        def residuals_func(p, x, y):\r\n            ret = fit_func(p, x) - y\r\n            return ret\r\n    \r\n        p_init = np.random.rand(3 + 1)\r\n\r\n        # least square\r\n        p_lsq = leastsq(residuals_func, p_init, args=(x, y))\r\n\r\n        print(&#39;Fitting Parameters:&#39;, p_lsq[0])\r\n\r\n**List of code (Clojure)**\r\n\r\n    (defn horner [coeffs x]\r\n      (reduce #(-&gt; %1 (* x) (+ %2)) (reverse coeffs)))\r\n    \r\n    (defn fit_func [p x]\r\n      (horner p x))\r\n    \r\n    (defn residuals_func [p x y]\r\n      (let [ret (- (fit_func p x) y)]))\r\n    \r\n    (def p_init (take 4 (repeatedly #(rand 0.1))))\r\n    ;; least square\r\n    ;; Can&#39;t find similar function in clojure\r\n    ;; p_lsq = leastsq(residuals_func, p_init, args=(x, y))\r\n    ;;\r\n    (println (first p_lsq))\r\n\r\n\r\n"}
           {"tags" ["clojure" "read-eval-print-loop"],
            "owner" {"reputation" 435, "display_name" "FunkyBaby"},
            "view_count" 16,
@@ -128,15 +128,17 @@
       (conj tail-plot [cx cy]))))
 
 (defn categorize
-  [string-sequence {:keys [bold italic monospace code-block]}]
+  [string-sequence markdown-info]
   (map-indexed
     (fn [i c]
       (let [within? (fn [[from to]] (and (<= from i) (< i to)))]
-        (cond
-          (some within? bold) :bold
-          (some within? italic) :italic
-          (some within? monospace) :monospace
-          (some within? code-block) :code-block)))
+        (reduce
+          (fn [aggregator [category ranges]]
+            (if (some within? ranges)
+              (conj aggregator category)
+              aggregator))
+          #{}
+          markdown-info)))
     string-sequence))
 
 (defn put-bounded-string
@@ -150,11 +152,18 @@
         categories (categorize string-sequence markdown-info)
         annotated-string (remove clipped? (map vector string-sequence plot categories))
         graphics (.newTextGraphics screen)]
-    (doseq [[character [x y] category] annotated-string]
+    (doseq [[character [x y] categories] annotated-string]
       (when-not (TerminalTextUtils/isControlCharacter character)
-        (if (= category :bold)
-          (.setCharacter graphics x y (.withModifier (TextCharacter. character) SGR/BOLD))
-          (.setCharacter graphics x y character))))))
+        (.setCharacter
+          graphics
+          x
+          y
+          (reduce
+            #(cond
+               (= %2 :bold) (.withModifier %1 SGR/BOLD)
+               (= %2 :italic) (.withModifier %1 SGR/REVERSE))
+            (TextCharacter. character)
+            categories))))))
 
 (defn question-index-to-list-y [index] (inc index))
 
