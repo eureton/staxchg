@@ -117,17 +117,42 @@
  "quota_remaining" 204})
 
 (defn plot
-  [s [cx cy] {:as args :keys [left top width height] :or {left 0 top 0}}]
-  (if (or (empty? s) (>= cy (+ top height)))
+  [string-sequence
+   [x y]
+   {:as args
+    :keys [left top width height]
+    :or {left 0 top 0}}]
+  (if (or (empty? string-sequence) (>= y (+ top height)))
     '()
-    (let [head (first s)
-          tail (rest s)
+    (let [head (first string-sequence)
+          tail (rest string-sequence)
           tail-plot (cond
-                      (= \return head) (plot tail [left cy] args)
-                      (= \newline head) (plot tail [cx (+ cy 1)] args)
-                      (>= (+ cx 1) (+ left width)) (plot tail [left (+ cy 1)] args)
-                      :else (plot tail [(+ cx 1) cy] args))]
-      (conj tail-plot [cx cy]))))
+                      (= \return head) (plot tail [left y] args)
+                      (= \newline head) (plot tail [x (inc y)] args)
+                      :else (plot tail [(inc x) y] args))]
+      (conj tail-plot [x y]))))
+
+(defn reflow
+  [string-sequence
+   [x y]
+   {:as args
+    :keys [left top width height]
+    :or {left 0 top 0}}]
+  (if (or (empty? string-sequence) (>= y (+ top height)))
+    '()
+    (let [head (first string-sequence)
+          tail (rest string-sequence)
+          delta-space (or (string/index-of (string/join tail) \space) (count tail))
+          delta-eol (- (+ left width) 1 x)
+          break? (and
+                   (contains? #{\t \space} head)
+                   (some? delta-space)
+                   (< delta-eol delta-space))]
+      (cond
+        (= \return head) (conj (reflow tail [left y] args) head)
+        (= \newline head) (conj (reflow tail [x (inc y)] args) head)
+        break? (conj (reflow tail [left (inc y)] args) \newline \return)
+        :else (conj (reflow tail [(inc x) y] args) head)))))
 
 (defn put-markdown
   [screen
@@ -139,11 +164,11 @@
          width (->> screen .getTerminalSize .getColumns)
          height (->> screen .getTerminalSize .getRows)
          line-offset 0}}]
-  (let [string-sequence (seq string)
+  (let [string-sequence (-> string seq (reflow [left (- top line-offset)] args))
         plot (plot string-sequence [left (- top line-offset)] args)
         clipped? (fn [[_ [x y] _]] (< y top))
-        markdown-info (markdown/parse string)
-        categories (->> string count range (map (partial markdown/categories markdown-info)))
+        markdown-info (markdown/parse (string/join string-sequence))
+        categories (->> string-sequence string/join count range (map (partial markdown/categories markdown-info)))
         annotated-string (remove clipped? (map vector string-sequence plot categories))
         graphics (.newTextGraphics screen)]
     (doseq [[character [x y] categories] annotated-string]
@@ -183,7 +208,7 @@
   (.drawLine
     (.newTextGraphics screen)
     (TerminalPosition. (dec left) (dec top))
-    (TerminalPosition. width (dec top))
+    (TerminalPosition. (+ left width 1) (dec top))
     \-)
   (put-markdown
     screen
