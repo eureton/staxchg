@@ -6,6 +6,7 @@
   (:import com.googlecode.lanterna.terminal.DefaultTerminalFactory)
   (:import com.googlecode.lanterna.screen.TerminalScreen)
   (:import com.googlecode.lanterna.TextCharacter)
+  (:import com.googlecode.lanterna.TextColor$ANSI)
   (:import com.googlecode.lanterna.TerminalTextUtils)
   (:import com.googlecode.lanterna.TerminalPosition)
   (:import com.googlecode.lanterna.TerminalSize)
@@ -153,7 +154,9 @@
           y
           (markdown/decorate (TextCharacter. character) categories
                           :bold #(.withModifier % SGR/BOLD)
-                          :italic #(.withModifier % SGR/REVERSE)))))))
+                          :italic #(.withModifier % SGR/REVERSE)
+                          :monospace #(.withForegroundColor % TextColor$ANSI/GREEN)
+                          :code-block #(.withForegroundColor % TextColor$ANSI/GREEN)))))))
 
 (defn question-index-to-list-y [index] (inc index))
 
