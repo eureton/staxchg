@@ -241,9 +241,11 @@
 
 (defn scrub-question [question]
   (reduce
-    #(update %1 %2 unescape-html)
+    (fn [h [k f]] (update h k f))
     question
-    ["title" "body_markdown"]))
+    [["title" unescape-html]
+     ["body_markdown" unescape-html]
+     ["answers" (fn [answers] (map #(update % "body_markdown" unescape-html)) answers)]]))
 
 (defn initialize-world [items screen]
   (let [questions (mapv scrub-question (items "items"))
