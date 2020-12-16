@@ -104,55 +104,88 @@
                        "is_accepted" false,
                        "score" 3,
                        "last_activity_date" 1593639763,
-                       "body_Markdown" "This flowchart is still good advice, nine years later: https://cemerick.com/2011/07/05/flowchart-for-choosing-the-right-clojure-type-definition-form/\r\n\r\nMy rule of thumb is: always use plain hash maps until you really need polymorphism and then decide whether you want multi-methods (dispatch on one or more arguments/attributes) or protocols (dispatch on just the type)."}
+                       "body_markdown" "This flowchart is still good advice, nine years later: https://cemerick.com/2011/07/05/flowchart-for-choosing-the-right-clojure-type-definition-form/\r\n\r\nMy rule of thumb is: always use plain hash maps until you really need polymorphism and then decide whether you want multi-methods (dispatch on one or more arguments/attributes) or protocols (dispatch on just the type)."}
                       {"owner" {"reputation" 22606, "display_name" "Alan Thompson"},
                        "is_accepted" false,
                        "score" 1,
                        "last_activity_date" 1593643524,
-                       "body_markdown" "To Sean&#39;s excellent answer, I would only add that records can slow down iterative development, especially using a tool like `lein-test-refresh` or similar. \r\n\r\nRecords form a separate Java class, and must be recompiled upon every change, which can slow down the iteration cycle.\r\n\r\nIn addition, recompilation breaks comparison with still-existing record objects, since the recompiled object (even if there are not changes!) will not be `=` to the original since it has a different class file.  As an example, suppose you have a `Point` record:\r\n\r\n    (defrecord Point [x y])\r\n    \r\n    (def p (-&gt;Point 1 2)) ; in file ppp.clj\r\n    (def q (-&gt;Point 1 2)) ; in file qqq.clj\r\n    \r\n    (is (= p q)) ; in a unit test\r\n\r\nIf file `ppp.clj` gets recompiled, it generates a new `Point` class with a different &quot;ID&quot; value than before.  Since records must have the same type AND values to be considered equal, the unit test will fail even though both are of type `Point` and both have values `[1 2]`.  This is an unintended pain point when using records.\r\n\r\n\r\n"}],
+                       "body_markdown" "To Sean&#39;s excellent answer, I would only add that records can slow down iterative development, especially using a tool like `lein-test-refresh` or similar. \r\n\r\nRecords form a separate Java class, and must be recompiled upon every change, which can slow down the iteration cycle.\r\n\r\nIn addition, recompilation breaks comparison with still-existing record objects, since the recompiled object (even if there are not changes!) will not be `=` to the original since it has a different class file.  As an example, suppose you have a `Point` record:\r\n\r\n    (defrecord Point [x y])\r\n    \r\n    (def p (-&gt;Point 1 2)) ; in file ppp.clj\r\n    (def q (-&gt;Point 1 2)) ; in file qqq.clj\r\n    \r\n    (is (= p q)) ; in a unit test\r\n\r\nIf file `ppp.clj` gets recompiled, it generates a new `Point` class with a different &quot;ID&quot; value than before.  Since records must have the same type AND values to be considered equal, the unit test will fail even though both are of type `Point` and both have values `[1 2]`.  This is an unintended pain point when using records.\r\n\r\n\r\n"}
+                      {"owner" {"reputation" 22606, "display_name" "Alan Thompson"},
+                       "is_accepted" false,
+                       "score" 1,
+                       "last_activity_date" 1593643524,
+                       "body_markdown" "Whoopsie!\r\nHello!\r\nI AM ALIVE\r\nBye!"}],
            "title" "Clojure - What&#39;s the benefit of Using Records Over Maps",
            "body_markdown" "I&#39;m having a hard time deciding when using ````defrecord```` is the right choice and more broadly if my use of protocols on my records is semantic clojure and functional. \r\n\r\nIn my current project I&#39;m building a game that has different types of enemies that all have the same set of actions, where those actions might be implemented differently. \r\n\r\nComing from an OOP background, I&#39;m tempted to do something like: \r\n\r\n````\r\n(defprotocol Enemy\r\n  &quot;Defines base function of an Enemy&quot;\r\n  (attack [this] &quot;attack function&quot;))\r\n\r\n(extend-protocol Enemy\r\n  Orc\r\n  (attack [_] &quot;Handles an orc attack&quot;)  \r\n  Troll\r\n  (attack [_] &quot;Handles a Troll attack&quot;))\r\n\r\n\r\n\r\n(defrecord Orc [health attackPower defense])\r\n(defrecord Troll [health attackPower defense])\r\n\r\n(def enemy (Orc. 1 20 3))\r\n(def enemy2 (Troll. 1 20 3))\r\n\r\n(println (attack enemy))\r\n; handles an orc attack\r\n\r\n(println (attack enemy2))\r\n;handles a troll attack\r\n\r\n````\r\n\r\nThis looks like it makes sense on the surface. I want every enemy to always have an attack method, but the actual implementation of that should be able to vary on the particular enemy. Using the ````extend-protocol```` I&#39;m able to create efficient dispatch of the methods that vary on my enemies, and I can easily add new enemy types as well as change the functionally on those types. \r\n\r\nThe problem I&#39;m having is why should I use a record over a generic map? The above feels a bit to OOP to me, and seems like I&#39;m going against a more functional style. So, my question is broken into two:\r\n\r\n 1. Is my above implementation of records and protocols a sound use case?\r\n 2. More generically, when is a record preferred over a map? I&#39;ve read you should favor records when you&#39;re re-building the same map multiple times (as I would be in this case). Is that logic sound? \r\n\r\n"}],
  "has_more" true,
  "quota_max" 300,
  "quota_remaining" 204})
 
+(defn slice [string width]
+  (let [length (count string)]
+    (->>
+      string
+      count
+      (* (/ 1 width))
+      Math/ceil
+      int
+      (max 1)
+      range
+      (map #(subs
+              string
+              (* % width)
+              (min length (* (inc %) width)))))))
+
 (defn plot
-  [string-sequence
-   [x y]
-   {:as args
-    :keys [left top width height]
-    :or {left 0 top 0}}]
-  (if (or (empty? string-sequence) (>= y (+ top height)))
-    '()
-    (let [head (first string-sequence)
-          tail (rest string-sequence)
-          tail-plot (cond
-                      (= \return head) (plot tail [left y] args)
-                      (= \newline head) (plot tail [x (inc y)] args)
-                      :else (plot tail [(inc x) y] args))]
-      (conj tail-plot [x y]))))
+  "Returns a sequence of pairs consisting of:
+    * the characters of the given string
+    * the [x y] coordinates of each character"
+  [string
+   {:keys [left top width height]
+    :or {height -1}}]
+  (let [lines (string/split-lines string)
+        truncate #(take (if (= -1 height) (count %) height) %)]
+    (map
+      vector
+      (seq (string/join lines))
+      (->>
+        lines
+        (map #(slice % width))
+        flatten
+        truncate
+        (map count)
+        (map-indexed (fn [index length]
+                       (->>
+                         length
+                         range
+                         (map #(vector (+ % left) (+ index top))))))
+        (reduce concat)))))
+
+(defn pack [string width]
+  (if (->> string count (>= width))
+    [string]
+    (reduce
+      (fn [aggregator word]
+        (let [previous (last aggregator)]
+          (if (<= (+ (count previous) (count word) 1) width)
+            (conj (pop aggregator) (string/join \space (remove string/blank? [previous word])))
+            (conj aggregator word))))
+      [""]
+      (string/split string #" "))))
 
 (defn reflow
-  [string-sequence
-   [x y]
-   {:as args
-    :keys [left top width height]
-    :or {left 0 top 0}}]
-  (if (or (empty? string-sequence) (>= y (+ top height)))
-    '()
-    (let [head (first string-sequence)
-          tail (rest string-sequence)
-          delta-space (or (string/index-of (string/join tail) \space) (count tail))
-          delta-eol (- (+ left width) 1 x)
-          break? (and
-                   (contains? #{\t \space} head)
-                   (some? delta-space)
-                   (< delta-eol delta-space))]
-      (cond
-        (= \return head) (conj (reflow tail [left y] args) head)
-        (= \newline head) (conj (reflow tail [x (inc y)] args) head)
-        break? (conj (reflow tail [left (inc y)] args) \newline \return)
-        :else (conj (reflow tail [(inc x) y] args) head)))))
+  ""
+  [string
+   {:keys [width height]
+    :or {height -1}}]
+  (let [truncate #(take (if (= -1 height) (count %) height) %)]
+    (->>
+      string
+      string/split-lines
+      (map #(pack % width))
+      flatten
+      truncate
+      (string/join "\r\n"))))
 
 (defn put-markdown
   [screen
@@ -164,12 +197,12 @@
          width (->> screen .getTerminalSize .getColumns)
          height (->> screen .getTerminalSize .getRows)
          line-offset 0}}]
-  (let [string-sequence (-> string seq (reflow [left (- top line-offset)] args))
-        plot (plot string-sequence [left (- top line-offset)] args)
-        clipped? (fn [[_ [x y] _]] (< y top))
-        markdown-info (markdown/parse (string/join string-sequence))
-        categories (->> string-sequence string/join count range (map (partial markdown/categories markdown-info)))
-        annotated-string (remove clipped? (map vector string-sequence plot categories))
+  (let [reflowed (reflow string {:width width})
+        plot (plot reflowed {:left left :top (- top line-offset) :width width})
+        clipped? (fn [[_ [_ y] _]] (or (< y top) (> y (+ top height))))
+        markdown-info (->> plot (map first) string/join markdown/parse)
+        categories (->> plot count range (map (partial markdown/categories markdown-info)))
+        annotated-string (remove clipped? (map conj plot categories))
         graphics (.newTextGraphics screen)]
     (doseq [[character [x y] categories] annotated-string]
       (when-not (TerminalTextUtils/isControlCharacter character)
@@ -181,7 +214,14 @@
                           :bold #(.withModifier % SGR/BOLD)
                           :italic #(.withModifier % SGR/REVERSE)
                           :monospace #(.withForegroundColor % TextColor$ANSI/GREEN)
-                          :code-block #(.withForegroundColor % TextColor$ANSI/GREEN)))))))
+                          :code-block #(.withForegroundColor % TextColor$ANSI/GREEN))))
+                          )))
+
+(defn line-count
+  [string width]
+  (let [reflowed (reflow string {:width width})
+        plot (plot reflowed {:left 0 :top 0 :width width})]
+    (inc (- (->> plot last second second) (->> plot first second second)))))
 
 (defn question-index-to-list-y [index] (inc index))
 
@@ -216,14 +256,64 @@
     {:left left
      :top top
      :width width
-     :height height
-     :line-offset (selected-line-offset world)})
-  ))
+     :height (- height 0)
+     :line-offset (selected-line-offset world)})))
+
+(defn render-questions-pane [screen world]
+  (render-question-list screen world)
+  (render-selected-question screen world))
+
+(defn render-active-question [screen world]
+  (put-string
+    screen
+    1
+    0
+    (get-in world [:questions (world :selected-question) "title"])
+    SGR/REVERSE))
+
+(defn render-answers [screen world]
+  (let [left 1
+        top 1
+        width (- (world :width) 2)
+        height (- (world :height) top 1)
+        answers (get-in world [:questions (world :selected-question) "answers"])
+        answer-count (count answers)]
+    (loop [index 0 y top]
+      (when (and
+              (< y (+ top height))
+              (< index answer-count))
+        (let [answer (get answers index)
+              text (answer "body_markdown")
+              line-count-full (line-count text width)
+              line-count-remaining (- height y)
+              line-count-fitting (min line-count-full line-count-remaining)]
+          ;(put-string screen 1 11 (str (line-count (answer "body_markdown") width)))
+          ;(put-string screen 1 (+ index 3) (str "INDEX:" index "full:" line-count-full "remain:" line-count-remaining "fitting:" line-count-fitting))
+          (when (pos? index)
+            (.drawLine
+              (.newTextGraphics screen)
+              (TerminalPosition. (dec left) y)
+              (TerminalPosition. (+ left width 1) y)
+              \-))
+          (put-markdown
+            screen
+            text
+            {:left left
+             :top (inc y)
+             :width width
+             :height line-count-fitting
+             :line-offset 0})
+          (recur (inc index) (+ y index line-count-fitting)))))))
+
+(defn render-answers-pane [screen world]
+  (render-active-question screen world)
+  (render-answers screen world))
 
 (defn render [screen world]
   (.clear screen)
-  (render-question-list screen world)
-  (render-selected-question screen world)
+  (case (world :active-pane)
+    :questions-pane (render-questions-pane screen world)
+    :answers-pane (render-answers-pane screen world))
   (.refresh screen))
 
 (defn update-world [world keycode]
@@ -234,6 +324,8 @@
       \j (update-in world [:line-offsets question_id] inc)
       \K (assoc world :selected-question (max 0 (dec selected-question)))
       \J (assoc world :selected-question (inc selected-question))
+      \newline (assoc world :active-pane :answers-pane)
+      \backspace (assoc world :active-pane :questions-pane)
       world)))
 
 (defn unescape-html [string]
@@ -245,7 +337,7 @@
     question
     [["title" unescape-html]
      ["body_markdown" unescape-html]
-     ["answers" (fn [answers] (map #(update % "body_markdown" unescape-html)) answers)]]))
+     ["answers" (fn [answers] (mapv #(update % "body_markdown" unescape-html) (vec answers)))]]))
 
 (defn initialize-world [items screen]
   (let [questions (mapv scrub-question (items "items"))
@@ -254,7 +346,8 @@
      :selected-question 0
      :questions questions
      :width (.getColumns size)
-     :height (.getRows size)}))
+     :height (.getRows size)
+     :active-pane :questions-pane}))
 
 (defn -main
   "I don't do a whole lot ... yet."
