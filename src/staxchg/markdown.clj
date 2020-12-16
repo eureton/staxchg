@@ -41,8 +41,8 @@
     (fn [aggregator [category pattern]]
       (assoc aggregator category (ranges string pattern)))
     {}
-    [[:bold #"[^*](\*\*[^*]+\*\*)[^*]"]
+    [[:bold #"(\*\*[^*]+\*\*)"]
      [:italic #"[^*](\*[^*]+\*)[^*]"]
      [:monospace #"[^`](`[^`]+`)[^`]"]
-     [:code-block #"[^`](```[^`]+```)[^`]"]]))
+     [:code-block #"(```[^`]+```)"]]))
 
