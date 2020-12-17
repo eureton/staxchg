@@ -236,7 +236,9 @@
       SGR/REVERSE)))
 
 (defn selected-line-offset [world]
-  ((world :line-offsets) (get-in (world :questions) [(world :selected-question) "question_id"])))
+  (let [question-id (get-in world [:questions (world :selected-question) "question_id"])
+        active-pane (world :active-pane)]
+  (get-in world [:line-offsets question-id active-pane])))
 
 (defn render-selected-question [screen world]
   (let [left 1
@@ -273,11 +275,12 @@
         height (- (world :height) top)
         answers (get-in world [:questions (world :selected-question) "answers"])
         answer-count (count answers)
+        line-offset (selected-line-offset world)
         graphics (.newTextGraphics
              (.newTextGraphics screen)
              (TerminalPosition. left top)
-             (TerminalSize. width height))]
-    (loop [index 0 y 0]
+             (TerminalSize. width (+ height line-offset)))]
+    (loop [index 0 y (- line-offset)]
       (when (< index answer-count)
         (let [answer (get answers index)
               text (answer "body_markdown")
@@ -300,10 +303,11 @@
 
 (defn update-world [world keycode]
   (let [selected-question (world :selected-question)
-        question_id (get-in world [:questions selected-question "question_id"])]
+        question-id (get-in world [:questions selected-question "question_id"])
+        active-pane (world :active-pane)]
     (case keycode
-      \k (update-in world [:line-offsets question_id] #(max 0 (dec %)))
-      \j (update-in world [:line-offsets question_id] inc)
+      \k (update-in world [:line-offsets question-id active-pane] #(max 0 (dec %)))
+      \j (update-in world [:line-offsets question-id active-pane] inc)
       \K (assoc world :selected-question (max 0 (dec selected-question)))
       \J (assoc world :selected-question (inc selected-question))
       \newline (assoc world :active-pane :answers-pane)
@@ -324,7 +328,10 @@
 (defn initialize-world [items screen]
   (let [questions (mapv scrub-question (items "items"))
         size (.getTerminalSize screen)]
-    {:line-offsets (->> questions (map #(% "question_id")) (reduce #(assoc %1 %2 0) {}))
+    {:line-offsets (->>
+                     questions
+                     (map #(% "question_id"))
+                     (reduce #(assoc %1 %2 {:questions-pane 0 :answers-pane 0}) {}))
      :selected-question 0
      :questions questions
      :width (.getColumns size)
