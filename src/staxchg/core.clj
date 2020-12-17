@@ -188,22 +188,21 @@
       (string/join "\r\n"))))
 
 (defn put-markdown
-  [screen
+  [graphics
    string
    {:as args
     :keys [left top width height line-offset]
     :or {left 0
          top 0
-         width (->> screen .getTerminalSize .getColumns)
-         height (->> screen .getTerminalSize .getRows)
+         width (->> graphics .getSize .getColumns)
+         height (->> graphics .getSize .getRows)
          line-offset 0}}]
   (let [reflowed (reflow string {:width width})
         plot (plot reflowed {:left left :top (- top line-offset) :width width})
         clipped? (fn [[_ [_ y] _]] (or (< y top) (> y (+ top height))))
         markdown-info (->> plot (map first) string/join markdown/parse)
         categories (->> plot count range (map (partial markdown/categories markdown-info)))
-        annotated-string (remove clipped? (map conj plot categories))
-        graphics (.newTextGraphics screen)]
+        annotated-string (remove clipped? (map conj plot categories))]
     (doseq [[character [x y] categories] annotated-string]
       (when-not (TerminalTextUtils/isControlCharacter character)
         (.setCharacter
@@ -244,23 +243,19 @@
         top 6
         width (- (world :width) 2)
         height (- (world :height) top 1)
-        selected-question (get-in world [:questions (world :selected-question)])]
-  (.drawLine
-    (.newTextGraphics screen)
-    (TerminalPosition. (dec left) (dec top))
-    (TerminalPosition. (+ left width 1) (dec top))
-    \-)
-  (put-markdown
-    screen
-    (selected-question "body_markdown")
-    {:left left
-     :top top
-     :width width
-     :height (- height 0)
-     :line-offset (selected-line-offset world)})))
+        selected-question (get-in world [:questions (world :selected-question)])
+        graphics (.newTextGraphics
+                   (.newTextGraphics screen)
+                   (TerminalPosition. left top)
+                   (TerminalSize. width height))]
+    (put-markdown
+      graphics
+      (selected-question "body_markdown")
+      {:line-offset (selected-line-offset world)})))
 
 (defn render-questions-pane [screen world]
   (render-question-list screen world)
+  (.drawLine (.newTextGraphics screen) 0 5 (world :width) 5 \-)
   (render-selected-question screen world))
 
 (defn render-active-question [screen world]
@@ -273,40 +268,27 @@
 
 (defn render-answers [screen world]
   (let [left 1
-        top 1
-        width (- (world :width) 2)
-        height (- (world :height) top 1)
+        top 2
+        width (- (world :width) (* left 2))
+        height (- (world :height) top)
         answers (get-in world [:questions (world :selected-question) "answers"])
-        answer-count (count answers)]
-    (loop [index 0 y top]
-      (when (and
-              (< y (+ top height))
-              (< index answer-count))
+        answer-count (count answers)
+        graphics (.newTextGraphics
+             (.newTextGraphics screen)
+             (TerminalPosition. left top)
+             (TerminalSize. width height))]
+    (loop [index 0 y 0]
+      (when (< index answer-count)
         (let [answer (get answers index)
               text (answer "body_markdown")
-              line-count-full (line-count text width)
-              line-count-remaining (- height y)
-              line-count-fitting (min line-count-full line-count-remaining)]
-          ;(put-string screen 1 11 (str (line-count (answer "body_markdown") width)))
-          ;(put-string screen 1 (+ index 3) (str "INDEX:" index "full:" line-count-full "remain:" line-count-remaining "fitting:" line-count-fitting))
-          (when (pos? index)
-            (.drawLine
-              (.newTextGraphics screen)
-              (TerminalPosition. (dec left) y)
-              (TerminalPosition. (+ left width 1) y)
-              \-))
-          (put-markdown
-            screen
-            text
-            {:left left
-             :top (inc y)
-             :width width
-             :height line-count-fitting
-             :line-offset 0})
-          (recur (inc index) (+ y index line-count-fitting)))))))
+              separator-height (if (pos? index) 1 0)]
+          (when (pos? index) (.drawLine graphics 0 y width y \=))
+          (put-markdown graphics text {:top (+ y separator-height)})
+          (recur (inc index) (+ y separator-height (line-count text width))))))))
 
 (defn render-answers-pane [screen world]
   (render-active-question screen world)
+  (.drawLine (.newTextGraphics screen) 0 1 (world :width) 1 \-)
   (render-answers screen world))
 
 (defn render [screen world]
@@ -353,8 +335,7 @@
   "I don't do a whole lot ... yet."
   [& args]
   (let [terminal (.createTerminal (DefaultTerminalFactory.))
-        screen (TerminalScreen. terminal)
-        tgs (.newTextGraphics screen)]
+        screen (TerminalScreen. terminal)]
     (.startScreen screen)
     (loop [world-before (initialize-world items screen)]
       (let [keycode (.getCharacter (.readInput screen))
