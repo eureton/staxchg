@@ -222,30 +222,41 @@
         plot (plot reflowed {:left 0 :top 0 :width width})]
     (inc (- (->> plot last second second) (->> plot first second second)))))
 
-(defn question-index-to-list-y [index] (inc index))
-
-(defn render-question-list [screen world]
-  (doseq [[i q] (map-indexed vector (world :questions))]
-    (put-string screen 1 (question-index-to-list-y i) (q "title")))
-  (let [selected-question (world :selected-question)]
-    (put-string
-      screen
-      1
-      (question-index-to-list-y selected-question)
-      (format (str "%-" (- (world :width) 2) "s") (get-in world [:questions selected-question "title"]))
-      SGR/REVERSE)))
+(defn render-question-list
+  [screen {:as world
+           :keys [questions selected-question-index question-list-size question-list-offset]}]
+  (let [left 1
+        top 0
+        width (- (world :width) (* left 2))
+        selected-question (get-in world [:questions (world :selected-question-index)])
+        graphics (.newTextGraphics
+                   (.newTextGraphics screen)
+                   (TerminalPosition. left top)
+                   (TerminalSize. width question-list-size))
+        visible-questions (subvec
+                            questions
+                            question-list-offset
+                            (min (count questions) (+ question-list-offset question-list-size)))]
+    (doseq [[index title] (map-indexed #(vector %1 (%2 "title")) visible-questions)]
+      (.putString graphics left index title))
+    (.putString
+      graphics
+      left
+      (- selected-question-index question-list-offset)
+      (format (str "%-" width "s") (selected-question "title"))
+      [SGR/REVERSE])))
 
 (defn selected-line-offset [world]
-  (let [question-id (get-in world [:questions (world :selected-question) "question_id"])
+  (let [question-id (get-in world [:questions (world :selected-question-index) "question_id"])
         active-pane (world :active-pane)]
   (get-in world [:line-offsets question-id active-pane])))
 
 (defn render-selected-question [screen world]
   (let [left 1
-        top 6
-        width (- (world :width) 2)
+        top (inc (world :question-list-size))
+        width (- (world :width) (* left 2))
         height (- (world :height) top 1)
-        selected-question (get-in world [:questions (world :selected-question)])
+        selected-question (get-in world [:questions (world :selected-question-index)])
         graphics (.newTextGraphics
                    (.newTextGraphics screen)
                    (TerminalPosition. left top)
@@ -256,16 +267,17 @@
       {:line-offset (selected-line-offset world)})))
 
 (defn render-questions-pane [screen world]
-  (render-question-list screen world)
-  (.drawLine (.newTextGraphics screen) 0 5 (world :width) 5 \-)
-  (render-selected-question screen world))
+  (let [separator-y (world :question-list-size)]
+    (render-question-list screen world)
+    (.drawLine (.newTextGraphics screen) 0 separator-y (world :width) separator-y \-)
+    (render-selected-question screen world)))
 
 (defn render-active-question [screen world]
   (put-string
     screen
     1
     0
-    (get-in world [:questions (world :selected-question) "title"])
+    (get-in world [:questions (world :selected-question-index) "title"])
     SGR/REVERSE))
 
 (defn render-answers [screen world]
@@ -273,7 +285,7 @@
         top 2
         width (- (world :width) (* left 2))
         height (- (world :height) top)
-        answers (get-in world [:questions (world :selected-question) "answers"])
+        answers (get-in world [:questions (world :selected-question-index) "answers"])
         answer-count (count answers)
         line-offset (selected-line-offset world)
         graphics (.newTextGraphics
@@ -301,15 +313,23 @@
     :answers-pane (render-answers-pane screen world))
   (.refresh screen))
 
+(defn increment-selected-question-index
+  [{:as world
+    :keys [selected-question-index question-list-offset question-list-size]}]
+  (let [visible? (< (inc selected-question-index) (+ question-list-offset question-list-size))]
+    (-> world
+        (update :selected-question-index inc)
+        (update :question-list-offset (if visible? identity inc)))))
+
 (defn update-world [world keycode]
-  (let [selected-question (world :selected-question)
-        question-id (get-in world [:questions selected-question "question_id"])
+  (let [question-index (world :selected-question-index)
+        question-id (get-in world [:questions question-index "question_id"])
         active-pane (world :active-pane)]
     (case keycode
       \k (update-in world [:line-offsets question-id active-pane] #(max 0 (dec %)))
       \j (update-in world [:line-offsets question-id active-pane] inc)
-      \K (assoc world :selected-question (max 0 (dec selected-question)))
-      \J (assoc world :selected-question (inc selected-question))
+      \K (assoc world :selected-question-index (max 0 (dec question-index)))
+      \J (increment-selected-question-index world)
       \newline (assoc world :active-pane :answers-pane)
       \backspace (assoc world :active-pane :questions-pane)
       world)))
@@ -332,7 +352,9 @@
                      questions
                      (map #(% "question_id"))
                      (reduce #(assoc %1 %2 {:questions-pane 0 :answers-pane 0}) {}))
-     :selected-question 0
+     :selected-question-index 0
+     :question-list-size 2
+     :question-list-offset 0
      :questions questions
      :width (.getColumns size)
      :height (.getRows size)
