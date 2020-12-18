@@ -315,11 +315,23 @@
 
 (defn increment-selected-question-index
   [{:as world
-    :keys [selected-question-index question-list-offset question-list-size]}]
-  (let [visible? (< (inc selected-question-index) (+ question-list-offset question-list-size))]
+    :keys [questions selected-question-index question-list-offset question-list-size]}]
+  (let [visible? (< (inc selected-question-index) (+ question-list-offset question-list-size))
+        question-count (count questions)]
     (-> world
-        (update :selected-question-index inc)
-        (update :question-list-offset (if visible? identity inc)))))
+        (update :selected-question-index #(min (dec question-count) (inc %)))
+        (update :question-list-offset (if visible?
+                                        identity
+                                        #(min (- question-count question-list-size) (inc %)))))))
+
+(defn decrement-selected-question-index
+  [{:as world
+    :keys [selected-question-index question-list-offset]}]
+  (let [visible? (>= (dec selected-question-index) question-list-offset)
+        capped-dec #(max 0 (dec %))]
+    (-> world
+        (update :selected-question-index capped-dec)
+        (update :question-list-offset (if visible? identity capped-dec)))))
 
 (defn update-world [world keycode]
   (let [question-index (world :selected-question-index)
@@ -328,7 +340,7 @@
     (case keycode
       \k (update-in world [:line-offsets question-id active-pane] #(max 0 (dec %)))
       \j (update-in world [:line-offsets question-id active-pane] inc)
-      \K (assoc world :selected-question-index (max 0 (dec question-index)))
+      \K (decrement-selected-question-index world)
       \J (increment-selected-question-index world)
       \newline (assoc world :active-pane :answers-pane)
       \backspace (assoc world :active-pane :questions-pane)
