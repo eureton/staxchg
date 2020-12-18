@@ -1,6 +1,7 @@
 (ns staxchg.presentation
   (:require [clojure.string :as string])
   (:require [staxchg.markdown :as markdown])
+  (:require [staxchg.state :as state :only [selected-line-offset]])
   (:import com.googlecode.lanterna.TextCharacter)
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:import com.googlecode.lanterna.TerminalTextUtils)
@@ -134,11 +135,6 @@
       (format (str "%-" width "s") (selected-question "title"))
       [SGR/REVERSE])))
 
-(defn selected-line-offset [world]
-  (let [question-id (get-in world [:questions (world :selected-question-index) "question_id"])
-        active-pane (world :active-pane)]
-  (get-in world [:line-offsets question-id active-pane])))
-
 (defn render-selected-question [screen world]
   (let [left 1
         top (inc (world :question-list-size))
@@ -152,7 +148,7 @@
     (put-markdown
       graphics
       (selected-question "body_markdown")
-      {:line-offset (selected-line-offset world)})))
+      {:line-offset (state/selected-line-offset world)})))
 
 (defn render-questions-pane
   [screen
@@ -191,7 +187,7 @@
         height (- (world :height) top)
         answers (get-in world [:questions (world :selected-question-index) "answers"])
         answer-count (count answers)
-        line-offset (selected-line-offset world)
+        line-offset (state/selected-line-offset world)
         graphics (.newTextGraphics
              (.newTextGraphics screen)
              (TerminalPosition. left top)
