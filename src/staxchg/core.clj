@@ -266,10 +266,26 @@
       (selected-question "body_markdown")
       {:line-offset (selected-line-offset world)})))
 
-(defn render-questions-pane [screen world]
-  (let [separator-y (world :question-list-size)]
+(defn render-questions-pane
+  [screen
+   {:as world
+    :keys [width question-list-size question-list-offset questions]}]
+  (let [separator-y question-list-size
+        graphics (.newTextGraphics screen)
+        page-hint (string/join ["("
+                                question-list-offset
+                                "-"
+                                (+ question-list-offset question-list-size)
+                                " of "
+                                (count questions)
+                                ")"])]
     (render-question-list screen world)
-    (.drawLine (.newTextGraphics screen) 0 separator-y (world :width) separator-y \-)
+    (.drawLine graphics 0 separator-y width separator-y \-)
+    (.putString
+      graphics
+      (max 0 (- width (count page-hint) 1))
+      separator-y
+      page-hint)
     (render-selected-question screen world)))
 
 (defn render-active-question [screen world]
