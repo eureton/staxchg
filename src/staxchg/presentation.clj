@@ -10,25 +10,21 @@
   (:import com.googlecode.lanterna.SGR)
   (:gen-class))
 
-(defn slice [string width]
-  (let [length (count string)]
-    (->>
-      string
-      count
-      (* (/ 1 width))
-      Math/ceil
-      int
-      (max 1)
-      range
-      (map #(subs
-              string
-              (* % width)
-              (min length (* (inc %) width)))))))
+(defn slice
+  "Slices the input string into pieces of the given length and returns them in a
+  sequence. No padding is applied to the last piece."
+  [string width]
+  (->>
+    string
+    (partition width width (repeat \space))
+    (map string/join)
+    (map string/trim)))
 
 (defn plot
-  "Returns a sequence of pairs consisting of:
-    * the characters of the given string
-    * the [x y] coordinates of each character"
+  "Returns a sequence of pairs -one for each character of the input string-
+  consisting of:
+    * the character
+    * the [x y] coordinates of the character"
   [string
    {:keys [left top width height]
     :or {height -1}}]
