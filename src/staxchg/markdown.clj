@@ -6,14 +6,14 @@
     (fn [[from to]] (and (<= from index) (< index to)))
     ranges))
 
-(defn categories [markdown-info index]
+(defn categories [info index]
   (reduce
     (fn [aggregator [category ranges]]
       (if (within? ranges index)
         (conj aggregator category)
         aggregator))
     #{}
-    markdown-info))
+    info))
 
 (defn decorate [recipient categories & clauses]
   (let [effect-map (apply
@@ -59,30 +59,39 @@
        {}
        (keys info)))))
 
-(defn annotate [string]
+(defn unroll-info
+  ""
+  [info]
+  (->>
+    info
+    (map
+      (fn [[category ranges]]
+        (map
+          (fn [[start end]] (vector start end category))
+          ranges)))
+    flatten
+    (partition 3)
+    (sort #(- (first %1) (first %2)))))
+
+(defn roll-info
+  ""
+  [info]
+  (reduce
+    (fn [aggregator [start end character]]
+      (update aggregator character conj [start end]))
+    {:bold [] :italic [] :monospace [] :code-block []}
+    info))
+
+(defn strip [string]
   (let [strip-lengths {:italic 1 :bold 2 :monospace 1 :code-block 3}
-        unrolled-info (->>
-                        (parse string)
-                        (map
-                          (fn [[category ranges]]
-                            (map
-                              (fn [[start end]] (vector start end category))
-                              ranges)))
-                        flatten
-                        (partition 3)
-                        (sort #(- (first %1) (first %2))))
-        roll #(reduce
-                (fn [aggregator [start end character]]
-                  (update aggregator character conj [start end]))
-                {:bold [] :italic [] :monospace [] :code-block []}
-                %)]
+        unrolled-info (unroll-info (parse string))]
     (loop [s string
            i []
            u unrolled-info]
       (if (empty? u)
         {:input string
          :stripped s
-         :markdown-info (roll i)}
+         :markdown-info (roll-info i)}
         (let [[start end category] (first u)
               length (strip-lengths category)
               length-x2 (* 2 length)]

@@ -105,7 +105,7 @@
          width (->> graphics .getSize .getColumns)
          height (->> graphics .getSize .getRows)
          line-offset 0}}]
-  (let [{:keys [stripped markdown-info]} (markdown/annotate string)
+  (let [{:keys [stripped markdown-info]} (markdown/strip string)
         reflowed (reflow stripped {:width width})
         plot (plot reflowed {:left left :top (- top line-offset) :width width})
         plotted (->> plot (map first) string/join)
