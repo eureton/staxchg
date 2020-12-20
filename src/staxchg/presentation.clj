@@ -10,91 +10,6 @@
   (:import com.googlecode.lanterna.SGR)
   (:gen-class))
 
-(defn slice
-  "Slices the input string into pieces of the given length and returns them in a
-  sequence. No padding is applied to the last piece."
-  [string width]
-  (->>
-    string
-    (partition width width (repeat \space))
-    (map string/join)))
-
-(defn plot
-  "Returns a sequence of pairs -one for each character of the input string-
-  consisting of:
-    * the character
-    * the [x y] coordinates of the character"
-  [string
-   {:keys [left top width height]
-    :or {height -1}}]
-  (let [lines (string/split-lines string)
-        truncate #(take (if (= -1 height) (count %) height) %)]
-    (map
-      vector
-      (seq (string/join lines))
-      (->>
-        lines
-        ;(map #(slice % width))
-        flatten
-        truncate
-        (map count)
-        (map-indexed (fn [index length]
-                       (->>
-                         length
-                         range
-                         (map #(vector (+ % left) (+ index top))))))
-        (reduce concat)))))
-
-(defn pack [string width]
-  (if (->> string count (>= width))
-    [string]
-    (reduce
-      (fn [aggregator word]
-        (let [previous (last aggregator)]
-          (if (<= (+ (count previous) (count word) 1) width)
-            (conj (pop aggregator) (string/join \space (remove string/blank? [previous word])))
-            (conj aggregator word))))
-      [""]
-      (string/split string #" "))))
-
-(defn reflow
-  ""
-  [string
-   {:keys [width height]
-    :or {height -1}}]
-  (let [truncate #(take (if (= -1 height) (count %) height) %)]
-    (->>
-      string
-      string/split-lines
-      (map #(pack % width))
-      flatten
-      truncate
-      (string/join "\r\n"))))
-
-(defn first-diff
-  ([s1 s2] (first-diff s1 s2 nil))
-  ([s1 s2 l]
-   (->>
-     (min (count s1) (count s2) (or l 1024))
-     inc
-     (range 1)
-     (some #(when (not= (subs s1 0 %) (subs s2 0 %)) %)))))
-
-(defn adjust-markdown-info-by
-  [markdown-info string1 string2 step1 step2]
-  (loop [mi markdown-info
-         s1 string1
-         s2 string2
-         offset 0]
-    (let [diff-index (first-diff s1 s2)]
-      (if (nil? diff-index)
-        mi
-        (recur
-          (markdown/adjust-info mi (+ diff-index offset) #(-> % (- step1) (+ step2)))
-          (subs s1 (dec (+ diff-index step1)))
-          (subs s2 (dec (+ diff-index step2)))
-          (+ offset (dec (+ diff-index step2))))))))
-
 (defn put-markdown
   [graphics
    string
@@ -105,17 +20,26 @@
          width (->> graphics .getSize .getColumns)
          height (->> graphics .getSize .getRows)
          line-offset 0}}]
-  (let [{:keys [stripped markdown-info]} (markdown/strip string)
-        reflowed (reflow stripped {:width width})
-        plot (plot reflowed {:left left :top (- top line-offset) :width width})
-        plotted (->> plot (map first) string/join)
-
-        rmdi (adjust-markdown-info-by markdown-info stripped reflowed 1 2)
-        rmdi2 (adjust-markdown-info-by rmdi reflowed plotted 2 0)
-
+  (let [{:keys [stripped markdown-info]} (markdown/strip
+                                           string
+                                           (markdown/parse string))
+        {:keys [reflowed markdown-info]} (markdown/reflow
+                                           stripped
+                                           markdown-info
+                                           {:width width})
+        {:keys [plotted markdown-info]} (markdown/plot
+                                          reflowed
+                                          markdown-info
+                                          {:left left
+                                           :top (- top line-offset)
+                                           :width width})
         clipped? (fn [[_ [_ y] _]] (or (< y top) (> y (+ top height))))
-        categories (->> plot count range (map (partial markdown/categories rmdi2)))
-        annotated-string (remove clipped? (map conj plot categories))]
+        categories (->>
+                     plotted
+                     count
+                     range
+                     (map (partial markdown/categories markdown-info)))
+        annotated-string (remove clipped? (map conj plotted categories))]
     (doseq [[character [x y] categories] annotated-string]
       (when-not (TerminalTextUtils/isControlCharacter character)
         (.setCharacter
@@ -126,14 +50,7 @@
                           :bold #(.withModifier % SGR/BOLD)
                           :italic #(.withModifier % SGR/REVERSE)
                           :monospace #(.withForegroundColor % TextColor$ANSI/GREEN)
-                          :code-block #(.withForegroundColor % TextColor$ANSI/GREEN))))
-                          )))
-
-(defn line-count
-  [string width]
-  (let [reflowed (reflow string {:width width})
-        plot (plot reflowed {:left 0 :top 0 :width width})]
-    (inc (- (->> plot last second second) (->> plot first second second)))))
+                          :code-block #(.withForegroundColor % TextColor$ANSI/GREEN)))))))
 
 (defn render-question-list
   [screen {:as world
@@ -223,7 +140,7 @@
               separator-height (if (pos? index) 1 0)]
           (when (pos? index) (.drawLine graphics 0 y width y \=))
           (put-markdown graphics text {:top (+ y separator-height)})
-          (recur (inc index) (+ y separator-height (line-count text width))))))))
+          (recur (inc index) (+ y separator-height (markdown/line-count text width))))))))
 
 (defn render-answers-pane [screen world]
   (render-active-question screen world)

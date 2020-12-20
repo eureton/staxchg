@@ -1,4 +1,5 @@
 (ns staxchg.markdown
+  (:require [clojure.string :as string])
   (:gen-class))
 
 (defn within? [ranges index]
@@ -47,17 +48,20 @@
      [:code-block #"(```[^`]+```)"]]))
 
 (defn adjust-info
-  ([info index] (adjust-info info index dec))
-  ([info index f]
-   (let [adjust-following #(if (>= % index) (f %) %)]
-     (reduce
-       (fn [aggregator category]
-         (assoc
-           aggregator
-           category
-           (mapv #(map adjust-following %) (info category))))
-       {}
-       (keys info)))))
+  ""
+  [info index f]
+  (let [adjust-range (fn [[start end]]
+                       (vector
+                         (if (>= start index) (f start) start)
+                         (if (> end index) (f end) end)))]
+    (reduce
+      (fn [aggregator category]
+        (assoc
+          aggregator
+          category
+          (mapv adjust-range (info category))))
+      {}
+      (keys info))))
 
 (defn unroll-info
   ""
@@ -82,9 +86,11 @@
     {:bold [] :italic [] :monospace [] :code-block []}
     info))
 
-(defn strip [string]
+(defn strip
+  ""
+  [string info]
   (let [strip-lengths {:italic 1 :bold 2 :monospace 1 :code-block 3}
-        unrolled-info (unroll-info (parse string))]
+        unrolled-info (unroll-info info)]
     (loop [s string
            i []
            u unrolled-info]
@@ -104,4 +110,103 @@
             (map
               (fn [[x y c]] (list (- x length-x2) (- y length-x2) c))
               (rest u))))))))
+
+(defn pack [string width]
+  (if (->> string count (>= width))
+    [string]
+    (reduce
+      (fn [aggregator word]
+        (let [previous (last aggregator)]
+          (if (<= (+ (count previous) (count word) 1) width)
+            (conj (pop aggregator) (string/join \space (remove string/blank? [previous word])))
+            (conj aggregator word))))
+      [""]
+      (string/split string #" "))))
+
+(defn reflow
+  ""
+  [string
+   info
+   {:keys [width height]}]
+  (let [truncate #(take (or height (count %)) %)]
+    (->>
+      string
+      string/split-lines
+      (map (fn [line]
+             (->>
+               (pack line width)
+               (map #(hash-map :s % :c  (count %)))
+               (#(reduce  (fn  [agg h]  (conj agg  (assoc h :art  (not= h  (last %)))))  [] %)))))
+      flatten
+      truncate
+      (reduce
+        (fn [agg h]
+          (assoc
+            agg
+            :length (+ (agg :length) (h :c) (if (h :art) 1 2))
+            :breaks (conj (agg :breaks) (if (h :art) (+ (h :c) (agg :length)) nil))
+            :reflowed (conj (agg :reflowed) (h :s))))
+        {:reflowed [] :breaks [] :length 0})
+       (#(assoc
+           %
+           :reflowed (string/join "\r\n" (% :reflowed))
+           :markdown-info (reduce (fn [agg i] (adjust-info agg i inc)) info (remove nil? (% :breaks)))))
+       )))
+
+(defn slice
+  "Slices the input string into pieces of the given length and returns them in a
+  sequence. No padding is applied to the last piece."
+  [string width]
+  (->>
+    string
+    (partition width width (repeat \space))
+    (map string/join)))
+
+(defn plot
+  "Returns a sequence of pairs -one for each character of the input string-
+  consisting of:
+    * the character
+    * the [x y] coordinates of the character"
+  [string
+   info
+   {:keys [left top width height]
+    :or {left 0 top 0}}]
+  (let [lines (string/split-lines string)
+        truncate #(take (or height (count %)) %)
+        lengths (->>
+                  lines
+                  ;(map #(slice % width))
+                  flatten
+                  truncate
+                  (map count))]
+    {:plotted (map
+                vector
+                (seq (string/join lines))
+                (->>
+                  lengths
+                  (map-indexed (fn [index length]
+                                 (->>
+                                   length
+                                   range
+                                   (map #(vector (+ % left) (+ index top))))))
+                  (reduce concat)))
+     :markdown-info (->>
+                      lengths
+                      (reduce (fn [agg x] (conj agg (+ (or (last agg) 0) x))) [])
+                      (reduce (fn [agg x] (adjust-info agg x #(- % 2))) info))}))
+
+(defn line-count
+  [string width]
+  (let [{:keys [stripped markdown-info]} (strip
+                                           string
+                                           (parse string))
+        {:keys [reflowed markdown-info]} (reflow
+                                           stripped
+                                           markdown-info
+                                           {:width width})
+        {:keys [plotted markdown-info]} (plot
+                                          reflowed
+                                          markdown-info
+                                          {:width width})]
+    (inc (- (->> plotted last second second) (->> plotted first second second)))))
 
