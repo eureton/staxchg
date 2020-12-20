@@ -17,8 +17,7 @@
   (->>
     string
     (partition width width (repeat \space))
-    (map string/join)
-    (map string/trim)))
+    (map string/join)))
 
 (defn plot
   "Returns a sequence of pairs -one for each character of the input string-
@@ -35,7 +34,7 @@
       (seq (string/join lines))
       (->>
         lines
-        (map #(slice % width))
+        ;(map #(slice % width))
         flatten
         truncate
         (map count)
@@ -72,6 +71,30 @@
       truncate
       (string/join "\r\n"))))
 
+(defn first-diff
+  ([s1 s2] (first-diff s1 s2 nil))
+  ([s1 s2 l]
+   (->>
+     (min (count s1) (count s2) (or l 1024))
+     inc
+     (range 1)
+     (some #(when (not= (subs s1 0 %) (subs s2 0 %)) %)))))
+
+(defn adjust-markdown-info-by
+  [markdown-info string1 string2 step1 step2]
+  (loop [mi markdown-info
+         s1 string1
+         s2 string2
+         offset 0]
+    (let [diff-index (first-diff s1 s2)]
+      (if (nil? diff-index)
+        mi
+        (recur
+          (markdown/adjust-info mi (+ diff-index offset) #(-> % (- step1) (+ step2)))
+          (subs s1 (dec (+ diff-index step1)))
+          (subs s2 (dec (+ diff-index step2)))
+          (+ offset (dec (+ diff-index step2))))))))
+
 (defn put-markdown
   [graphics
    string
@@ -82,11 +105,16 @@
          width (->> graphics .getSize .getColumns)
          height (->> graphics .getSize .getRows)
          line-offset 0}}]
-  (let [reflowed (reflow string {:width width})
+  (let [{:keys [stripped markdown-info]} (markdown/annotate string)
+        reflowed (reflow stripped {:width width})
         plot (plot reflowed {:left left :top (- top line-offset) :width width})
+        plotted (->> plot (map first) string/join)
+
+        rmdi (adjust-markdown-info-by markdown-info stripped reflowed 1 2)
+        rmdi2 (adjust-markdown-info-by rmdi reflowed plotted 2 0)
+
         clipped? (fn [[_ [_ y] _]] (or (< y top) (> y (+ top height))))
-        markdown-info (->> plot (map first) string/join markdown/parse)
-        categories (->> plot count range (map (partial markdown/categories markdown-info)))
+        categories (->> plot count range (map (partial markdown/categories rmdi2)))
         annotated-string (remove clipped? (map conj plot categories))]
     (doseq [[character [x y] categories] annotated-string]
       (when-not (TerminalTextUtils/isControlCharacter character)
