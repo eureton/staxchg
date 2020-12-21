@@ -1,7 +1,9 @@
 (ns staxchg.presentation
   (:require [clojure.string :as string])
   (:require [staxchg.markdown :as markdown])
-  (:require [staxchg.state :as state :only [selected-line-offset]])
+  (:require [staxchg.state
+             :as state
+             :only [selected-line-offset selected-answer]])
   (:import com.googlecode.lanterna.TextCharacter)
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:import com.googlecode.lanterna.TerminalTextUtils)
@@ -121,31 +123,35 @@
     (get-in world [:questions (world :selected-question-index) "title"])
     [SGR/REVERSE]))
 
-(defn render-answers [screen world]
+(defn render-selected-answer [screen world]
   (let [left 1
         top 2
         width (- (world :width) (* left 2))
         height (- (world :height) top)
-        answers (get-in world [:questions (world :selected-question-index) "answers"])
-        answer-count (count answers)
         line-offset (state/selected-line-offset world)
         graphics (.newTextGraphics
              (.newTextGraphics screen)
              (TerminalPosition. left top)
              (TerminalSize. width (+ height line-offset)))]
-    (loop [index 0 y (- line-offset)]
-      (when (< index answer-count)
-        (let [answer (get answers index)
-              text (answer "body_markdown")
-              separator-height (if (pos? index) 1 0)]
-          (when (pos? index) (.drawLine graphics 0 y width y \=))
-          (put-markdown graphics text {:top (+ y separator-height)})
-          (recur (inc index) (+ y separator-height (markdown/line-count text width))))))))
+    (put-markdown
+      graphics
+      ((state/selected-answer world) "body_markdown")
+      {:top (- line-offset)})))
 
-(defn render-answers-pane [screen world]
+(defn render-answers-pane
+  [screen
+   {:as world
+    :keys [width questions selected-question-index]}]
+  (let [graphics (.newTextGraphics screen)
+        hint (string/join ["("
+                           (inc (state/selected-answer-index world))
+                           " of "
+                           (count ((questions selected-question-index) "answers"))
+                           ")"])]
   (render-active-question screen world)
-  (.drawLine (.newTextGraphics screen) 0 1 (world :width) 1 \-)
-  (render-answers screen world))
+  (.drawLine (.newTextGraphics screen) 0 1 width 1 \-)
+  (.putString graphics (max 0 (- width (count hint) 1)) 1 hint)
+  (render-selected-answer screen world)))
 
 (defn render [screen world]
   (.clear screen)
