@@ -33,11 +33,11 @@
   [{:as world
     :keys [questions selected-question-index selected-answers]}]
   (let [answers ((selected-question world) "answers")
-        selected-answer-id ((selected-answer world) "answer_id")]
+        selected-answer (selected-answer world)]
     (->>
       answers
       (map-indexed vector)
-      (filter (fn [[_ answer]] (= (answer "answer_id") selected-answer-id)))
+      (filter (fn [[_ answer]] (= answer selected-answer)))
       first
       first)))
 

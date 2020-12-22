@@ -168,16 +168,20 @@
 (defn render-answers-pane
   [screen
    {:as world
-    :keys [width questions selected-question-index]}]
+    :keys [width]}]
   (let [graphics (.newTextGraphics screen)
-        hint (format
-               "(%d of %d)"
-               (inc (state/selected-answer-index world))
-               (count ((questions selected-question-index) "answers")))]
-  (render-active-question screen world)
-  (.drawLine (.newTextGraphics screen) 0 1 width 1 \-)
-  (.putString graphics (max 0 (- width (count hint) 1)) 1 hint)
-  (render-selected-answer screen world)))
+        index (state/selected-answer-index world)
+        answered? (not (nil? index))
+        hint (if answered?
+               (format
+                 "(%d of %d)"
+                 (inc index)
+                 (count ((state/selected-question world) "answers")))
+               "(question has no answers)")]
+    (render-active-question screen world)
+    (.drawLine (.newTextGraphics screen) 0 1 width 1 \-)
+    (.putString graphics (max 0 (- width (count hint) 1)) 1 hint)
+    (when answered? (render-selected-answer screen world))))
 
 (defn render [screen world]
   (.clear screen)
