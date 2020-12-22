@@ -33,7 +33,7 @@
                                           {:left left
                                            :top (- top line-offset)
                                            :width width})
-        clipped? (fn [[_ [_ y] _]] (or (< y top) (> y (+ top height))))
+        clipped? (fn [[_ [_ y] _]] (or (neg? y) (>= y height)))
         categories (->>
                      plotted
                      count
@@ -118,12 +118,12 @@
   (let [left 1
         top 2
         width (- (world :width) (* left 2))
-        height (- (world :height) top 2)
+        height (- (world :height) top)
         line-offset (state/selected-line-offset world)
         graphics (.newTextGraphics
              (.newTextGraphics screen)
              (TerminalPosition. left top)
-             (TerminalSize. width (+ height line-offset)))
+             (TerminalSize. width height))
         answer (state/selected-answer world)
         meta-y (- (world :height) top 1)
         meta-text (format
