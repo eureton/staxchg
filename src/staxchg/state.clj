@@ -21,10 +21,10 @@
 (defn selected-answer
   [{:as world
     :keys [questions selected-question-index selected-answers]}]
-  (let [question-id ((selected-question world) "question_id")
-        answer-id (selected-answers question-id)]
+  (let [selected-question (selected-question world)
+        answer-id (selected-answers (selected-question "question_id"))]
     (->>
-      (get-in questions [selected-question-index "answers"])
+      (selected-question "answers")
       (filter #(= (% "answer_id") answer-id))
       first)))
 
@@ -37,7 +37,7 @@
     (->>
       answers
       (map-indexed vector)
-      (filter (fn [[_ a]] (= (a "answer_id") selected-answer-id)))
+      (filter (fn [[_ answer]] (= (answer "answer_id") selected-answer-id)))
       first
       first)))
 
