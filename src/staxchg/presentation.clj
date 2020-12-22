@@ -1,9 +1,7 @@
 (ns staxchg.presentation
   (:require [clojure.string :as string])
   (:require [staxchg.markdown :as markdown])
-  (:require [staxchg.state
-             :as state
-             :only [selected-line-offset selected-question selected-answer]])
+  (:require [staxchg.state :as state])
   (:import com.googlecode.lanterna.TextCharacter)
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:import com.googlecode.lanterna.TerminalTextUtils)
@@ -56,7 +54,7 @@
 
 (defn render-question-list
   [screen {:as world
-           :keys [questions selected-question-index question-list-size question-list-offset]}]
+           :keys [selected-question-index question-list-size question-list-offset]}]
   (let [left 1
         top 0
         width (- (world :width) (* left 2))
@@ -64,11 +62,8 @@
                    (.newTextGraphics screen)
                    (TerminalPosition. left top)
                    (TerminalSize. width question-list-size))
-        visible-questions (subvec
-                            questions
-                            question-list-offset
-                            (min (count questions) (+ question-list-offset question-list-size)))]
-    (doseq [[index title] (map-indexed #(vector %1 (%2 "title")) visible-questions)]
+        visible (state/visible-questions world)]
+    (doseq [[index title] (map-indexed #(vector %1 (%2 "title")) visible)]
       (.putString graphics left index title))
     (.putString
       graphics
