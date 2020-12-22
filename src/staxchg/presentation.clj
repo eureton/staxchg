@@ -14,16 +14,15 @@
   [graphics
    string
    {:as args
-    :keys [left top width height line-offset]
+    :keys [left top width height]
     :or {left 0
          top 0
          width (->> graphics .getSize .getColumns)
-         height (->> graphics .getSize .getRows)
-         line-offset 0}}]
+         height (->> graphics .getSize .getRows)}}]
   (let [{:keys [plotted markdown-info]} (markdown/plot
                                           string
                                           {:left left
-                                           :top (- top line-offset)
+                                           :top top
                                            :width width})
         clipped? (fn [[_ [_ y] _]] (or (neg? y) (>= y height)))
         categories (->>
@@ -68,7 +67,7 @@
   (let [left 1
         top (inc (world :question-list-size))
         width (- (world :width) (* left 2))
-        height (- (world :height) top 1)
+        height (- (world :height) top)
         graphics (.newTextGraphics
                    (.newTextGraphics screen)
                    (TerminalPosition. left top)
@@ -76,7 +75,7 @@
     (put-markdown
       graphics
       ((state/selected-question world) "body_markdown")
-      {:line-offset (state/selected-line-offset world)})))
+      {:top (- (state/selected-line-offset world))})))
 
 (defn render-questions-pane
   [screen
@@ -111,7 +110,6 @@
         top 2
         width (- (world :width) (* left 2))
         height (- (world :height) top)
-        line-offset (state/selected-line-offset world)
         graphics (.newTextGraphics
              (.newTextGraphics screen)
              (TerminalPosition. left top)
@@ -138,7 +136,7 @@
     (put-markdown
       graphics
       (answer "body_markdown")
-      {:top (- line-offset)})
+      {:top (- (state/selected-line-offset world))})
     (doseq [[index character] (map-indexed vector meta-text)]
       (.setCharacter
         graphics
