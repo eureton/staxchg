@@ -71,11 +71,32 @@
         graphics (.newTextGraphics
                    (.newTextGraphics screen)
                    (TerminalPosition. left top)
-                   (TerminalSize. width height))]
+                   (TerminalSize. width height))
+        question (state/selected-question world)
+        meta-y (- height 1)
+        meta-text (format
+                    (str "%" width "s")
+                    (format
+                      "(S: %d) | (V: %d) | %s (%s) | %s"
+                      (question "score")
+                      (question "view_count")
+                      (get-in question ["owner" "display_name"])
+                      (get-in question ["owner" "reputation"])
+                      (question "last_activity_date")))
+        meta-formatter #(->
+                          %
+                          TextCharacter.
+                          (.withForegroundColor TextColor$ANSI/YELLOW))]
     (put-markdown
       graphics
-      ((state/selected-question world) "body_markdown")
-      {:top (- (state/selected-line-offset world))})))
+      (question "body_markdown")
+      {:top (- (state/selected-line-offset world))})
+    (doseq [[index character] (map-indexed vector meta-text)]
+      (.setCharacter
+        graphics
+        index
+        meta-y
+        (meta-formatter character)))))
 
 (defn render-questions-pane
   [screen
@@ -115,7 +136,7 @@
              (TerminalPosition. left top)
              (TerminalSize. width height))
         answer (state/selected-answer world)
-        meta-y (- (world :height) top 1)
+        meta-y (- height 1)
         meta-text (format
                     (str "%" width "s")
                     (format
