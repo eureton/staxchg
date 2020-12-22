@@ -97,13 +97,11 @@
     :keys [width question-list-size question-list-offset questions]}]
   (let [separator-y question-list-size
         graphics (.newTextGraphics screen)
-        page-hint (string/join ["("
-                                question-list-offset
-                                "-"
-                                (+ question-list-offset question-list-size)
-                                " of "
-                                (count questions)
-                                ")"])]
+        page-hint (format
+                    "(%d-%d of %d)"
+                    question-list-offset
+                    (+ question-list-offset question-list-size)
+                    (count questions))]
     (render-question-list screen world)
     (.drawLine graphics 0 separator-y width separator-y \-)
     (.putString
@@ -172,11 +170,10 @@
    {:as world
     :keys [width questions selected-question-index]}]
   (let [graphics (.newTextGraphics screen)
-        hint (string/join ["("
-                           (inc (state/selected-answer-index world))
-                           " of "
-                           (count ((questions selected-question-index) "answers"))
-                           ")"])]
+        hint (format
+               "(%d of %d)"
+               (inc (state/selected-answer-index world))
+               (count ((questions selected-question-index) "answers")))]
   (render-active-question screen world)
   (.drawLine (.newTextGraphics screen) 0 1 width 1 \-)
   (.putString graphics (max 0 (- width (count hint) 1)) 1 hint)
