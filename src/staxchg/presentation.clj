@@ -43,6 +43,18 @@
                           :monospace #(.withForegroundColor % TextColor$ANSI/GREEN)
                           :code-block #(.withForegroundColor % TextColor$ANSI/GREEN)))))))
 
+(defn format-date
+  ""
+  [unixtime]
+  (let [datetime (java.time.LocalDateTime/ofEpochSecond unixtime 0 java.time.ZoneOffset/UTC)]
+    (format
+      "%4d-%02d-%02d %02d:%02d"
+      (.getYear datetime)
+      (.getValue (.getMonth datetime))
+      (.getDayOfMonth datetime)
+      (.getHour datetime)
+      (.getMinute datetime))))
+
 (defn render-question-list
   [screen {:as world
            :keys [selected-question-index question-list-size question-list-offset]}]
@@ -82,7 +94,7 @@
                       (question "view_count")
                       (get-in question ["owner" "display_name"])
                       (get-in question ["owner" "reputation"])
-                      (question "last_activity_date")))
+                      (format-date (question "last_activity_date"))))
         meta-formatter #(->
                           %
                           TextCharacter.
@@ -144,7 +156,7 @@
                       (answer "score")
                       (get-in answer ["owner" "display_name"])
                       (get-in answer ["owner" "reputation"])
-                      (answer "last_activity_date")))
+                      (format-date (answer "last_activity_date"))))
         meta-formatter #(->
                           %
                           TextCharacter.
