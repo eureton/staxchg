@@ -12,15 +12,16 @@
                                         identity
                                         #(min (- question-count question-list-size) (inc %)))))))
 
-(defn selected-line-offset [world]
-  (let [question-id (get-in world [:questions (world :selected-question-index) "question_id"])
-        active-pane (world :active-pane)]
-  (get-in world [:line-offsets question-id active-pane])))
+(defn selected-question
+  ""
+  [{:as world
+    :keys [questions selected-question-index]}]
+  (questions selected-question-index))
 
 (defn selected-answer
   [{:as world
     :keys [questions selected-question-index selected-answers]}]
-  (let [question-id (get-in questions [selected-question-index "question_id"])
+  (let [question-id ((selected-question world) "question_id")
         answer-id (selected-answers question-id)]
     (->>
       (get-in questions [selected-question-index "answers"])
@@ -31,16 +32,19 @@
   ""
   [{:as world
     :keys [questions selected-question-index selected-answers]}]
-  (let [selected-question (questions selected-question-index)
-        answers (selected-question "answers")
+  (let [answers ((selected-question world) "answers")
         selected-answer-id ((selected-answer world) "answer_id")]
-        ;selected-answer-id ((selected-answer world) "answer_id")]
     (->>
       answers
       (map-indexed vector)
       (filter (fn [[_ a]] (= (a "answer_id") selected-answer-id)))
       first
       first)))
+
+(defn selected-line-offset [world]
+  (let [selected-question-id ((selected-question world) "question_id")
+        active-pane (world :active-pane)]
+  (get-in world [:line-offsets selected-question-id active-pane])))
 
 (defn decrement-selected-question-index
   [{:as world
@@ -56,34 +60,25 @@
   [{:as world
     :keys [questions selected-question-index selected-answers]}
    direction]
-  (let [selected-question (questions selected-question-index)
-        selected-question-id (selected-question "question_id")
+  (let [selected-question (selected-question world)
         answers (selected-question "answers")
-        selected-answer-id (selected-answers selected-question-id)
-        selected-answer-index (->>
-                                answers
-                                (map-indexed vector)
-                                (filter (fn [[_ a]] (= (a "answer_id") selected-answer-id)))
-                                first
-                                first)
         destination-answer (->>
-                             selected-answer-index
+                             (selected-answer-index world)
                              ((condp = direction :forwards inc :backwards dec))
                              (max 0)
                              (min (dec (count answers)))
                              answers)]
     (update-in
       world
-      [:selected-answers selected-question-id]
+      [:selected-answers (selected-question "question_id")]
       (constantly (destination-answer "answer_id")))))
 
 (defn update-world [world keycode]
-  (let [question-index (world :selected-question-index)
-        question-id (get-in world [:questions question-index "question_id"])
+  (let [selected-question-id ((selected-question world) "question_id")
         active-pane (world :active-pane)]
     (case keycode
-      \k (update-in world [:line-offsets question-id active-pane] #(max 0 (dec %)))
-      \j (update-in world [:line-offsets question-id active-pane] inc)
+      \k (update-in world [:line-offsets selected-question-id active-pane] #(max 0 (dec %)))
+      \j (update-in world [:line-offsets selected-question-id active-pane] inc)
       \K (decrement-selected-question-index world)
       \J (increment-selected-question-index world)
       \newline (assoc world :active-pane :answers-pane)

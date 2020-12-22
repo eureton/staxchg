@@ -3,7 +3,7 @@
   (:require [staxchg.markdown :as markdown])
   (:require [staxchg.state
              :as state
-             :only [selected-line-offset selected-answer]])
+             :only [selected-line-offset selected-question selected-answer]])
   (:import com.googlecode.lanterna.TextCharacter)
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:import com.googlecode.lanterna.TerminalTextUtils)
@@ -60,7 +60,6 @@
   (let [left 1
         top 0
         width (- (world :width) (* left 2))
-        selected-question (get-in world [:questions (world :selected-question-index)])
         graphics (.newTextGraphics
                    (.newTextGraphics screen)
                    (TerminalPosition. left top)
@@ -75,7 +74,7 @@
       graphics
       left
       (- selected-question-index question-list-offset)
-      (format (str "%-" width "s") (selected-question "title"))
+      (format (str "%-" width "s") ((state/selected-question world) "title"))
       [SGR/REVERSE])))
 
 (defn render-selected-question [screen world]
@@ -83,14 +82,13 @@
         top (inc (world :question-list-size))
         width (- (world :width) (* left 2))
         height (- (world :height) top 1)
-        selected-question (get-in world [:questions (world :selected-question-index)])
         graphics (.newTextGraphics
                    (.newTextGraphics screen)
                    (TerminalPosition. left top)
                    (TerminalSize. width height))]
     (put-markdown
       graphics
-      (selected-question "body_markdown")
+      ((state/selected-question world) "body_markdown")
       {:line-offset (state/selected-line-offset world)})))
 
 (defn render-questions-pane
@@ -120,7 +118,7 @@
     (.newTextGraphics screen)
     1
     0
-    (get-in world [:questions (world :selected-question-index) "title"])
+    ((state/selected-question world) "title")
     [SGR/REVERSE]))
 
 (defn render-selected-answer [screen world]
