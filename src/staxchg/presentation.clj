@@ -20,16 +20,8 @@
          width (->> graphics .getSize .getColumns)
          height (->> graphics .getSize .getRows)
          line-offset 0}}]
-  (let [{:keys [stripped markdown-info]} (markdown/strip
-                                           string
-                                           (markdown/parse string))
-        {:keys [reflowed markdown-info]} (markdown/reflow
-                                           stripped
-                                           markdown-info
-                                           {:width width})
-        {:keys [plotted markdown-info]} (markdown/plot
-                                          reflowed
-                                          markdown-info
+  (let [{:keys [plotted markdown-info]} (markdown/plot
+                                          string
                                           {:left left
                                            :top (- top line-offset)
                                            :width width})

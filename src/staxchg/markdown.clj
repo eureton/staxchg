@@ -168,10 +168,14 @@
     * the character
     * the [x y] coordinates of the character"
   [string
-   info
    {:keys [left top width height]
     :or {left 0 top 0}}]
-  (let [lines (string/split-lines string)
+  (let [{:keys [stripped markdown-info]} (strip string (parse string))
+        {:keys [reflowed markdown-info]} (reflow
+                                           stripped
+                                           markdown-info
+                                           {:width width})
+        lines (string/split-lines reflowed)
         truncate #(take (or height (count %)) %)
         lengths (->>
                   lines
@@ -193,20 +197,10 @@
      :markdown-info (->>
                       lengths
                       (reduce (fn [agg x] (conj agg (+ (or (last agg) 0) x))) [])
-                      (reduce (fn [agg x] (adjust-info agg x #(- % 2))) info))}))
+                      (reduce (fn [agg x] (adjust-info agg x #(- % 2))) markdown-info))}))
 
 (defn line-count
   [string width]
-  (let [{:keys [stripped markdown-info]} (strip
-                                           string
-                                           (parse string))
-        {:keys [reflowed markdown-info]} (reflow
-                                           stripped
-                                           markdown-info
-                                           {:width width})
-        {:keys [plotted markdown-info]} (plot
-                                          reflowed
-                                          markdown-info
-                                          {:width width})]
+  (let [{:keys [plotted markdown-info]} (plot string {:width width})]
     (inc (- (->> plotted last second second) (->> plotted first second second)))))
 
