@@ -31,7 +31,8 @@
       categories)))
 
 (defn ranges [string pattern]
-  (let [matcher (.matcher pattern string)]
+  (let [regexp (java.util.regex.Pattern/compile pattern java.util.regex.Pattern/DOTALL)
+        matcher (.matcher regexp string)]
     (loop [coordinates []]
       (if (.find matcher)
         (recur (conj coordinates [(.start matcher 1) (.end matcher 1)]))
@@ -42,10 +43,10 @@
     (fn [aggregator [category pattern]]
       (assoc aggregator category (ranges string pattern)))
     {}
-    [[:bold #"(\*\*[^*]+\*\*)"]
-     [:italic #"[^*](\*[^*]+\*)[^*]"]
-     [:monospace #"[^`](`[^`]+`)[^`]"]
-     [:code-block #"(```[^`]+```)"]]))
+    [[:bold "(\\*\\*((?!\\*\\*).)+\\*\\*)"]
+     [:italic "[^*](\\*[^*]+\\*)[^*]"]
+     [:monospace "[^`](`[^`]+`)[^`]"]
+     [:code-block "(```((?!```).)+```)"]]))
 
 (defn adjust-info
   ""
@@ -89,27 +90,28 @@
 (defn strip
   ""
   [string info]
-  (let [strip-lengths {:italic 1 :bold 2 :monospace 1 :code-block 3}
-        unrolled-info (unroll-info info)]
+  (let [strip-lengths {:italic 1 :bold 2 :monospace 1 :code-block 3}]
     (loop [s string
-           i []
-           u unrolled-info]
+           i info
+           u (unroll-info info)]
       (if (empty? u)
         {:input string
          :stripped s
-         :markdown-info (roll-info i)}
+         :markdown-info i}
         (let [[start end category] (first u)
               length (strip-lengths category)
-              length-x2 (* 2 length)]
+              bounds-adjuster #(- % length)
+              info-adjuster #(->
+                              %
+                              (adjust-info (+ start length) bounds-adjuster)
+                              (adjust-info (- end length 1) bounds-adjuster))]
           (recur
             (str
               (subs s 0 start)
               (subs s (+ start length) (- end length))
               (subs s end))
-            (conj i [start (- end length-x2) category])
-            (map
-              (fn [[x y c]] (list (- x length-x2) (- y length-x2) c))
-              (rest u))))))))
+            (info-adjuster i)
+            (->> u rest roll-info info-adjuster unroll-info)))))))
 
 (defn pack [string width]
   (if (->> string count (>= width))
@@ -162,6 +164,22 @@
     (partition width width (repeat \space))
     (map string/join)))
 
+(defn adjust-info2
+  ""
+  [info index f]
+  (let [adjust-range (fn [[start end]]
+                       (vector
+                         (if (> start index) (f start) start)
+                         (if (> end index) (f end) end)))]
+    (reduce
+      (fn [aggregator category]
+        (assoc
+          aggregator
+          category
+          (mapv adjust-range (info category))))
+      {}
+      (keys info))))
+
 (defn plot
   "Returns a sequence of pairs -one for each character of the input string-
   consisting of:
@@ -196,8 +214,9 @@
                   (reduce concat)))
      :markdown-info (->>
                       lengths
-                      (reduce (fn [agg x] (conj agg (+ (or (last agg) 0) x))) [])
-                      (reduce (fn [agg x] (adjust-info agg x #(- % 2))) markdown-info))}))
+                      (reduce (fn [agg x] (conj agg (if (empty? agg) x (+ (last agg) x 2)))) [])
+                      reverse
+                      (reduce (fn [agg x] (adjust-info2 agg x #(- % 2))) markdown-info))}))
 
 (defn line-count
   [string width]
