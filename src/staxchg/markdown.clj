@@ -159,7 +159,7 @@
                             (fn [agg i] (adjust-info agg i bounds-adjuster))
                             info
                             (reverse (remove nil? (% :breaks))))))
-       )))
+       (#(dissoc % :length :breaks)))))
 
 (defn slice
   "Slices the input string into pieces of the given length and returns them in a
