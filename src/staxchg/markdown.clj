@@ -134,16 +134,17 @@
                           (vector
                             (if (> s i) (inc s) s)
                             (if (> e i) (inc e) e)))]
-    (->>
-      string
-      string/split-lines
-      (map (fn [line]
-             (->>
-               (pack line width)
-               (map #(hash-map :s % :c  (count %)))
-               (#(reduce  (fn  [agg h]  (conj agg  (assoc h :art  (not= h  (last %)))))  [] %)))))
-      flatten
-      truncate
+    (as-> string v
+      (string/split-lines v)
+      (map
+        (fn [line]
+          (->>
+            (pack line width)
+            (map #(hash-map :s % :c  (count %)))
+            (#(reduce  (fn  [agg h]  (conj agg  (assoc h :art  (not= h  (last %)))))  [] %))))
+        v)
+      (flatten v)
+      (truncate v)
       (reduce
         (fn [agg h]
           (assoc
@@ -151,15 +152,16 @@
             :length (+ (agg :length) (h :c) (if (h :art) 1 2))
             :breaks (conj (agg :breaks) (if (h :art) (+ (h :c) (agg :length)) nil))
             :reflowed (conj (agg :reflowed) (h :s))))
-        {:reflowed [] :breaks [] :length 0})
-       (#(assoc
-           %
-           :reflowed (string/join "\r\n" (% :reflowed))
-           :markdown-info (reduce
-                            (fn [agg i] (adjust-info agg i bounds-adjuster))
-                            info
-                            (reverse (remove nil? (% :breaks))))))
-       (#(dissoc % :length :breaks)))))
+        {:reflowed [] :breaks [] :length 0}
+        v)
+       (assoc
+         v
+         :reflowed (string/join "\r\n" (v :reflowed))
+         :markdown-info (reduce
+                          (fn [agg i] (adjust-info agg i bounds-adjuster))
+                          info
+                          (reverse (remove nil? (v :breaks)))))
+       (dissoc v :length :breaks))))
 
 (defn slice
   "Slices the input string into pieces of the given length and returns them in a
