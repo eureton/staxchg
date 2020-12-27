@@ -204,5 +204,5 @@
   (case (world :active-pane)
     :questions-pane (render-questions-pane screen world)
     :answers-pane (render-answers-pane screen world))
-  (.refresh screen RefreshType/COMPLETE))
+  (.refresh screen Screen$RefreshType/COMPLETE))
 
