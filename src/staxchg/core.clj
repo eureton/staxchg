@@ -122,7 +122,7 @@
     (loop [world-before (state/initialize-world items screen)]
       (let [keycode (.getCharacter (.readInput screen))
             world-after (state/update-world world-before keycode)]
-        (presentation/render screen world-after)
+        (when-not (= world-before world-after) (presentation/render screen world-after))
         (when-not (= keycode \q) (recur world-after))))
     (.stopScreen screen)))
 
