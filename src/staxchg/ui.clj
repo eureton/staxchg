@@ -1,4 +1,4 @@
-(ns staxchg.presentation
+(ns staxchg.ui
   (:require [clojure.string :as string])
   (:require [staxchg.markdown :as markdown])
   (:require [staxchg.state :as state])

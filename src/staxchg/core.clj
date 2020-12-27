@@ -2,7 +2,7 @@
   (:require [clojure.string :as string])
   (:require [clj-http.client :as http])
   (:require [cheshire.core :as ccore])
-  (:require [staxchg.presentation :as presentation])
+  (:require [staxchg.ui :as ui])
   (:gen-class))
 
 (defn search-url [tags]
@@ -107,5 +107,5 @@
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (presentation/run-input-loop items))
+  (ui/run-input-loop items))
 
