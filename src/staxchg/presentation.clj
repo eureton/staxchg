@@ -3,6 +3,7 @@
   (:require [staxchg.markdown :as markdown])
   (:require [staxchg.state :as state])
   (:import com.googlecode.lanterna.TextCharacter)
+  (:import com.googlecode.lanterna.screen.Screen$RefreshType)
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:import com.googlecode.lanterna.TerminalTextUtils)
   (:import com.googlecode.lanterna.TerminalPosition)
@@ -203,5 +204,5 @@
   (case (world :active-pane)
     :questions-pane (render-questions-pane screen world)
     :answers-pane (render-answers-pane screen world))
-  (.refresh screen))
+  (.refresh screen RefreshType/COMPLETE))
 
