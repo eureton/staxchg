@@ -2,16 +2,7 @@
   (:require [clojure.string :as string])
   (:require [clj-http.client :as http])
   (:require [cheshire.core :as ccore])
-  (:require [staxchg.presentation :as presentation :only [render]])
-  (:require [staxchg.state :as state :only [initialize-world update-world]])
-  (:import com.googlecode.lanterna.terminal.DefaultTerminalFactory)
-  (:import com.googlecode.lanterna.screen.TerminalScreen)
-  (:import com.googlecode.lanterna.TextCharacter)
-  (:import com.googlecode.lanterna.TextColor$ANSI)
-  (:import com.googlecode.lanterna.TerminalTextUtils)
-  (:import com.googlecode.lanterna.TerminalPosition)
-  (:import com.googlecode.lanterna.TerminalSize)
-  (:import com.googlecode.lanterna.SGR)
+  (:require [staxchg.presentation :as presentation])
   (:gen-class))
 
 (defn search-url [tags]
@@ -116,13 +107,5 @@
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (let [terminal (.createTerminal (DefaultTerminalFactory.))
-        screen (TerminalScreen. terminal)]
-    (.startScreen screen)
-    (loop [world-before (state/initialize-world items screen)]
-      (let [keycode (.getCharacter (.readInput screen))
-            world-after (state/update-world world-before keycode)]
-        (when-not (= world-before world-after) (presentation/render screen world-after))
-        (when-not (= keycode \q) (recur world-after))))
-    (.stopScreen screen)))
+  (presentation/run-input-loop items))
 
