@@ -1,4 +1,5 @@
 (ns staxchg.state
+  (:require [staxchg.markdown :as markdown])
   (:gen-class))
 
 (defn increment-selected-question-index
@@ -82,12 +83,39 @@
       [:selected-answers (selected-question "question_id")]
       (constantly (destination-answer "answer_id")))))
 
+(defn selected-question-dimensions
+  [{:as world
+    :keys [width height question-list-size]}]
+  (let [left 1
+        top (inc question-list-size)]
+    {:left left
+     :top top
+     :width (- width (* left 2))
+     :height (- height top 1)}))
+
+(defn increment-selected-question-line-offset
+  ""
+  [{:as world
+    :keys [questions selected-question-index selected-answers]}]
+  (let [selected-question-id ((selected-question world) "question_id")
+        active-pane (world :active-pane)
+        {:keys [width height]} (selected-question-dimensions world)
+        line-count (markdown/line-count
+                     (get-in world [:questions selected-question-index "body_markdown"])
+                     width)]
+      (update-in
+        world
+        [:line-offsets selected-question-id active-pane]
+        #(min
+           (max 0 (- line-count height))
+           (inc %)))))
+
 (defn update-world [world keycode]
   (let [selected-question-id ((selected-question world) "question_id")
         active-pane (world :active-pane)]
     (case keycode
       \k (update-in world [:line-offsets selected-question-id active-pane] #(max 0 (dec %)))
-      \j (update-in world [:line-offsets selected-question-id active-pane] inc)
+      \j (increment-selected-question-line-offset world)
       \K (decrement-selected-question-index world)
       \J (increment-selected-question-index world)
       \newline (assoc world :active-pane :answers-pane)

@@ -76,16 +76,13 @@
       [SGR/REVERSE])))
 
 (defn render-selected-question [screen world]
-  (let [left 1
-        top (inc (world :question-list-size))
-        width (- (world :width) (* left 2))
-        height (- (world :height) top)
+  (let [{:keys [left top width height]} (state/selected-question-dimensions world)
         graphics (.newTextGraphics
                    (.newTextGraphics screen)
                    (TerminalPosition. left top)
-                   (TerminalSize. width height))
+                   (TerminalSize. width (inc height)))
         question (state/selected-question world)
-        meta-y (- height 1)
+        meta-y height
         meta-text (format
                     (str "%" width "s")
                     (format
