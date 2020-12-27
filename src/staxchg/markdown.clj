@@ -48,34 +48,6 @@
      [:monospace "[^`](`[^`]+`)[^`]"]
      [:code-block "(```((?!```).)+```)"]]))
 
-(defn adjust-info2
-  ""
-  [info index range-f]
-  (reduce
-    (fn [aggregator category]
-      (assoc
-        aggregator
-        category
-        (mapv #(range-f index %) (info category))))
-    {}
-    (keys info)))
-
-(defn adjust-info
-  ""
-  [info index f]
-  (let [adjust-range (fn [[start end]]
-                       (vector
-                         (if (>= start index) (f start) start)
-                         (if (> end index) (f end) end)))]
-    (reduce
-      (fn [aggregator category]
-        (assoc
-          aggregator
-          category
-          (mapv adjust-range (info category))))
-      {}
-      (keys info))))
-
 (defn unroll-info
   ""
   [info]
@@ -87,8 +59,7 @@
           (fn [[start end]] (vector start end category))
           ranges)))
     flatten
-    (partition 3)
-    (sort #(- (first %1) (first %2)))))
+    (partition 3)))
 
 (defn roll-info
   ""
@@ -98,6 +69,18 @@
       (update aggregator character conj [start end]))
     {:bold [] :italic [] :monospace [] :code-block []}
     info))
+
+(defn adjust-info
+  ""
+  [info index range-f]
+  (->>
+    info
+    unroll-info
+    (map
+      (fn [[start end category]]
+        (let [range-after (range-f index [start end])]
+          (vector (first range-after) (second range-after) category))))
+    roll-info))
 
 (defn strip
   ""
@@ -118,8 +101,8 @@
                                   (if (> e i) (- e length) e)))
               info-adjuster #(->
                                %
-                               (adjust-info2 (- end length) bounds-adjuster)
-                               (adjust-info2 start bounds-adjuster))]
+                               (adjust-info (- end length) bounds-adjuster)
+                               (adjust-info start bounds-adjuster))]
           (recur
             (str
               (subs s 0 start)
@@ -133,19 +116,24 @@
     [string]
     (reduce
       (fn [aggregator word]
-        (let [previous (last aggregator)]
+        (let [previous (peek aggregator)
+              popped (if-not (empty? aggregator) (pop aggregator) aggregator)]
           (if (<= (+ (count previous) (count word) 1) width)
-            (conj (pop aggregator) (string/join \space (remove string/blank? [previous word])))
+            (conj popped (string/join \space (remove nil? [previous word])))
             (conj aggregator word))))
-      [""]
-      (string/split string #" "))))
+      []
+      (string/split string #"(?!\s*$) "))))
 
 (defn reflow
   ""
   [string
    info
    {:keys [width height]}]
-  (let [truncate #(take (or height (count %)) %)]
+  (let [truncate #(take (or height (count %)) %)
+        bounds-adjuster (fn [i [s e]]
+                          (vector
+                            (if (> s i) (inc s) s)
+                            (if (> e i) (inc e) e)))]
     (->>
       string
       string/split-lines
@@ -167,7 +155,10 @@
        (#(assoc
            %
            :reflowed (string/join "\r\n" (% :reflowed))
-           :markdown-info (reduce (fn [agg i] (adjust-info agg i inc)) info (remove nil? (% :breaks)))))
+           :markdown-info (reduce
+                            (fn [agg i] (adjust-info agg i bounds-adjuster))
+                            info
+                            (reverse (remove nil? (% :breaks))))))
        )))
 
 (defn slice
@@ -219,7 +210,7 @@
                       lengths
                       (reduce (fn [agg x] (conj agg (if (empty? agg) x (+ (last agg) x 2)))) [])
                       reverse
-                      (reduce (fn [agg x] (adjust-info2 agg x adjust-range)) markdown-info))}))
+                      (reduce (fn [agg x] (adjust-info agg x adjust-range)) markdown-info))}))
 
 (defn line-count
   [string width]
