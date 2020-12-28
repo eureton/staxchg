@@ -44,8 +44,8 @@
       (assoc aggregator category (ranges string pattern)))
     {}
     [[:bold "(\\*\\*((?!\\*\\*).)+\\*\\*)"]
-     [:italic "[^*](\\*[^*]+\\*)[^*]"]
-     [:monospace "[^`](`[^`]+`)[^`]"]
+     [:italic "(?:^|[^*])(\\*[^*]+\\*)(?:[^*]|$)"]
+     [:monospace "(?:^|[^`])(`[^`]*`)(?:[^`]|$)"]
      [:code-block "(```((?!```).)+```)"]]))
 
 (defn unroll-info
