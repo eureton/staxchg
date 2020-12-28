@@ -30,8 +30,11 @@
       recipient
       categories)))
 
-(defn ranges [string pattern]
-  (let [regexp (java.util.regex.Pattern/compile pattern java.util.regex.Pattern/DOTALL)
+(defn ranges [string pattern multiline?]
+  (let [regexp (java.util.regex.Pattern/compile
+                 pattern
+                 (cond-> 0
+                   multiline? (bit-or java.util.regex.Pattern/DOTALL)))
         matcher (.matcher regexp string)]
     (loop [coordinates []]
       (if (.find matcher)
@@ -40,13 +43,13 @@
 
 (defn parse [string]
   (reduce
-    (fn [aggregator [category pattern]]
-      (assoc aggregator category (ranges string pattern)))
+    (fn [aggregator [category pattern {:keys [multiline?]}]]
+      (assoc aggregator category (ranges string pattern multiline?)))
     {}
-    [[:bold "(\\*\\*((?!\\*\\*).)+\\*\\*)"]
-     [:italic "(?:^|[^*])(\\*[^*]+\\*)(?:[^*]|$)"]
-     [:monospace "(?:^|[^`])(`[^`]*`)(?:[^`]|$)"]
-     [:code-block "(```((?!```).)+```)"]]))
+    [[:bold       "(\\*\\*((?!\\*\\*).)+\\*\\*)"              {:multiline? true }]
+     [:italic     "(?:^|[^*])(\\*[^*^\\r^\\n]+\\*)(?:[^*]|$)" {:multiline? false}]
+     [:monospace  "(?:^|[^`])(`[^`]*`)(?:[^`]|$)"             {:multiline? false}]
+     [:code-block "(```((?!```).)+```)"                       {:multiline? true }]]))
 
 (defn unroll-info
   ""
