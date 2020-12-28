@@ -219,6 +219,8 @@
 
 (defn line-count
   [string width]
-  (let [{:keys [plotted markdown-info]} (plot string {:width width})]
-    (inc (- (->> plotted last second second) (->> plotted first second second)))))
+  (let [{:keys [plotted]} (plot string {:width width})]
+    (inc (-
+          (->> plotted last second second)
+          (->> plotted first second second)))))
 
