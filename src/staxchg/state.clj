@@ -1,5 +1,5 @@
 (ns staxchg.state
-  (:require [staxchg.markdown :as markdown])
+  (:require [staxchg.presentation :as presentation])
   (:gen-class))
 
 (defn increment-selected-question-index
@@ -83,38 +83,17 @@
       [:selected-answers (selected-question "question_id")]
       (constantly (destination-answer "answer_id")))))
 
-(defn selected-question-dimensions
-  [{:as world
-    :keys [width height question-list-size]}]
-  (let [left 1
-        top (inc question-list-size)]
-    {:left left
-     :top top
-     :width (- width (* left 2))
-     :height (- height top 1)}))
-
-(defn selected-question-line-count
-  ""
-  [world]
-  (let [selected-question (selected-question world)
-        {:keys [width]} (selected-question-dimensions world)]
-    (reduce
-      (partial + 1)
-      (->>
-        (conj (selected-question "comments") selected-question)
-        (map #(% "body_markdown"))
-        (map #(markdown/line-count % width))))))
-
 (defn increment-selected-question-line-offset
   ""
   [world]
   (let [selected-question (selected-question world)
-        {:keys [height]} (selected-question-dimensions world)]
+        {:keys [width height]} (presentation/question-pane-body-dimensions world)
+        line-count (presentation/question-line-count selected-question width)]
       (update-in
         world
         [:line-offsets (selected-question "question_id") (world :active-pane)]
         #(min
-           (max 0 (- (selected-question-line-count world) height))
+           (max 0 (- line-count height))
            (inc %)))))
 
 (defn update-world [world keycode]

@@ -2,6 +2,7 @@
   (:require [clojure.string :as string])
   (:require [staxchg.markdown :as markdown])
   (:require [staxchg.state :as state])
+  (:require [staxchg.presentation :as presentation])
   (:import com.googlecode.lanterna.SGR)
   (:import com.googlecode.lanterna.TerminalPosition)
   (:import com.googlecode.lanterna.TerminalSize)
@@ -13,15 +14,28 @@
   (:import com.googlecode.lanterna.terminal.DefaultTerminalFactory)
   (:gen-class))
 
+(defn decorate
+  ""
+  [character foreground-color background-color modifiers]
+  (as->
+    character v
+    (TextCharacter. v)
+    (.withForegroundColor v foreground-color)
+    (.withBackgroundColor v background-color)
+    (reduce #(.withModifier %1 %2) v modifiers)))
+
 (defn put-markdown
   [graphics
    string
    {:as args
-    :keys [left top width height]
+    :keys [left top width height modifiers foreground-color background-color]
     :or {left 0
          top 0
          width (->> graphics .getSize .getColumns)
-         height (->> graphics .getSize .getRows)}}]
+         height (->> graphics .getSize .getRows)
+         modifiers []
+         foreground-color TextColor$ANSI/DEFAULT
+         background-color TextColor$ANSI/BLACK}}]
   (let [{:keys [plotted markdown-info]} (markdown/plot
                                           string
                                           {:left left
@@ -40,23 +54,13 @@
           graphics
           x
           y
-          (markdown/decorate (TextCharacter. character) categories
-                          :bold #(.withModifier % SGR/BOLD)
-                          :italic #(.withModifier % SGR/REVERSE)
-                          :monospace #(.withForegroundColor % TextColor$ANSI/GREEN)
-                          :code-block #(.withForegroundColor % TextColor$ANSI/GREEN)))))))
-
-(defn format-date
-  ""
-  [unixtime]
-  (let [datetime (java.time.LocalDateTime/ofEpochSecond unixtime 0 java.time.ZoneOffset/UTC)]
-    (format
-      "%4d-%02d-%02d %02d:%02d"
-      (.getYear datetime)
-      (.getValue (.getMonth datetime))
-      (.getDayOfMonth datetime)
-      (.getHour datetime)
-      (.getMinute datetime))))
+          (markdown/decorate
+            (decorate character foreground-color background-color modifiers)
+            categories
+            :bold #(.withModifier % SGR/BOLD)
+            :italic #(.withModifier % SGR/REVERSE)
+            :monospace #(.withForegroundColor % TextColor$ANSI/GREEN)
+            :code-block #(.withForegroundColor % TextColor$ANSI/GREEN)))))))
 
 (defn render-question-list
   [screen {:as world
@@ -79,7 +83,7 @@
       [SGR/REVERSE])))
 
 (defn render-selected-question [screen world]
-  (let [{:keys [left top width height]} (state/selected-question-dimensions world)
+  (let [{:keys [left top width height]} (presentation/question-pane-body-dimensions world)
         graphics (.newTextGraphics
                    (.newTextGraphics screen)
                    (TerminalPosition. left top)
@@ -94,7 +98,7 @@
                       (question "view_count")
                       (get-in question ["owner" "display_name"])
                       (get-in question ["owner" "reputation"])
-                      (format-date (question "last_activity_date"))))
+                      (presentation/format-date (question "last_activity_date"))))
         meta-formatter #(->
                           %
                           TextCharacter.
@@ -113,22 +117,24 @@
 (defn render-selected-question-comments
   ""
   [screen world]
-  (let [{:keys [left top width height]} (state/selected-question-dimensions world)
+  (let [{:keys [left top width height]} (presentation/question-pane-body-dimensions world)
+        left (+ left presentation/question-comments-left-margin)
+        width (- width presentation/question-comments-left-margin)
         selected-question (state/selected-question world)
         comments (selected-question "comments")
         question-line-count (markdown/line-count (selected-question "body_markdown") width)
+        line-offset (state/selected-line-offset world)
         graphics (.newTextGraphics
                    (.newTextGraphics screen)
-                   (TerminalPosition. left (+ top question-line-count 1))
-                   ;(TerminalSize. width 10000))]
-                   (TerminalSize. width (- height question-line-count 1)))]
+                   (TerminalPosition. left top)
+                   (TerminalSize. width height))]
     (loop [i 0
-           y (- (state/selected-line-offset world))]
+           y (- (inc question-line-count) line-offset)]
       (when (< i (count comments))
         (let [comm (nth comments i)
               body (comm "body_markdown")
               line-count (markdown/line-count body width)]
-          (put-markdown graphics body {:top y})
+          (put-markdown graphics body {:top y :foreground-color TextColor$ANSI/BLUE})
           (recur (inc i) (+ y line-count 1)))))))
 
 (defn render-questions-pane
@@ -178,7 +184,7 @@
                       (answer "score")
                       (get-in answer ["owner" "display_name"])
                       (get-in answer ["owner" "reputation"])
-                      (format-date (answer "last_activity_date"))))
+                      (presentation/format-date (answer "last_activity_date"))))
         meta-formatter #(->
                           %
                           TextCharacter.
