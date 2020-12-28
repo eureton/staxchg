@@ -110,6 +110,27 @@
         meta-y
         (meta-formatter character)))))
 
+(defn render-selected-question-comments
+  ""
+  [screen world]
+  (let [{:keys [left top width height]} (state/selected-question-dimensions world)
+        selected-question (state/selected-question world)
+        comments (selected-question "comments")
+        question-line-count (markdown/line-count (selected-question "body_markdown") width)
+        graphics (.newTextGraphics
+                   (.newTextGraphics screen)
+                   (TerminalPosition. left (+ top question-line-count 1))
+                   ;(TerminalSize. width 10000))]
+                   (TerminalSize. width (- height question-line-count 1)))]
+    (loop [i 0
+           y (- (state/selected-line-offset world))]
+      (when (< i (count comments))
+        (let [comm (nth comments i)
+              body (comm "body_markdown")
+              line-count (markdown/line-count body width)]
+          (put-markdown graphics body {:top y})
+          (recur (inc i) (+ y line-count 1)))))))
+
 (defn render-questions-pane
   [screen
    {:as world
@@ -128,7 +149,8 @@
       (max 0 (- width (count page-hint) 1))
       separator-y
       page-hint)
-    (render-selected-question screen world)))
+    (render-selected-question screen world)
+    (render-selected-question-comments screen world)))
 
 (defn render-active-question [screen world]
   (.putString

@@ -93,21 +93,28 @@
      :width (- width (* left 2))
      :height (- height top 1)}))
 
+(defn selected-question-line-count
+  ""
+  [world]
+  (let [selected-question (selected-question world)
+        {:keys [width]} (selected-question-dimensions world)]
+    (reduce
+      (partial + 1)
+      (->>
+        (conj (selected-question "comments") selected-question)
+        (map #(% "body_markdown"))
+        (map #(markdown/line-count % width))))))
+
 (defn increment-selected-question-line-offset
   ""
-  [{:as world
-    :keys [questions selected-question-index selected-answers]}]
-  (let [selected-question-id ((selected-question world) "question_id")
-        active-pane (world :active-pane)
-        {:keys [width height]} (selected-question-dimensions world)
-        line-count (markdown/line-count
-                     (get-in world [:questions selected-question-index "body_markdown"])
-                     width)]
+  [world]
+  (let [selected-question (selected-question world)
+        {:keys [height]} (selected-question-dimensions world)]
       (update-in
         world
-        [:line-offsets selected-question-id active-pane]
+        [:line-offsets (selected-question "question_id") (world :active-pane)]
         #(min
-           (max 0 (- line-count height))
+           (max 0 (- (selected-question-line-count world) height))
            (inc %)))))
 
 (defn update-world [world keycode]
