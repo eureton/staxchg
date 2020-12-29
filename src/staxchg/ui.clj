@@ -114,6 +114,25 @@
         meta-y
         (meta-formatter character)))))
 
+(defn render-questions-pane-separator
+  ""
+  [screen
+   {:as world
+    :keys [width question-list-size question-list-offset questions]}]
+  (let [separator-y question-list-size
+        graphics (.newTextGraphics screen)
+        page-hint (format
+                    "(%d-%d of %d)"
+                    question-list-offset
+                    (+ question-list-offset question-list-size)
+                    (count questions))]
+    (.drawLine graphics 0 separator-y width separator-y \-)
+    (.putString
+      graphics
+      (max 0 (- width (count page-hint) 1))
+      separator-y
+      page-hint)))
+
 (defn render-selected-question-comments
   ""
   [screen world]
@@ -138,25 +157,11 @@
           (recur (inc i) (+ y line-count 1)))))))
 
 (defn render-questions-pane
-  [screen
-   {:as world
-    :keys [width question-list-size question-list-offset questions]}]
-  (let [separator-y question-list-size
-        graphics (.newTextGraphics screen)
-        page-hint (format
-                    "(%d-%d of %d)"
-                    question-list-offset
-                    (+ question-list-offset question-list-size)
-                    (count questions))]
-    (render-question-list screen world)
-    (.drawLine graphics 0 separator-y width separator-y \-)
-    (.putString
-      graphics
-      (max 0 (- width (count page-hint) 1))
-      separator-y
-      page-hint)
-    (render-selected-question screen world)
-    (render-selected-question-comments screen world)))
+  [screen world]
+  (render-question-list screen world)
+  (render-questions-pane-separator screen world)
+  (render-selected-question screen world)
+  (render-selected-question-comments screen world))
 
 (defn render-active-question [screen world]
   (.putString
