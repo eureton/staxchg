@@ -143,18 +143,26 @@
         comments (selected-question "comments")
         question-line-count (markdown/line-count (selected-question "body_markdown") width)
         line-offset (state/selected-line-offset world)
-        graphics (.newTextGraphics
-                   (.newTextGraphics screen)
-                   (TerminalPosition. left top)
-                   (TerminalSize. width height))]
+        graphics (->
+                   screen
+                   .newTextGraphics
+                   (.newTextGraphics (TerminalPosition. left top) (TerminalSize. width height))
+                   (.setForegroundColor TextColor$ANSI/BLUE))]
     (loop [i 0
            y (- (inc question-line-count) line-offset)]
       (when (< i (count comments))
         (let [comm (nth comments i)
               body (comm "body_markdown")
-              line-count (markdown/line-count body width)]
+              line-count (markdown/line-count body width)
+              meta-text (presentation/format-comment-meta comm)]
           (put-markdown graphics body {:top y :foreground-color TextColor$ANSI/BLUE})
-          (recur (inc i) (+ y line-count 1)))))))
+          (.putString
+            graphics
+            (- width (count meta-text))
+            (+ y line-count)
+            meta-text
+            [SGR/BOLD])
+          (recur (inc i) (+ y line-count 2)))))))
 
 (defn render-questions-pane
   [screen world]
@@ -184,12 +192,7 @@
         meta-y (- height 1)
         meta-text (format
                     (str "%" width "s")
-                    (format
-                      "%d | %s (%s) | %s"
-                      (answer "score")
-                      (get-in answer ["owner" "display_name"])
-                      (get-in answer ["owner" "reputation"])
-                      (presentation/format-date (answer "last_activity_date"))))
+                    (presentation/format-answer-meta answer))
         meta-formatter #(->
                           %
                           TextCharacter.
