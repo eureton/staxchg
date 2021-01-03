@@ -88,7 +88,7 @@
   [world]
   (let [selected-question (selected-question world)
         {:keys [width height]} (presentation/question-pane-body-dimensions world)
-        line-count (presentation/question-line-count selected-question width)]
+        line-count (presentation/question-line-count selected-question world)]
       (update-in
         world
         [:line-offsets (selected-question "question_id") (world :active-pane)]
@@ -138,10 +138,11 @@
     "answers" (mapv scrub-answer (vec answers))
     "comments" (mapv scrub-body (vec comments))))
 
-(defn initialize-world [items screen]
+(defn initialize-world
+  ""
+  [items width height]
   (let [questions (mapv scrub-question (items "items"))
-        question-ids (map #(% "question_id") questions)
-        size (.getTerminalSize screen)]
+        question-ids (map #(% "question_id") questions)]
     {:line-offsets (reduce
                      #(assoc %1 %2 {:questions-pane 0 :answers-pane 0})
                      {}
@@ -159,7 +160,7 @@
      :question-list-size 2
      :question-list-offset 0
      :questions questions
-     :width (.getColumns size)
-     :height (.getRows size)
+     :width width
+     :height height
      :active-pane :questions-pane}))
 

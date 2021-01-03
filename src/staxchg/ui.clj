@@ -62,6 +62,22 @@
             :monospace #(.withForegroundColor % TextColor$ANSI/GREEN)
             :code-block #(.withForegroundColor % TextColor$ANSI/GREEN)))))))
 
+(defn put-string
+  ""
+  [graphics
+   string
+   {:keys [x y modifiers foreground-color background-color]
+    :or {x 0
+         y 0
+         foreground-color TextColor$ANSI/DEFAULT
+         background-color TextColor$ANSI/DEFAULT}}]
+  (let [graphics (->
+                   graphics
+                   (.setForegroundColor foreground-color)
+                   (.setBackgroundColor background-color)
+                   (.enableModifiers (into-array SGR modifiers)))]
+    (.putString graphics x y string)))
+
 (defn render-question-list
   [screen {:as world
            :keys [selected-question-index question-list-size question-list-offset]}]
@@ -82,38 +98,6 @@
       (format (str "%-" width "s") ((state/selected-question world) "title"))
       [SGR/REVERSE])))
 
-(defn render-selected-question [screen world]
-  (let [{:keys [left top width height]} (presentation/question-pane-body-dimensions world)
-        graphics (.newTextGraphics
-                   (.newTextGraphics screen)
-                   (TerminalPosition. left top)
-                   (TerminalSize. width (inc height)))
-        question (state/selected-question world)
-        meta-y height
-        meta-text (format
-                    (str "%" width "s")
-                    (format
-                      "(S: %d) | (V: %d) | %s (%s) | %s"
-                      (question "score")
-                      (question "view_count")
-                      (get-in question ["owner" "display_name"])
-                      (get-in question ["owner" "reputation"])
-                      (presentation/format-date (question "last_activity_date"))))
-        meta-formatter #(->
-                          %
-                          TextCharacter.
-                          (.withForegroundColor TextColor$ANSI/YELLOW))]
-    (put-markdown
-      graphics
-      (question "body_markdown")
-      {:top (- (state/selected-line-offset world))})
-    (doseq [[index character] (map-indexed vector meta-text)]
-      (.setCharacter
-        graphics
-        index
-        meta-y
-        (meta-formatter character)))))
-
 (defn render-questions-pane-separator
   ""
   [screen
@@ -133,43 +117,32 @@
       separator-y
       page-hint)))
 
-(defn render-selected-question-comments
-  ""
-  [screen world]
-  (let [{:keys [left top width height]} (presentation/question-pane-body-dimensions world)
-        left (+ left presentation/question-comments-left-margin)
-        width (- width presentation/question-comments-left-margin)
-        selected-question (state/selected-question world)
-        comments (selected-question "comments")
-        question-line-count (markdown/line-count (selected-question "body_markdown") width)
-        line-offset (state/selected-line-offset world)
-        graphics (->
-                   screen
-                   .newTextGraphics
-                   (.newTextGraphics (TerminalPosition. left top) (TerminalSize. width height))
-                   (.setForegroundColor TextColor$ANSI/BLUE))]
-    (loop [i 0
-           y (- (inc question-line-count) line-offset)]
-      (when (< i (count comments))
-        (let [comm (nth comments i)
-              body (comm "body_markdown")
-              line-count (markdown/line-count body width)
-              meta-text (presentation/format-comment-meta comm)]
-          (put-markdown graphics body {:top y :foreground-color TextColor$ANSI/BLUE})
-          (.putString
-            graphics
-            (- width (count meta-text))
-            (+ y line-count)
-            meta-text
-            [SGR/BOLD])
-          (recur (inc i) (+ y line-count 2)))))))
+(defn render-plot
+  [screen plot]
+  (doseq [{:as args
+           :keys [type x y payload foreground-color]
+           :viewport/keys [left top width height]} plot]
+    (when (and (pos? width) (pos? height))
+      (let [graphics (->
+                       screen
+                       .newTextGraphics
+                       (.newTextGraphics
+                         (TerminalPosition. left top)
+                         (TerminalSize. width height))
+                       (.setForegroundColor foreground-color))
+            options (select-keys args [:x :y :foreground-color :modifiers])]
+        (condp = type
+          :markdown (put-markdown graphics payload {:left x :top y :foreground-color foreground-color})
+          :string   (put-string graphics payload options))))))
 
 (defn render-questions-pane
   [screen world]
   (render-question-list screen world)
   (render-questions-pane-separator screen world)
-  (render-selected-question screen world)
-  (render-selected-question-comments screen world))
+  (render-plot screen (presentation/question-pane-plot
+                        (state/selected-question world)
+                        (state/selected-line-offset world)
+                        world)))
 
 (defn render-active-question [screen world]
   (.putString
@@ -248,9 +221,10 @@
   ""
   [questions]
   (let [terminal (.createTerminal (DefaultTerminalFactory.))
-        screen (TerminalScreen. terminal)]
+        screen (TerminalScreen. terminal)
+        size (.getTerminalSize screen)]
     (.startScreen screen)
-    (loop [world-before (state/initialize-world questions screen)]
+    (loop [world-before (state/initialize-world questions (.getColumns size) (.getRows size))]
       (let [keycode (.getCharacter (.readInput screen))
             world-after (state/update-world world-before keycode)]
         (when-not (= world-before world-after) (render screen world-after))
