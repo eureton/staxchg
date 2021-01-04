@@ -1,5 +1,4 @@
 (ns staxchg.presentation
-  (:require [staxchg.markdown :as markdown])
   (:require [staxchg.plot :as plot])
   (:import com.googlecode.lanterna.SGR)
   (:import com.googlecode.lanterna.TextColor$ANSI)
@@ -65,82 +64,73 @@
 
 (def comments-left-margin 4)
 
+(defn comment-plot
+  ""
+  [c world]
+  (let [{:keys [top width height]} (question-pane-body-dimensions world)
+        meta-text (format-comment-meta c)
+        base {:foreground-color TextColor$ANSI/BLUE
+              :viewport/left comments-left-margin
+              :viewport/top top
+              :viewport/width (- width comments-left-margin)
+              :viewport/height height}]
+    (plot/add
+      (plot/make (merge base {:type :markdown
+                              :payload (c "body_markdown")}))
+      (plot/make (merge base {:type :string
+                              :payload meta-text
+                              :x (- width (count meta-text))
+                              :modifiers [SGR/BOLD]})))))
+
 (defn comments-plot
   ""
-  [post line-offset world]
-  (let [{:keys [left top width height]} (question-pane-body-dimensions world)
-        left comments-left-margin
-        width (- width comments-left-margin)
-        comments (post "comments")
-        question-line-count (markdown/line-count (post "body_markdown") width)] ; TODO move this into plot/add
-                                                                                ; and make comments-plot applicable
-                                                                                ; to answers
-    (loop [i 0
-           y (- (inc question-line-count) line-offset)
-           plot plot/zero]
-      (if (>= i (count comments))
-        plot
-        (let [comm (nth comments i)
-              body (comm "body_markdown")
-              line-count (markdown/line-count body width)
-              meta-y (+ y line-count)
-              meta-text (format-comment-meta comm)
-              base {:foreground-color TextColor$ANSI/BLUE
-                    :viewport/left left
-                    :viewport/top top
-                    :viewport/width width
-                    :viewport/height height}]
-          (recur
-            (inc i)
-            (+ meta-y 2)
-            (plot/add
-              plot
-              (plot/make (merge base {:type :markdown
-                                      :payload body
-                                      :x 0
-                                      :y y}))
-              (plot/make (merge base {:type :string
-                                      :payload meta-text
-                                      :x (- width (count meta-text))
-                                      :y meta-y
-                                      :modifiers [SGR/BOLD]})))))))))
+  [post world]
+  (reduce
+    #(plot/add %1 plot/y-separator %2)
+    plot/zero
+    (map
+      #(comment-plot % world)
+      (post "comments"))))
 
 (defn question-plot
   ""
-  [question line-offset world]
+  [question world]
   (let [{:keys [left top width height]} (question-pane-body-dimensions world)]
-    (plot/add
-      (plot/make {:type :markdown
-                  :payload (question "body_markdown")
-                  :viewport/left left
-                  :viewport/top top
-                  :viewport/width width
-                  :viewport/height height
-                  :y (- line-offset)})
-      (plot/make {:type :string
-                  :payload (format-question-meta question)
-                  :viewport/left left
-                  :viewport/top (+ top height)
-                  :viewport/width width
-                  :viewport/height 1
-                  :foreground-color TextColor$ANSI/YELLOW}))))
+    (plot/make {:type :markdown
+                :payload (question "body_markdown")
+                :viewport/left left
+                :viewport/top top
+                :viewport/width width
+                :viewport/height height})))
 
-(defn question-pane-plot
+(defn question-meta-plot
+  ""
+  [question world]
+  (let [{:keys [left top width height]} (question-pane-body-dimensions world)
+        text (format-question-meta question)]
+    (plot/make {:type :string
+                :payload text
+                :x (- width (count text))
+                :viewport/left left
+                :viewport/top (+ top height)
+                :viewport/width width
+                :viewport/height 1
+                :foreground-color TextColor$ANSI/YELLOW})))
+
+(defn question-pane-body-plot
   ""
   [question line-offset world]
-  (let [{:keys [height]} (question-pane-body-dimensions world)]
+  (plot/y-offset
     (plot/add
-      (question-plot question line-offset world)
-      (comments-plot question line-offset world))))
+      (question-plot question world)
+      (comments-plot question world))
+    (- line-offset)))
 
 (defn question-line-count
   ""
   [question world]
-  (let [plot (plot/add
-               (question-plot question 0 world)
-               (comments-plot question 0 world))
-        bottom-y (fn [{:keys [type y payload] :viewport/keys [width]}]
-                   (+ y (condp = type
-                          :markdown (markdown/line-count payload width)
-                          :string 1)))]
-    (->> plot (map bottom-y) (apply max))))
+  (plot/line-count
+    (plot/add
+      (question-plot question world)
+      (comments-plot question world))))
+

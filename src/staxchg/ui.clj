@@ -139,9 +139,12 @@
   [screen world]
   (render-question-list screen world)
   (render-questions-pane-separator screen world)
-  (render-plot screen (presentation/question-pane-plot
+  (render-plot screen (presentation/question-pane-body-plot
                         (state/selected-question world)
                         (state/selected-line-offset world)
+                        world))
+  (render-plot screen (presentation/question-meta-plot
+                        (state/selected-question world)
                         world)))
 
 (defn render-active-question [screen world]

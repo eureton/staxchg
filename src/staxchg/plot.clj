@@ -1,7 +1,10 @@
 (ns staxchg.plot
+  (:require [staxchg.markdown :as markdown])
   (:gen-class))
 
 (def zero [])
+
+(def y-rhythm 1)
 
 (defn make
   ""
@@ -27,8 +30,35 @@
     :foreground-color foreground-color
     :modifiers modifiers}])
 
+(def y-separator (make {}))
+
+(defn payload-line-count
+  ""
+  [{:keys [type payload] :viewport/keys [width]}]
+  (condp = type
+    :markdown (markdown/line-count payload width)
+    :string 1))
+
+(defn y-offset
+  ""
+  [plot delta]
+  (mapv
+    #(update % :y (partial + delta))
+    plot))
+
+(defn line-count
+  ""
+  [plot]
+  (reduce + (map payload-line-count plot)))
+
 (defn add
   ""
-  [x y & more]
-  (apply concat x y more))
+  ([]
+   zero)
+  ([p]
+   p)
+  ([p1 p2]
+   (concat p1 (y-offset p2 (line-count p1))))
+  ([p1 p2 & more]
+   (reduce add (add p1 p2) more)))
 
