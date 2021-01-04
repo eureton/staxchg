@@ -28,8 +28,10 @@
   [graphics
    string
    {:as args
-    :keys [left top width height modifiers foreground-color background-color]
-    :or {left 0
+    :keys [x y left top width height modifiers foreground-color background-color]
+    :or {x 0
+         y 0
+         left 0
          top 0
          width (->> graphics .getSize .getColumns)
          height (->> graphics .getSize .getRows)
@@ -38,9 +40,7 @@
          background-color TextColor$ANSI/DEFAULT}}]
   (let [{:keys [plotted markdown-info]} (markdown/plot
                                           string
-                                          {:left left
-                                           :top top
-                                           :width width})
+                                          (select-keys args [:x :y :left :top :width]))
         clipped? (fn [[_ [_ y] _]] (or (neg? y) (>= y height)))
         categories (->>
                      plotted
@@ -120,7 +120,7 @@
 (defn render-flow
   [screen flow]
   (doseq [{:as args
-           :keys [type x y payload foreground-color]
+           :keys [payload foreground-color]
            :viewport/keys [left top width height]} flow]
     (when (and (pos? width) (pos? height))
       (let [graphics (->
@@ -130,10 +130,11 @@
                          (TerminalPosition. left top)
                          (TerminalSize. width height))
                        (.setForegroundColor foreground-color))
-            options (select-keys args [:x :y :foreground-color :modifiers])]
-        (condp = type
-          :markdown (put-markdown graphics payload {:left x :top y :foreground-color foreground-color})
-          :string   (put-string graphics payload options))))))
+            options (merge
+                      (select-keys args [:x :y :foreground-color :modifiers])
+                      {:left 0 :top 0 :width width})
+            f (condp = (args :type) :markdown put-markdown :string put-string)]
+        (f graphics payload options)))))
 
 (defn render-questions-pane
   [screen world]

@@ -181,8 +181,8 @@
     * the character
     * the [x y] coordinates of the character"
   [string
-   {:keys [left top width height]
-    :or {left 0 top 0}}]
+   {:keys [x y left top width height]
+    :or {x 0 y 0 left 0 top 0}}]
   (let [{:keys [stripped markdown-info]} (strip string (parse string))
         {:keys [reflowed markdown-info]} (reflow
                                            stripped
@@ -209,7 +209,7 @@
                                  (->>
                                    length
                                    range
-                                   (map #(vector (+ % left) (+ index top))))))
+                                   (map #(vector (+ % left (if (zero? index) x 0)) (+ index top y))))))
                   (reduce concat)))
      :markdown-info (->>
                       lengths
