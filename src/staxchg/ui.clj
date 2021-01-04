@@ -117,11 +117,11 @@
       separator-y
       page-hint)))
 
-(defn render-plot
-  [screen plot]
+(defn render-flow
+  [screen flow]
   (doseq [{:as args
            :keys [type x y payload foreground-color]
-           :viewport/keys [left top width height]} plot]
+           :viewport/keys [left top width height]} flow]
     (when (and (pos? width) (pos? height))
       (let [graphics (->
                        screen
@@ -139,11 +139,11 @@
   [screen world]
   (render-question-list screen world)
   (render-questions-pane-separator screen world)
-  (render-plot screen (presentation/question-pane-body-plot
+  (render-flow screen (presentation/question-pane-body-flow
                         (state/selected-question world)
                         (state/selected-line-offset world)
                         world))
-  (render-plot screen (presentation/question-meta-plot
+  (render-flow screen (presentation/question-meta-flow
                         (state/selected-question world)
                         world)))
 

@@ -1,5 +1,5 @@
 (ns staxchg.presentation
-  (:require [staxchg.plot :as plot])
+  (:require [staxchg.flow :as flow])
   (:import com.googlecode.lanterna.SGR)
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:gen-class))
@@ -64,7 +64,7 @@
 
 (def comments-left-margin 4)
 
-(defn comment-plot
+(defn comment-flow
   ""
   [c world]
   (let [{:keys [top width height]} (question-pane-body-dimensions world)
@@ -74,41 +74,41 @@
               :viewport/top top
               :viewport/width (- width comments-left-margin)
               :viewport/height height}]
-    (plot/add
-      (plot/make (merge base {:type :markdown
+    (flow/add
+      (flow/make (merge base {:type :markdown
                               :payload (c "body_markdown")}))
-      (plot/make (merge base {:type :string
+      (flow/make (merge base {:type :string
                               :payload meta-text
                               :x (- width (count meta-text))
                               :modifiers [SGR/BOLD]})))))
 
-(defn comments-plot
+(defn comments-flow
   ""
   [post world]
   (reduce
-    #(plot/add %1 plot/y-separator %2)
-    plot/zero
+    #(flow/add %1 flow/y-separator %2)
+    flow/zero
     (map
-      #(comment-plot % world)
+      #(comment-flow % world)
       (post "comments"))))
 
-(defn question-plot
+(defn question-flow
   ""
   [question world]
   (let [{:keys [left top width height]} (question-pane-body-dimensions world)]
-    (plot/make {:type :markdown
+    (flow/make {:type :markdown
                 :payload (question "body_markdown")
                 :viewport/left left
                 :viewport/top top
                 :viewport/width width
                 :viewport/height height})))
 
-(defn question-meta-plot
+(defn question-meta-flow
   ""
   [question world]
   (let [{:keys [left top width height]} (question-pane-body-dimensions world)
         text (format-question-meta question)]
-    (plot/make {:type :string
+    (flow/make {:type :string
                 :payload text
                 :x (- width (count text))
                 :viewport/left left
@@ -117,20 +117,20 @@
                 :viewport/height 1
                 :foreground-color TextColor$ANSI/YELLOW})))
 
-(defn question-pane-body-plot
+(defn question-pane-body-flow
   ""
   [question line-offset world]
-  (plot/y-offset
-    (plot/add
-      (question-plot question world)
-      (comments-plot question world))
+  (flow/y-offset
+    (flow/add
+      (question-flow question world)
+      (comments-flow question world))
     (- line-offset)))
 
 (defn question-line-count
   ""
   [question world]
-  (plot/line-count
-    (plot/add
-      (question-plot question world)
-      (comments-plot question world))))
+  (flow/line-count
+    (flow/add
+      (question-flow question world)
+      (comments-flow question world))))
 

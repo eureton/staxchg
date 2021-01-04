@@ -1,4 +1,4 @@
-(ns staxchg.plot
+(ns staxchg.flow
   (:require [staxchg.markdown :as markdown])
   (:gen-class))
 
@@ -41,15 +41,15 @@
 
 (defn y-offset
   ""
-  [plot delta]
+  [flow delta]
   (mapv
     #(update % :y (partial + delta))
-    plot))
+    flow))
 
 (defn line-count
   ""
-  [plot]
-  (reduce + (map payload-line-count plot)))
+  [flow]
+  (reduce + (map payload-line-count flow)))
 
 (defn add
   ""
