@@ -35,7 +35,7 @@
          height (->> graphics .getSize .getRows)
          modifiers []
          foreground-color TextColor$ANSI/DEFAULT
-         background-color TextColor$ANSI/BLACK}}]
+         background-color TextColor$ANSI/DEFAULT}}]
   (let [{:keys [plotted markdown-info]} (markdown/plot
                                           string
                                           {:left left
