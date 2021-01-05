@@ -119,63 +119,23 @@
     ((state/selected-question world) "title")
     [SGR/REVERSE]))
 
-(defn render-selected-answer [screen world]
-  (let [left 1
-        top 2
-        width (- (world :width) (* left 2))
-        height (- (world :height) top)
-        graphics (.newTextGraphics
-             (.newTextGraphics screen)
-             (TerminalPosition. left top)
-             (TerminalSize. width height))
-        answer (state/selected-answer world)
-        meta-y (- height 1)
-        meta-text (format
-                    (str "%" width "s")
-                    (presentation/format-answer-meta answer))
-        meta-formatter #(->
-                          %
-                          TextCharacter.
-                          (.withForegroundColor TextColor$ANSI/YELLOW))
-        acceptance-formatter #(->
-                                %
-                                TextCharacter.
-                                (.withForegroundColor TextColor$ANSI/BLACK)
-                                (.withBackgroundColor TextColor$ANSI/YELLOW))]
-    (put-markdown
-      graphics
-      (answer "body_markdown")
-      {:top (- (state/selected-line-offset world))})
-    (doseq [[index character] (map-indexed vector meta-text)]
-      (.setCharacter
-        graphics
-        index
-        meta-y
-        (meta-formatter character)))
-    (doseq [[index character] (map-indexed vector (when (answer "is_accepted") "ACCEPTED"))]
-      (.setCharacter
-        graphics
-        index
-        meta-y
-        (acceptance-formatter character)))))
-
 (defn render-answers-pane
   [screen
    {:as world
     :keys [width]}]
-  (let [graphics (.newTextGraphics screen)
-        index (state/selected-answer-index world)
+  (let [index (state/selected-answer-index world)
         answered? (not (nil? index))
-        hint (if answered?
-               (format
-                 "(%d of %d)"
-                 (inc index)
-                 (count ((state/selected-question world) "answers")))
-               "(question has no answers)")]
+        answer (state/selected-answer world)]
     (render-active-question screen world)
-    (.drawLine (.newTextGraphics screen) 0 1 width 1 \-)
-    (.putString graphics (max 0 (- width (count hint) 1)) 1 hint)
-    (when answered? (render-selected-answer screen world))))
+    (render-flow screen (presentation/answers-pane-separator-flow
+                          (state/selected-question world)
+                          world))
+    (when answered?
+      (run!
+        (partial render-flow screen)
+        [(presentation/answer-flow answer world)
+         (presentation/answer-meta-flow answer world)
+         (presentation/answer-acceptance-flow answer world)]))))
 
 (defn render [screen world]
   (.clear screen)

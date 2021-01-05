@@ -73,6 +73,29 @@
       hint
       "-")))
 
+(defn format-answers-pane-separator
+  ""
+  [{:as question :strs [question_id answers]}
+   {:as world :keys [width selected-answers]}]
+  (let [answer-id (selected-answers question_id)
+        index (->>
+                answers
+                (map-indexed vector)
+                (filter (fn [[i a]] (= (a "answer_id") answer-id)))
+                first
+                first)
+        hint (if (nil? index)
+               "(question has no answers)"
+               (format
+                 "(%d of %d)"
+                 (inc index)
+                 (count answers)))]
+    (format
+      "%s%s%s"
+      (apply str (repeat (- width (count hint) 1) \-))
+      hint
+      "-")))
+
 (defn question-list-dimensions
   [{:as world
     :keys [width height question-list-size]}]
@@ -140,6 +163,15 @@
      :width (- width (* left 2))
      :height (- height top 1)}))
 
+(defn answers-pane-body-dimensions
+  ""
+  [world]
+  (let [left 1 top 2]
+    {:left left
+     :top top
+     :width (- (world :width) (* left 2))
+     :height (- (world :height) top)}))
+
 (def comments-left-margin 4)
 
 (defn comment-flow
@@ -203,6 +235,57 @@
       (question-flow question world)
       (comments-flow question world))
     (- line-offset)))
+
+(defn answers-pane-separator-flow
+  ""
+  [question
+   {:as world
+    :keys [width question-list-size]}]
+  (let [{:keys [top]} (answers-pane-body-dimensions world)]
+    (flow/make {:type :string
+                :payload (format-answers-pane-separator question world)
+                :viewport/top (dec top)
+                :viewport/width width
+                :viewport/height 1})))
+
+(defn answer-flow
+  ""
+  [answer world]
+  (let [{:keys [left top width height]} (answers-pane-body-dimensions world)]
+    (flow/make {:type :markdown
+                :payload (answer "body_markdown")
+                :viewport/left left
+                :viewport/top top
+                :viewport/width width
+                :viewport/height height})))
+
+(defn answer-meta-flow
+  ""
+  [answer world]
+  (let [{:keys [top height]} (answers-pane-body-dimensions world)
+        text (format-answer-meta answer)
+        length (count text)]
+    (flow/make {:type :string
+                :payload text
+                :viewport/left (- (world :width) length 1)
+                :viewport/top (+ top height)
+                :viewport/width length
+                :viewport/height 1
+                :foreground-color TextColor$ANSI/YELLOW})))
+
+(defn answer-acceptance-flow
+  ""
+  [answer world]
+  (let [{:keys [top height]} (answers-pane-body-dimensions world)
+        text "ACCEPTED"]
+    (flow/make {:type :string
+                :payload (if (answer "is_accepted") text "")
+                :viewport/left 1
+                :viewport/top (+ top height)
+                :viewport/width (count text)
+                :viewport/height 1
+                :foreground-color TextColor$ANSI/BLACK
+                :background-color TextColor$ANSI/YELLOW})))
 
 (defn question-line-count
   ""
