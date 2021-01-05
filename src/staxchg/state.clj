@@ -55,7 +55,7 @@
         answers (selected-question "answers")
         destination-answer (->>
                              (selected-answer-index world)
-                             ((condp = direction :forwards inc :backwards dec))
+                             ((case direction :forwards inc :backwards dec))
                              (max 0)
                              (min (dec (count answers)))
                              answers)]

@@ -34,8 +34,10 @@
 
 (defn payload-line-count
   ""
-  [{:keys [type payload] :viewport/keys [width]}]
-  (condp = type
+  [{:as item
+    :keys [payload]
+    :viewport/keys [width]}]
+  (case (item :type)
     :markdown (markdown/line-count payload width)
     :string 1))
 

@@ -94,7 +94,7 @@
             options (merge
                       (select-keys args [:x :y :foreground-color :modifiers])
                       {:left 0 :top 0 :width width})
-            f (condp = (args :type) :markdown put-markdown :string put-string)]
+            f (case (args :type) :markdown put-markdown :string put-string)]
         (f graphics payload options)))))
 
 (def questions-pane-flow-recipe
