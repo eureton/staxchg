@@ -101,9 +101,9 @@
   [screen world]
   (run!
     (partial render-flow screen)
-    [(presentation/question-pane-separator-flow world)
+    [(presentation/questions-pane-separator-flow world)
      (presentation/question-list-flow world)
-     (presentation/question-pane-body-flow
+     (presentation/questions-pane-body-flow
        (state/selected-question world)
        (state/selected-line-offset world)
        world)

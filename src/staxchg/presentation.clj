@@ -61,7 +61,7 @@
     (str "%-" (- width (* question-list-left-margin 2)) "s")
     (question "title")))
 
-(defn format-question-pane-separator
+(defn format-questions-pane-separator
   ""
   [{:keys [width question-list-size question-list-offset questions]}]
   (let [from (inc question-list-offset)
@@ -120,17 +120,17 @@
       #(question-list-item-flow %2 %1 world)
       (visible-questions world))))
 
-(defn question-pane-separator-flow
+(defn questions-pane-separator-flow
   ""
   [{:as world
     :keys [width question-list-size]}]
   (flow/make {:type :string
-              :payload (format-question-pane-separator world)
+              :payload (format-questions-pane-separator world)
               :viewport/top question-list-size
               :viewport/width width
               :viewport/height 1}))
 
-(defn question-pane-body-dimensions
+(defn questions-pane-body-dimensions
   [{:as world
     :keys [width height question-list-size]}]
   (let [left 1
@@ -145,7 +145,7 @@
 (defn comment-flow
   ""
   [c world]
-  (let [{:keys [top width height]} (question-pane-body-dimensions world)
+  (let [{:keys [top width height]} (questions-pane-body-dimensions world)
         meta-text (format-comment-meta c)
         base {:foreground-color TextColor$ANSI/BLUE
               :viewport/left comments-left-margin
@@ -173,7 +173,7 @@
 (defn question-flow
   ""
   [question world]
-  (let [{:keys [left top width height]} (question-pane-body-dimensions world)]
+  (let [{:keys [left top width height]} (questions-pane-body-dimensions world)]
     (flow/make {:type :markdown
                 :payload (question "body_markdown")
                 :viewport/left left
@@ -184,7 +184,7 @@
 (defn question-meta-flow
   ""
   [question world]
-  (let [{:keys [left top width height]} (question-pane-body-dimensions world)
+  (let [{:keys [left top width height]} (questions-pane-body-dimensions world)
         text (format-question-meta question)]
     (flow/make {:type :string
                 :payload text
@@ -195,7 +195,7 @@
                 :viewport/height 1
                 :foreground-color TextColor$ANSI/YELLOW})))
 
-(defn question-pane-body-flow
+(defn questions-pane-body-flow
   ""
   [question line-offset world]
   (flow/y-offset

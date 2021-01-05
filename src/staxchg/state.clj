@@ -78,7 +78,7 @@
   ""
   [world]
   (let [selected-question (selected-question world)
-        {:keys [width height]} (presentation/question-pane-body-dimensions world)
+        {:keys [width height]} (presentation/questions-pane-body-dimensions world)
         line-count (presentation/question-line-count selected-question world)]
       (update-in
         world
