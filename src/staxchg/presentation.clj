@@ -61,6 +61,18 @@
     (str "%-" (- width (* question-list-left-margin 2)) "s")
     (question "title")))
 
+(defn format-question-pane-separator
+  ""
+  [{:keys [width question-list-size question-list-offset questions]}]
+  (let [from (inc question-list-offset)
+        to (dec (+ from question-list-size))
+        hint (format "(%d-%d of %d)" from to (count questions))]
+    (format
+      "%s%s%s"
+      (apply str (repeat (- width (count hint) 1) \-))
+      hint
+      "-")))
+
 (defn question-list-dimensions
   [{:as world
     :keys [width height question-list-size]}]
@@ -107,6 +119,16 @@
     (map-indexed
       #(question-list-item-flow %2 %1 world)
       (visible-questions world))))
+
+(defn question-pane-separator-flow
+  ""
+  [{:as world
+    :keys [width question-list-size]}]
+  (flow/make {:type :string
+              :payload (format-question-pane-separator world)
+              :viewport/top question-list-size
+              :viewport/width width
+              :viewport/height 1}))
 
 (defn question-pane-body-dimensions
   [{:as world

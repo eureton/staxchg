@@ -78,25 +78,6 @@
                    (.enableModifiers (into-array SGR modifiers)))]
     (.putString graphics x y string)))
 
-(defn render-questions-pane-separator
-  ""
-  [screen
-   {:as world
-    :keys [width question-list-size question-list-offset questions]}]
-  (let [separator-y question-list-size
-        graphics (.newTextGraphics screen)
-        page-hint (format
-                    "(%d-%d of %d)"
-                    question-list-offset
-                    (+ question-list-offset question-list-size)
-                    (count questions))]
-    (.drawLine graphics 0 separator-y width separator-y \-)
-    (.putString
-      graphics
-      (max 0 (- width (count page-hint) 1))
-      separator-y
-      page-hint)))
-
 (defn render-flow
   [screen flow]
   (doseq [{:as args
@@ -118,15 +99,17 @@
 
 (defn render-questions-pane
   [screen world]
-  (render-questions-pane-separator screen world)
-  (render-flow screen (presentation/question-list-flow world))
-  (render-flow screen (presentation/question-pane-body-flow
-                        (state/selected-question world)
-                        (state/selected-line-offset world)
-                        world))
-  (render-flow screen (presentation/question-meta-flow
-                        (state/selected-question world)
-                        world)))
+  (run!
+    (partial render-flow screen)
+    [(presentation/question-pane-separator-flow world)
+     (presentation/question-list-flow world)
+     (presentation/question-pane-body-flow
+       (state/selected-question world)
+       (state/selected-line-offset world)
+       world)
+     (presentation/question-meta-flow
+       (state/selected-question world)
+       world)]))
 
 (defn render-active-question [screen world]
   (.putString
