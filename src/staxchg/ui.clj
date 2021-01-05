@@ -111,31 +111,17 @@
        (state/selected-question world)
        world)]))
 
-(defn render-active-question [screen world]
-  (.putString
-    (.newTextGraphics screen)
-    1
-    0
-    ((state/selected-question world) "title")
-    [SGR/REVERSE]))
-
 (defn render-answers-pane
   [screen
    {:as world
     :keys [width]}]
-  (let [index (state/selected-answer-index world)
-        answered? (not (nil? index))
-        answer (state/selected-answer world)]
-    (render-active-question screen world)
-    (render-flow screen (presentation/answers-pane-separator-flow
-                          (state/selected-question world)
-                          world))
-    (when answered?
-      (run!
-        (partial render-flow screen)
-        [(presentation/answer-flow answer world)
-         (presentation/answer-meta-flow answer world)
-         (presentation/answer-acceptance-flow answer world)]))))
+  (->>
+    [presentation/answer-flow
+     presentation/answer-meta-flow
+     presentation/answer-acceptance-flow
+     presentation/answers-pane-frame-flow]
+    (map #(% world))
+    (run! (partial render-flow screen))))
 
 (defn render [screen world]
   (.clear screen)

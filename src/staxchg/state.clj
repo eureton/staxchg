@@ -19,22 +19,12 @@
     :keys [questions selected-question-index]}]
   (questions selected-question-index))
 
-(defn selected-answer
-  [{:as world
-    :keys [questions selected-question-index selected-answers]}]
-  (let [selected-question (selected-question world)
-        answer-id (selected-answers (selected-question "question_id"))]
-    (->>
-      (selected-question "answers")
-      (filter #(= (% "answer_id") answer-id))
-      first)))
-
 (defn selected-answer-index
   ""
   [{:as world
     :keys [questions selected-question-index selected-answers]}]
   (let [answers ((selected-question world) "answers")
-        selected-answer (selected-answer world)]
+        selected-answer (presentation/selected-answer world)]
     (->>
       answers
       (map-indexed vector)

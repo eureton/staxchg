@@ -133,6 +133,16 @@
     question-list-offset
     (min (count questions) (+ question-list-offset question-list-size))))
 
+(defn selected-answer
+  [{:as world
+    :keys [questions selected-question-index selected-answers]}]
+  (let [selected-question (questions selected-question-index)
+        answer-id (selected-answers (selected-question "question_id"))]
+    (->>
+      (selected-question "answers")
+      (filter #(= (% "answer_id") answer-id))
+      first)))
+
 (defn question-list-flow
   ""
   [world]
@@ -236,22 +246,29 @@
       (comments-flow question world))
     (- line-offset)))
 
-(defn answers-pane-separator-flow
+(defn answers-pane-frame-flow
   ""
-  [question
-   {:as world
-    :keys [width question-list-size]}]
-  (let [{:keys [top]} (answers-pane-body-dimensions world)]
-    (flow/make {:type :string
-                :payload (format-answers-pane-separator question world)
-                :viewport/top (dec top)
-                :viewport/width width
-                :viewport/height 1})))
+  [{:as world
+    :keys [width questions selected-question-index]}]
+  (let [{:keys [top]} (answers-pane-body-dimensions world)
+        question (questions selected-question-index)]
+    (flow/add
+      (flow/make {:type :string
+                  :payload (question "title")
+                  :viewport/left 2
+                  :viewport/width (- width 4)
+                  :viewport/height 2
+                  :modifiers [SGR/REVERSE]})
+      (flow/make {:type :string
+                  :payload (format-answers-pane-separator question world)
+                  :viewport/width width
+                  :viewport/height 2}))))
 
 (defn answer-flow
   ""
-  [answer world]
-  (let [{:keys [left top width height]} (answers-pane-body-dimensions world)]
+  [world]
+  (let [{:keys [left top width height]} (answers-pane-body-dimensions world)
+        answer (selected-answer world)]
     (flow/make {:type :markdown
                 :payload (answer "body_markdown")
                 :viewport/left left
@@ -261,8 +278,9 @@
 
 (defn answer-meta-flow
   ""
-  [answer world]
+  [world]
   (let [{:keys [top height]} (answers-pane-body-dimensions world)
+        answer (selected-answer world)
         text (format-answer-meta answer)
         length (count text)]
     (flow/make {:type :string
@@ -275,11 +293,11 @@
 
 (defn answer-acceptance-flow
   ""
-  [answer world]
+  [world]
   (let [{:keys [top height]} (answers-pane-body-dimensions world)
         text "ACCEPTED"]
     (flow/make {:type :string
-                :payload (if (answer "is_accepted") text "")
+                :payload (if ((selected-answer world) "is_accepted") text "")
                 :viewport/left 1
                 :viewport/top (+ top height)
                 :viewport/width (count text)
