@@ -97,37 +97,26 @@
             f (condp = (args :type) :markdown put-markdown :string put-string)]
         (f graphics payload options)))))
 
-(defn render-questions-pane
-  [screen world]
-  (run!
-    (partial render-flow screen)
-    [(presentation/questions-pane-separator-flow world)
-     (presentation/question-list-flow world)
-     (presentation/questions-pane-body-flow
-       (state/selected-question world)
-       (state/selected-line-offset world)
-       world)
-     (presentation/question-meta-flow
-       (state/selected-question world)
-       world)]))
+(def questions-pane-flow-recipe
+  [presentation/questions-pane-separator-flow
+   presentation/question-list-flow
+   presentation/questions-pane-body-flow
+   presentation/question-meta-flow ])
 
-(defn render-answers-pane
-  [screen
-   {:as world
-    :keys [width]}]
-  (->>
-    [presentation/answer-flow
-     presentation/answer-meta-flow
-     presentation/answer-acceptance-flow
-     presentation/answers-pane-frame-flow]
-    (map #(% world))
-    (run! (partial render-flow screen))))
+(def answers-pane-flow-recipe
+  [presentation/answer-flow
+   presentation/answer-meta-flow
+   presentation/answer-acceptance-flow
+   presentation/answers-pane-frame-flow])
 
 (defn render [screen world]
   (.clear screen)
-  (case (world :active-pane)
-    :questions-pane (render-questions-pane screen world)
-    :answers-pane (render-answers-pane screen world))
+  (->>
+    (case (world :active-pane)
+      :questions-pane questions-pane-flow-recipe
+      :answers-pane answers-pane-flow-recipe)
+    (map #(% world))
+    (run! (partial render-flow screen)))
   (.refresh screen Screen$RefreshType/COMPLETE))
 
 (defn run-input-loop

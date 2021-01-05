@@ -225,8 +225,10 @@
 
 (defn question-meta-flow
   ""
-  [question world]
+  [{:as world
+    :keys [questions selected-question-index]}]
   (let [{:keys [left top width height]} (questions-pane-body-dimensions world)
+        question (questions selected-question-index)
         text (format-question-meta question)]
     (flow/make {:type :string
                 :payload text
@@ -239,12 +241,15 @@
 
 (defn questions-pane-body-flow
   ""
-  [question line-offset world]
-  (flow/y-offset
-    (flow/add
-      (question-flow question world)
-      (comments-flow question world))
-    (- line-offset)))
+  [{:as world
+    :keys [questions selected-question-index active-pane]}]
+  (let [question (questions selected-question-index)
+        offset (get-in world [:line-offsets (question "question_id") active-pane])]
+    (flow/y-offset
+      (flow/add
+        (question-flow question world)
+        (comments-flow question world))
+      (- offset))))
 
 (defn answers-pane-frame-flow
   ""
