@@ -180,7 +180,7 @@
     {:left left
      :top top
      :width (- (world :width) (* left 2))
-     :height (- (world :height) top)}))
+     :height (- (world :height) top 1)}))
 
 (def comments-left-margin 4)
 
@@ -271,15 +271,20 @@
 
 (defn answer-flow
   ""
-  [world]
+  [{:as world
+    :keys [questions selected-question-index active-pane]}]
   (let [{:keys [left top width height]} (answers-pane-body-dimensions world)
-        answer (selected-answer world)]
-    (flow/make {:type :markdown
-                :payload (answer "body_markdown")
-                :viewport/left left
-                :viewport/top top
-                :viewport/width width
-                :viewport/height height})))
+        answer (selected-answer world)
+        question (questions selected-question-index)
+        offset (get-in world [:line-offsets (question "question_id") active-pane])]
+    (flow/y-offset
+      (flow/make {:type :markdown
+                  :payload (answer "body_markdown")
+                  :viewport/left left
+                  :viewport/top top
+                  :viewport/width width
+                  :viewport/height height})
+      (- offset))))
 
 (defn answer-meta-flow
   ""
@@ -300,7 +305,7 @@
   ""
   [world]
   (let [{:keys [top height]} (answers-pane-body-dimensions world)
-        text "ACCEPTED"]
+        text " ACCEPTED "]
     (flow/make {:type :string
                 :payload (if ((selected-answer world) "is_accepted") text "")
                 :viewport/left 1
@@ -317,4 +322,13 @@
     (flow/add
       (question-flow question world)
       (comments-flow question world))))
+
+(defn answer-line-count
+  ""
+  [answer world]
+  (flow/line-count
+    (flow/add
+      (answer-flow world)
+      ;(comments-flow question world)
+      )))
 

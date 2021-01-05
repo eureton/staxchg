@@ -8,7 +8,7 @@
 
 (defn make
   ""
-  [{:keys [type x y payload foreground-color modifiers]
+  [{:keys [type x y payload foreground-color background-color modifiers]
     :viewport/keys [left top width height]
     :or {type :string
          x 0
@@ -28,6 +28,7 @@
     :viewport/height height
     :payload payload
     :foreground-color foreground-color
+    :background-color background-color
     :modifiers modifiers}])
 
 (def y-separator (make {}))

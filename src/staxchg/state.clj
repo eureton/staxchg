@@ -66,13 +66,17 @@
 
 (defn increment-selected-question-line-offset
   ""
-  [world]
+  [{:as world
+    :keys [active-pane]}]
   (let [selected-question (selected-question world)
         {:keys [width height]} (presentation/questions-pane-body-dimensions world)
-        line-count (presentation/question-line-count selected-question world)]
+        countf (case active-pane
+                 :questions-pane presentation/question-line-count
+                 :answers-pane presentation/answer-line-count)
+        line-count (countf selected-question world)]
       (update-in
         world
-        [:line-offsets (selected-question "question_id") (world :active-pane)]
+        [:line-offsets (selected-question "question_id") active-pane]
         #(min
            (max 0 (- line-count height))
            (inc %)))))

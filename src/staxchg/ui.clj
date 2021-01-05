@@ -92,7 +92,9 @@
                          (TerminalSize. width height))
                        (.setForegroundColor foreground-color))
             options (merge
-                      (select-keys args [:x :y :foreground-color :modifiers])
+                      (select-keys
+                        args
+                        [:x :y :foreground-color :background-color :modifiers])
                       {:left 0 :top 0 :width width})
             f (case (args :type) :markdown put-markdown :string put-string)]
         (f graphics payload options)))))
