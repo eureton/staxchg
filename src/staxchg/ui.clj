@@ -78,26 +78,6 @@
                    (.enableModifiers (into-array SGR modifiers)))]
     (.putString graphics x y string)))
 
-(defn render-question-list
-  [screen {:as world
-           :keys [selected-question-index question-list-size question-list-offset]}]
-  (let [left 1
-        top 0
-        width (- (world :width) (* left 2))
-        graphics (.newTextGraphics
-                   (.newTextGraphics screen)
-                   (TerminalPosition. left top)
-                   (TerminalSize. width question-list-size))
-        visible (state/visible-questions world)]
-    (doseq [[index title] (map-indexed #(vector %1 (%2 "title")) visible)]
-      (.putString graphics left index title))
-    (.putString
-      graphics
-      left
-      (- selected-question-index question-list-offset)
-      (format (str "%-" width "s") ((state/selected-question world) "title"))
-      [SGR/REVERSE])))
-
 (defn render-questions-pane-separator
   ""
   [screen
@@ -138,8 +118,8 @@
 
 (defn render-questions-pane
   [screen world]
-  (render-question-list screen world)
   (render-questions-pane-separator screen world)
+  (render-flow screen (presentation/question-list-flow world))
   (render-flow screen (presentation/question-pane-body-flow
                         (state/selected-question world)
                         (state/selected-line-offset world)

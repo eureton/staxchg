@@ -52,6 +52,62 @@
     (format-author post)
     (format-date (post "creation_date"))))
 
+(def question-list-left-margin 1)
+
+(defn format-question-list-item
+  ""
+  [question width]
+  (format
+    (str "%-" (- width (* question-list-left-margin 2)) "s")
+    (question "title")))
+
+(defn question-list-dimensions
+  [{:as world
+    :keys [width height question-list-size]}]
+  (let [left 1
+        top 0]
+    {:left left
+     :top top
+     :width (- width (* left 2))
+     :height question-list-size}))
+
+(defn question-list-item-flow
+  ""
+  [question
+   index
+   {:as world
+    :keys [selected-question-index question-list-offset]}]
+  (let [{:keys [left top width height]} (question-list-dimensions world)
+        text (format-question-list-item question width)
+        selected? (= index (- selected-question-index question-list-offset))]
+    (flow/make {:type :string
+                :payload text
+                :x question-list-left-margin
+                :viewport/left left
+                :viewport/top top
+                :viewport/width width
+                :viewport/height height
+                :modifiers (if selected? [SGR/REVERSE] [])})))
+
+(defn visible-questions
+  ""
+  [{:as world
+    :keys [questions question-list-size question-list-offset]}]
+  (subvec
+    questions
+    question-list-offset
+    (min (count questions) (+ question-list-offset question-list-size))))
+
+(defn question-list-flow
+  ""
+  [world]
+  (reduce
+    flow/add
+    flow/zero
+    (map-indexed
+      #(question-list-item-flow %2 %1 world)
+      (visible-questions world))))
+
 (defn question-pane-body-dimensions
   [{:as world
     :keys [width height question-list-size]}]

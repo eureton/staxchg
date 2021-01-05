@@ -56,15 +56,6 @@
         (update :selected-question-index capped-dec)
         (update :question-list-offset (if visible? identity capped-dec)))))
 
-(defn visible-questions
-  ""
-  [{:as world
-    :keys [questions question-list-size question-list-offset]}]
-  (subvec
-    questions
-    question-list-offset
-    (min (count questions) (+ question-list-offset question-list-size))))
-
 (defn cycle-selected-answer
   ""
   [{:as world
