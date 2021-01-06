@@ -271,20 +271,16 @@
 
 (defn answer-flow
   ""
-  [{:as world
+  [answer
+   {:as world
     :keys [questions selected-question-index active-pane]}]
-  (let [{:keys [left top width height]} (answers-pane-body-dimensions world)
-        answer (selected-answer world)
-        question (questions selected-question-index)
-        offset (get-in world [:line-offsets (question "question_id") active-pane])]
-    (flow/y-offset
-      (flow/make {:type :markdown
-                  :payload (answer "body_markdown")
-                  :viewport/left left
-                  :viewport/top top
-                  :viewport/width width
-                  :viewport/height height})
-      (- offset))))
+  (let [{:keys [left top width height]} (answers-pane-body-dimensions world)]
+    (flow/make {:type :markdown
+                :payload (answer "body_markdown")
+                :viewport/left left
+                :viewport/top top
+                :viewport/width width
+                :viewport/height height})))
 
 (defn answer-meta-flow
   ""
@@ -315,6 +311,19 @@
                 :foreground-color TextColor$ANSI/BLACK
                 :background-color TextColor$ANSI/YELLOW})))
 
+(defn answers-pane-body-flow
+  ""
+  [{:as world
+    :keys [questions selected-question-index active-pane]}]
+  (let [question (questions selected-question-index)
+        answer (selected-answer world)
+        offset (get-in world [:line-offsets (question "question_id") active-pane])]
+    (flow/y-offset
+      (flow/add
+        (answer-flow answer world)
+        (comments-flow answer world))
+      (- offset))))
+
 (defn question-line-count
   ""
   [question world]
@@ -328,7 +337,6 @@
   [answer world]
   (flow/line-count
     (flow/add
-      (answer-flow world)
-      ;(comments-flow question world)
-      )))
+      (answer-flow answer world)
+      (comments-flow answer world))))
 

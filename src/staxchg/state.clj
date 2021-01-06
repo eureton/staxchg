@@ -64,19 +64,20 @@
       [:selected-answers (selected-question "question_id")]
       (constantly (destination-answer "answer_id")))))
 
-(defn increment-selected-question-line-offset
+(defn increment-selected-post-line-offset
   ""
   [{:as world
     :keys [active-pane]}]
-  (let [selected-question (selected-question world)
+  (let [question (selected-question world)
+        answer (presentation/selected-answer world)
         {:keys [width height]} (presentation/questions-pane-body-dimensions world)
-        countf (case active-pane
-                 :questions-pane presentation/question-line-count
-                 :answers-pane presentation/answer-line-count)
-        line-count (countf selected-question world)]
+        [countf post] (case active-pane
+                 :questions-pane [presentation/question-line-count question]
+                 :answers-pane [presentation/answer-line-count answer])
+        line-count (countf post world)]
       (update-in
         world
-        [:line-offsets (selected-question "question_id") active-pane]
+        [:line-offsets (question "question_id") active-pane]
         #(min
            (max 0 (- line-count height))
            (inc %)))))
@@ -86,7 +87,7 @@
         active-pane (world :active-pane)]
     (case keycode
       \k (update-in world [:line-offsets selected-question-id active-pane] #(max 0 (dec %)))
-      \j (increment-selected-question-line-offset world)
+      \j (increment-selected-post-line-offset world)
       \K (decrement-selected-question-index world)
       \J (increment-selected-question-index world)
       \newline (assoc world :active-pane :answers-pane)

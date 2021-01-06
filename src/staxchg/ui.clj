@@ -106,7 +106,7 @@
    presentation/question-meta-flow ])
 
 (def answers-pane-flow-recipe
-  [presentation/answer-flow
+  [presentation/answers-pane-body-flow
    presentation/answer-meta-flow
    presentation/answer-acceptance-flow
    presentation/answers-pane-frame-flow])
