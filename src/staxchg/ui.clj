@@ -129,8 +129,12 @@
         size (.getTerminalSize screen)]
     (.startScreen screen)
     (loop [world-before (state/initialize-world questions (.getColumns size) (.getRows size))]
-      (let [keycode (.getCharacter (.readInput screen))
-            world-after (state/update-world world-before keycode)]
+      (let [keystroke (.readInput screen)
+            keycode (.getCharacter keystroke)
+            world-after (state/update-world
+                          world-before
+                          keycode
+                          (.isCtrlDown keystroke))]
         (when-not (= world-before world-after) (render screen world-after))
         (when-not (= keycode \q) (recur world-after))))
     (.stopScreen screen)))

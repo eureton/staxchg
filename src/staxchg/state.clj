@@ -64,37 +64,80 @@
       [:selected-answers (selected-question "question_id")]
       (constantly (destination-answer "answer_id")))))
 
-(defn increment-selected-post-line-offset
+(defn active-pane-body-height
   ""
-  [{:as world
+  [world]
+  ((case (world :active-pane)
+     :questions-pane (presentation/questions-pane-body-dimensions world)
+     :answers-pane (presentation/answers-pane-body-dimensions world)) :height))
+
+(defn update-selected-post-line-offset
+  ""
+  [f
+   {:as world
     :keys [active-pane]}]
   (let [question (selected-question world)
-        answer (presentation/selected-answer world)
-        {:keys [width height]} (presentation/questions-pane-body-dimensions world)
         [countf post] (case active-pane
-                 :questions-pane [presentation/question-line-count question]
-                 :answers-pane [presentation/answer-line-count answer])
+                        :questions-pane [presentation/question-line-count
+                                         question]
+                        :answers-pane [presentation/answer-line-count
+                                       (presentation/selected-answer world)])
         line-count (countf post world)]
-      (update-in
-        world
-        [:line-offsets (question "question_id") active-pane]
-        #(min
-           (max 0 (- line-count height))
-           (inc %)))))
+    (update-in
+      world
+      [:line-offsets (question "question_id") active-pane]
+      #(min
+         (max 0 (- line-count (active-pane-body-height world)))
+         (max 0 (f % world))))))
 
-(defn update-world [world keycode]
-  (let [selected-question-id ((selected-question world) "question_id")
-        active-pane (world :active-pane)]
-    (case keycode
-      \k (update-in world [:line-offsets selected-question-id active-pane] #(max 0 (dec %)))
-      \j (increment-selected-post-line-offset world)
-      \K (decrement-selected-question-index world)
-      \J (increment-selected-question-index world)
-      \newline (assoc world :active-pane :answers-pane)
-      \backspace (assoc world :active-pane :questions-pane)
-      \h (cycle-selected-answer world :backwards)
-      \l (cycle-selected-answer world :forwards)
-      world)))
+(defn one-line-down [n _] (inc n))
+
+(defn one-line-up [n _] (dec n))
+
+(defn half-screen-down [n world]
+  (+ n (/ (active-pane-body-height world) 2)))
+
+(defn half-screen-up [n world]
+  (- n (/ (active-pane-body-height world) 2)))
+
+(defn one-screen-down [n world]
+  (+ n (dec (active-pane-body-height world))))
+
+(defn one-screen-up [n world]
+  (- n (dec (active-pane-body-height world))))
+
+(defn parse-command
+  ""
+  [keycode ctrl?]
+  (case keycode
+      \k :one-line-up
+      \j :one-line-down
+      \b :one-screen-up
+      \space :one-screen-down
+      \u (when ctrl? :half-screen-up)
+      \d (when ctrl? :half-screen-down)
+      \K :previous-question
+      \J :next-question
+      \newline :answers-pane
+      \backspace :questions-pane
+      \h :previous-answer
+      \l :next-answer))
+
+(defn update-world [world keycode ctrl?]
+  (case (parse-command keycode ctrl?)
+    :one-line-up (update-selected-post-line-offset one-line-up world)
+    :one-line-down (update-selected-post-line-offset one-line-down world)
+    :half-screen-up (update-selected-post-line-offset half-screen-up world)
+    :half-screen-down (update-selected-post-line-offset half-screen-down world)
+    :one-screen-up (update-selected-post-line-offset one-screen-up world)
+    :one-screen-down (update-selected-post-line-offset one-screen-down world)
+    :previous-question (decrement-selected-question-index world)
+    :next-question (increment-selected-question-index world)
+    :answers-pane (assoc world :active-pane :answers-pane)
+    :questions-pane (assoc world :active-pane :questions-pane)
+    :previous-answer (cycle-selected-answer world :backwards)
+    :next-answer (cycle-selected-answer world :forwards)
+    world))
 
 (defn unescape-html [string]
   (org.jsoup.parser.Parser/unescapeEntities string true))
