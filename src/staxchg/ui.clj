@@ -47,7 +47,12 @@
                      count
                      range
                      (map (partial markdown/categories markdown-info)))
-        annotated-string (remove clipped? (map conj plotted categories))]
+        annotated-string (remove clipped? (map conj plotted categories))
+        graphics (->
+                   graphics
+                   (.setForegroundColor foreground-color)
+                   (.setBackgroundColor background-color)
+                   (.enableModifiers (into-array SGR modifiers)))]
     (doseq [[character [x y] categories] annotated-string]
       (when-not (TerminalTextUtils/isControlCharacter character)
         (.setCharacter
@@ -78,24 +83,32 @@
                    (.enableModifiers (into-array SGR modifiers)))]
     (.putString graphics x y string)))
 
+(defn viewport
+  ""
+  [screen
+   {:keys [foreground-color background-color]
+    :viewport/keys [left top width height]}]
+  (->
+    screen
+    .newTextGraphics
+    (.newTextGraphics
+      (TerminalPosition. left top)
+      (TerminalSize. width height))
+    (.setForegroundColor foreground-color)
+    (.setBackgroundColor background-color)))
+
 (defn render-flow
   [screen flow]
   (doseq [{:as args
-           :keys [payload foreground-color]
+           :keys [payload y-offset foreground-color]
            :viewport/keys [left top width height]} flow]
     (when (and (pos? width) (pos? height))
-      (let [graphics (->
-                       screen
-                       .newTextGraphics
-                       (.newTextGraphics
-                         (TerminalPosition. left top)
-                         (TerminalSize. width height))
-                       (.setForegroundColor foreground-color))
+      (let [graphics (viewport screen args)
             options (merge
                       (select-keys
                         args
                         [:x :y :foreground-color :background-color :modifiers])
-                      {:left 0 :top 0 :width width})
+                      {:left 0 :top 0 :width width :height height})
             f (case (args :type) :markdown put-markdown :string put-string)]
         (f graphics payload options)))))
 
