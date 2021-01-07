@@ -186,8 +186,8 @@
 
 (defn comment-flow
   ""
-  [c world]
-  (let [{:keys [top width height]} (questions-pane-body-dimensions world)
+  [c viewport]
+  (let [{:keys [top width height]} viewport
         meta-text (format-comment-meta c)
         base {:foreground-color TextColor$ANSI/BLUE
               :viewport/left comments-left-margin
@@ -209,7 +209,11 @@
     #(flow/add %1 flow/y-separator %2)
     flow/zero
     (map
-      #(comment-flow % world)
+      #(comment-flow
+         %
+         ((if (contains? post "answer_id")
+            answers-pane-body-dimensions
+            questions-pane-body-dimensions) world))
       (post "comments"))))
 
 (defn question-flow
