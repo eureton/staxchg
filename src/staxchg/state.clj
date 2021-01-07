@@ -121,7 +121,8 @@
       \newline :answers-pane
       \backspace :questions-pane
       \h :previous-answer
-      \l :next-answer))
+      \l :next-answer
+      nil))
 
 (defn update-world [world keycode ctrl?]
   (case (parse-command keycode ctrl?)
