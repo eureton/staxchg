@@ -1,5 +1,6 @@
 (ns staxchg.presentation
   (:require [staxchg.flow :as flow])
+  (:require [staxchg.markdown :as markdown])
   (:import com.googlecode.lanterna.SGR)
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:gen-class))
@@ -116,7 +117,7 @@
         text (format-question-list-item question width)
         selected? (= index (- selected-question-index question-list-offset))]
     (flow/make {:type :string
-                :payload text
+                :raw text
                 :x question-list-left-margin
                 :viewport/left left
                 :viewport/top top
@@ -158,7 +159,7 @@
   [{:as world
     :keys [width question-list-size]}]
   (flow/make {:type :string
-              :payload (format-questions-pane-separator world)
+              :raw (format-questions-pane-separator world)
               :viewport/top question-list-size
               :viewport/width width
               :viewport/height 1}))
@@ -182,6 +183,7 @@
      :width (- (world :width) (* left 2))
      :height (- (world :height) top 1)}))
 
+
 (def comments-left-margin 4)
 
 (defn comment-flow
@@ -196,9 +198,9 @@
               :viewport/height height}]
     (flow/add
       (flow/make (merge base {:type :markdown
-                              :payload (c "body_markdown")}))
+                              :raw (c "body_markdown")}))
       (flow/make (merge base {:type :string
-                              :payload meta-text
+                              :raw meta-text
                               :x (- width (count meta-text))
                               :modifiers [SGR/BOLD]})))))
 
@@ -221,11 +223,12 @@
   [question world]
   (let [{:keys [left top width height]} (questions-pane-body-dimensions world)]
     (flow/make {:type :markdown
-                :payload (question "body_markdown")
+                :raw (question "body_markdown")
                 :viewport/left left
                 :viewport/top top
                 :viewport/width width
-                :viewport/height height})))
+                :viewport/height height
+                :scrolled-by (get-in world [:scroll-deltas (question "question_id")])})))
 
 (defn question-meta-flow
   ""
@@ -235,7 +238,7 @@
         question (questions selected-question-index)
         text (format-question-meta question)]
     (flow/make {:type :string
-                :payload text
+                :raw text
                 :x (- width (count text))
                 :viewport/left left
                 :viewport/top (+ top height)
@@ -249,7 +252,7 @@
     :keys [questions selected-question-index active-pane]}]
   (let [question (questions selected-question-index)
         offset (get-in world [:line-offsets (question "question_id") active-pane])]
-    (flow/y-offset
+    (flow/y-scroll
       (flow/add
         (question-flow question world)
         (comments-flow question world))
@@ -263,13 +266,13 @@
         question (questions selected-question-index)]
     (flow/add
       (flow/make {:type :string
-                  :payload (question "title")
+                  :raw (question "title")
                   :viewport/left 2
                   :viewport/width (- width 4)
                   :viewport/height 2
                   :modifiers [SGR/REVERSE]})
       (flow/make {:type :string
-                  :payload (format-answers-pane-separator question world)
+                  :raw (format-answers-pane-separator question world)
                   :viewport/width width
                   :viewport/height 2}))))
 
@@ -280,7 +283,7 @@
     :keys [questions selected-question-index active-pane]}]
   (let [{:keys [left top width height]} (answers-pane-body-dimensions world)]
     (flow/make {:type :markdown
-                :payload (answer "body_markdown")
+                :raw (answer "body_markdown")
                 :viewport/left left
                 :viewport/top top
                 :viewport/width width
@@ -294,7 +297,7 @@
         text (format-answer-meta answer)
         length (count text)]
     (flow/make {:type :string
-                :payload text
+                :raw text
                 :viewport/left (- (world :width) length 1)
                 :viewport/top (+ top height)
                 :viewport/width length
@@ -307,7 +310,7 @@
   (let [{:keys [top height]} (answers-pane-body-dimensions world)
         text " ACCEPTED "]
     (flow/make {:type :string
-                :payload (if ((selected-answer world) "is_accepted") text "")
+                :raw (if ((selected-answer world) "is_accepted") text "")
                 :viewport/left 1
                 :viewport/top (+ top height)
                 :viewport/width (count text)
@@ -322,7 +325,7 @@
   (let [question (questions selected-question-index)
         answer (selected-answer world)
         offset (get-in world [:line-offsets (question "question_id") active-pane])]
-    (flow/y-offset
+    (flow/y-scroll
       (flow/add
         (answer-flow answer world)
         (comments-flow answer world))
