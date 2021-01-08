@@ -71,40 +71,66 @@
      :questions-pane (presentation/questions-pane-body-dimensions world)
      :answers-pane (presentation/answers-pane-body-dimensions world)) :height))
 
-(defn update-selected-post-line-offset
+(defn line-offset
   ""
-  [f
+  [question
    {:as world
     :keys [active-pane]}]
-  (let [question (selected-question world)
-        [countf post] (case active-pane
+  (get-in world [:line-offsets (question "question_id") active-pane]))
+
+(defn clamp-line-offset
+  ""
+  [line-offset post world]
+  (let [countf (if (contains? post "answer_id")
+                 presentation/answer-line-count
+                 presentation/question-line-count)
+        line-count (countf post world)]
+    (min
+      (max 0 (- line-count (active-pane-body-height world)))
+      (max 0 line-offset))))
+
+(defn update-selected-post-line-offset
+  ""
+  [scrollf
+   {:as world
+    :keys [active-pane]}]
+  (let [[countf post] (case active-pane
                         :questions-pane [presentation/question-line-count
-                                         question]
+                                         (selected-question world)]
                         :answers-pane [presentation/answer-line-count
                                        (presentation/selected-answer world)])
-        line-count (countf post world)]
-    (update-in
+        id (post "question_id")
+        previous (line-offset post world)
+        current (clamp-line-offset (scrollf previous world) post world)]
+    (->
       world
-      [:line-offsets (question "question_id") active-pane]
-      #(min
-         (max 0 (- line-count (active-pane-body-height world)))
-         (max 0 (f % world))))))
+      (dissoc :scroll-deltas)
+      (assoc-in [:scroll-deltas id] (- current previous))
+      (assoc-in [:line-offsets id active-pane] current))))
 
-(defn one-line-down [n _] (inc n))
+(defn half-screen [world]
+  (/ (active-pane-body-height world) 2))
 
-(defn one-line-up [n _] (dec n))
+(defn full-screen [world]
+  (dec (active-pane-body-height world)))
+
+(defn one-line-down [n _]
+  (inc n))
+
+(defn one-line-up [n _]
+  (dec n))
 
 (defn half-screen-down [n world]
-  (+ n (/ (active-pane-body-height world) 2)))
+  (+ n (half-screen world)))
 
 (defn half-screen-up [n world]
-  (- n (/ (active-pane-body-height world) 2)))
+  (- n (half-screen world)))
 
 (defn one-screen-down [n world]
-  (+ n (dec (active-pane-body-height world))))
+  (+ n (full-screen world)))
 
 (defn one-screen-up [n world]
-  (- n (dec (active-pane-body-height world))))
+  (- n (full-screen world)))
 
 (defn parse-command
   ""
