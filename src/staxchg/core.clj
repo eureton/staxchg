@@ -3590,13 +3590,13 @@
   [& args]
   (ui/run-input-loop items))
 
-; (def w (as->
-;          (staxchg.state/initialize-world items 118 37) v
-;          (assoc v :selected-question-index 2)
-;          (assoc-in
-;            v
-;            [:line-offsets
-;             (get-in v [:questions (v :selected-question-index) "question_id"])
-;             (v :active-pane)]
-;            2)))
+(def w (as->
+         (staxchg.state/initialize-world staxchg.core/items 118 37) v
+         (assoc v :selected-question-index 2)
+         (assoc-in
+           v
+           [:line-offsets
+            (get-in v [:questions (v :selected-question-index) "question_id"])
+            (v :active-pane)]
+           2)))
 

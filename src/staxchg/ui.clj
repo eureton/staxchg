@@ -4,6 +4,7 @@
   (:require [staxchg.state :as state])
   (:require [staxchg.presentation :as presentation])
   (:require [staxchg.flow :as flow])
+  (:require [staxchg.dev :as dev])
   (:import com.googlecode.lanterna.SGR)
   (:import com.googlecode.lanterna.TerminalPosition)
   (:import com.googlecode.lanterna.TerminalSize)
@@ -49,51 +50,56 @@
     :or {x 0 y 0}}]
   (.putString graphics x y string))
 
-(defn viewport
+(defn scroll-gap-rect
   ""
-  [{:as item
-    :keys [y-offset]
-    :viewport/keys [left top width height]}]
-  (let [scroll-filler? (flow/scrolled? [item])
-        top (if scroll-filler? (- (+ top height) 1) top)
-        height (if scroll-filler? 1 height)]
+  [flow]
+  (let [{:keys [left top width height]} (flow/bounding-rect flow)
+        gap-filler? (flow/scrolled? flow)]
     {:left left
-     :top top
+     :top (if gap-filler? (- (+ top height) 1) top)
      :width width
-     :height height}))
+     :height (if gap-filler? 1 height)}))
 
 (defn sub-graphics
   ""
   [screen
-   {:as args
-    :keys [y-offset foreground-color background-color modifiers]
-    :viewport/keys [left top width height]}]
-  (let [{:keys [left top width height]} (viewport args)]
-    (->
-      screen
-      .newTextGraphics
-      (.newTextGraphics
-        (TerminalPosition. left top)
-        (TerminalSize. width height))
-      (.enableModifiers (into-array SGR modifiers))
-      (.setForegroundColor foreground-color)
-      (.setBackgroundColor background-color))))
+   {:keys [left top width height]}]
+  (->
+    screen
+    .newTextGraphics
+    (.newTextGraphics
+      (TerminalPosition. left top)
+      (TerminalSize. width height))))
+
+(defn fx-graphics
+  ""
+  [graphics
+   {:keys [foreground-color background-color modifiers]}]
+  (->
+    graphics
+    (.enableModifiers (into-array SGR modifiers))
+    (.setForegroundColor foreground-color)
+    (.setBackgroundColor background-color)))
 
 (defn render-flow
-  [screen flow]
-  (when-some [h (first flow)]
+  [screen
+   {:as flow
+    :keys [items scroll-delta]}]
+  (let [gap (scroll-gap-rect flow)
+        {:keys [left top width height]} (flow/bounding-rect flow)
+        graphics (sub-graphics screen gap)]
+    (dev/log "BB: " (flow/bounding-rect flow) " - SGap: " gap)
     (if (flow/scrolled? flow)
-      (.scrollLines screen (h :viewport/top) (+ (h :viewport/top) (dec (h :viewport/height))) (h :scrolled-by))
-      (.fill (sub-graphics screen h) \space)))
-  (doseq [{:as item
-           :viewport/keys [width height]} flow]
-    (when (and (pos? width) (pos? height))
-      (let [vp (viewport item)
-            bbox {:top (- (vp :top) (item :viewport/top)) :height (vp :height)}
-            graphics (sub-graphics screen item)
-            options (select-keys item [:x :y])
-            f (case (item :type) :markdown put-markdown :string put-string)]
-        (f graphics (flow/payload item bbox) options)))))
+      (.scrollLines screen top (+ top (dec height)) scroll-delta)
+      (.fill graphics \space))
+    (doseq [item items]
+      (when (and (pos? width) (pos? height))
+        (let [bbox {:top (- (gap :top) top)
+                    :height (gap :height)}
+              graphics (fx-graphics graphics item)
+              options (select-keys item [:x :y])
+              f (case (item :type) :markdown put-markdown :string put-string)]
+          (f graphics (flow/payload flow left item bbox) options))))))
 
 (def questions-pane-flow-recipe
   [presentation/questions-pane-separator-flow

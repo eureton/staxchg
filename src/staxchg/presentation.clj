@@ -194,7 +194,7 @@
         base {:foreground-color TextColor$ANSI/BLUE
               :viewport/left comments-left-margin
               :viewport/top top
-              :viewport/width (- width comments-left-margin)
+              :viewport/width (- width (dec comments-left-margin))
               :viewport/height height}]
     (flow/add
       (flow/make (merge base {:type :markdown
@@ -228,7 +228,7 @@
                 :viewport/top top
                 :viewport/width width
                 :viewport/height height
-                :scrolled-by (get-in world [:scroll-deltas (question "question_id")])})))
+                :scroll-delta (get-in world [:scroll-deltas (question "question_id")])})))
 
 (defn question-meta-flow
   ""
