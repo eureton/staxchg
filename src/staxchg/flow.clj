@@ -22,15 +22,6 @@
                      (map (partial markdown/categories markdown-info)))]
     (map conj plotted categories)))
 
-(defn clip-plot
-  [plot scroll-offset {:keys [top height]}]
-  (let [clipped? (fn [[_ [_ y] _]] (or (< y top) (>= y (+ top height))))]
-    (->>
-      plot
-      (map (fn [[c [x y] cs]] [c [x (- y scroll-offset)] cs]))
-      (remove clipped?)
-      (map (fn [[c [x y] cs]] [c [x (- y top)] cs])))))
-
 (defn make
   ""
   [{:as args
@@ -51,6 +42,8 @@
             :viewport/width width
             :viewport/height height
             :raw raw
+            :plot (when (= type :markdown)
+                    (plot-markdown raw {:x x :y y :left left :top 0 :width width}))
             :foreground-color foreground-color
             :background-color background-color
             :modifiers modifiers}]})
@@ -65,25 +58,15 @@
       (some? scroll-delta)
       ((complement zero?) scroll-delta))))
 
-(defn payload
-  ""
-  [{:keys [scroll-offset]}
-   bounding-left
-   {:as item
-    :keys [x y raw]
-    :viewport/keys [left width height]}
-   bbox]
-  (case (item :type)
-    :string raw
-    :markdown (->
-                raw
-                (plot-markdown {:x x :y y :left (- left bounding-left) :width width})
-                (clip-plot scroll-offset bbox))))
-
 (defn blank?
   ""
   [{:keys [raw]}]
   (clojure.string/blank? raw))
+
+(defn force-clear
+  ""
+  [flow rect]
+  (assoc flow :force-clear rect))
 
 (defn bounding-rect
   ""
@@ -97,6 +80,13 @@
      :top top
      :width (- right left)
      :height (- bottom top)}))
+
+(defn payload
+  ""
+  [{:as item :keys [raw plot]}]
+  (case (item :type)
+    :string raw
+    :markdown plot))
 
 (defn payload-line-count
   ""
@@ -140,4 +130,140 @@
        (apply concat (map :items [flow1 flow2-after])))))
   ([flow1 flow2 & more]
    (reduce add (add flow1 flow2) more)))
+
+(defn within?
+  ""
+  [x y {:as rect :keys [left top width height]}]
+  (let [right (+ left width)
+        bottom (+ top height)]
+    (and
+      (>= x left)
+      (< x right)
+      (>= y top)
+      (< y bottom))))
+
+(defn apply-scroll
+  ""
+  [{:as flow :keys [scroll-offset] :or {scroll-offset 0}}]
+  (->>
+    flow
+    :items
+    (map #(update % :y (partial + (- scroll-offset))))
+    (assoc flow :items)))
+
+(defn translate-into-screen
+  ""
+  [flow]
+  (let [{bounding-left :left
+         bounding-top :top} (bounding-rect flow)
+        item-mapper #(let [left (% :viewport/left)
+                           top (% :viewport/top)]
+                       (->
+                         %
+                         (update :x (partial + left (- left bounding-left)))
+                         (update :y (partial + top (- top bounding-top)))))]
+    (->>
+      flow
+      :items
+      (map item-mapper)
+      (assoc flow :items))))
+
+(defn clip-string-item
+  ""
+  [{:as item :keys [x y raw]}
+   rect]
+  (assoc item :raw (if (within? x y rect) raw "")))
+
+(defn clip-markdown-item
+  ""
+  [item rect]
+  (assoc item :plot (filter
+                      (fn [[_ [x y] _]] (within? (+ x (item :x)) (+ y (item :y)) rect))
+                      (item :plot))))
+
+(defn clip-item
+  ""
+  [item rect]
+  ((case (item :type)
+     :string clip-string-item
+     :markdown clip-markdown-item) item rect))
+
+(defn clip
+  ""
+  [flow rect]
+  (->>
+    flow
+    :items
+    (map #(clip-item % rect))
+    (assoc flow :items)))
+
+(defn invisible?
+  ""
+  [item]
+  (case (item :type)
+    :string (empty? (item :raw))
+    :markdown (empty? (item :plot))))
+
+(defn cull
+  ""
+  [flow]
+  (->>
+    flow
+    :items
+    (remove invisible?)
+    (assoc flow :items)))
+
+(defn pan-string-item
+  ""
+  [item rect]
+  (update item :y #(- % (rect :top))))
+
+(defn pan-markdown-item
+  ""
+  [item rect]
+  (let [translator (fn [[c [x y] cs]] [c [x (- (+ y (item :y)) (rect :top))] cs])]
+    (update item :plot #(map translator %))))
+
+(defn pan-item
+  ""
+  [item rect]
+  ((case (item :type)
+     :string pan-string-item
+     :markdown pan-markdown-item) item rect))
+
+(defn pan
+  ""
+  [flow rect]
+  (->>
+    flow
+    :items
+    (map #(pan-item % rect))
+    (assoc flow :items)))
+
+(defn scroll-gap-rect
+  ""
+  [{:as flow
+    :keys [scroll-delta]}]
+  (let [{:keys [left top width height]} (bounding-rect flow)
+        bottom (+ top height)
+        gap-filler? (scrolled? flow)]
+    {:left left
+     :top (if (and gap-filler? (pos? scroll-delta))
+            (- bottom scroll-delta)
+            top)
+     :width width
+     :height (if gap-filler? (Math/abs scroll-delta) height)}))
+
+(defn visible-subset
+  ""
+  [{:as flow :keys [scroll-offset]}]
+  (let [rect (scroll-gap-rect flow)]
+    (->
+      flow
+      apply-scroll
+      translate-into-screen
+      (clip rect)
+      cull
+      (pan rect)
+      )))
 
