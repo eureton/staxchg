@@ -1,5 +1,6 @@
 (ns staxchg.state
   (:require [staxchg.presentation :as presentation])
+  (:require [staxchg.dev :as dev])
   (:gen-class))
 
 (defn increment-selected-question-index
@@ -102,6 +103,8 @@
         id (post "question_id")
         previous (line-offset post world)
         current (clamp-line-offset (scrollf previous world) post world)]
+    (dev/log "scroll-delta[" id "]: " (- current previous))
+    (dev/log " line-offset[" id "]: " current)
     (->
       world
       (dissoc :scroll-deltas)
@@ -132,6 +135,18 @@
 (defn one-screen-up [n world]
   (- n (full-screen world)))
 
+(defn update-clear-pane-body
+  ""
+  [world command]
+  (let [pane-clear-commands #{:previous-question
+                              :next-question
+                              :previous-answer
+                              :next-answer}]
+    (->
+      world
+      (assoc :clear-questions-pane-body? (#{:previous-question :next-question} command))
+      (assoc :clear-answers-pane-body? (#{:previous-answer :next-answer} command)))))
+
 (defn parse-command
   ""
   [keycode ctrl?]
@@ -150,8 +165,10 @@
       \l :next-answer
       nil))
 
-(defn update-world [world keycode ctrl?]
-  (case (parse-command keycode ctrl?)
+(defn effect-command
+  ""
+  [world command]
+  (case command
     :one-line-up (update-selected-post-line-offset one-line-up world)
     :one-line-down (update-selected-post-line-offset one-line-down world)
     :half-screen-up (update-selected-post-line-offset half-screen-up world)
@@ -165,6 +182,13 @@
     :previous-answer (cycle-selected-answer world :backwards)
     :next-answer (cycle-selected-answer world :forwards)
     world))
+
+(defn update-world [world keycode ctrl?]
+  (let [command (parse-command keycode ctrl?)]
+    (->
+      world
+      (effect-command command)
+      (update-clear-pane-body command))))
 
 (defn unescape-html [string]
   (org.jsoup.parser.Parser/unescapeEntities string true))
