@@ -4,6 +4,7 @@
   (:require [staxchg.state :as state])
   (:require [staxchg.presentation :as presentation])
   (:require [staxchg.flow :as flow])
+  (:require [staxchg.recipe :as recipe])
   (:require [staxchg.dev :as dev])
   (:import com.googlecode.lanterna.SGR)
   (:import com.googlecode.lanterna.TerminalPosition)
@@ -26,8 +27,12 @@
     (.withBackgroundColor v background-color)
     (reduce #(.withModifier %1 %2) v modifiers)))
 
-(defn put-markdown
+(defn put-markdown!
   [graphics plot _]
+  (dev/log
+    "[put-markdown] "
+    (->> (map second plot) (take 10) (apply str))
+    " |>" (string/join (map first plot)) "<|")
   (doseq [[character [x y] categories] plot]
     (when-not (TerminalTextUtils/isControlCharacter character)
       (.setCharacter
@@ -42,72 +47,53 @@
           :monospace #(.withForegroundColor % TextColor$ANSI/GREEN)
           :code-block #(.withForegroundColor % TextColor$ANSI/GREEN))))))
 
-(defn put-string
+(defn put-string!
   ""
   [graphics
    string
    {:keys [x y]
     :or {x 0 y 0}}]
+  (dev/log "[put-string] " [x y] " |>"  string "<|")
   (.putString graphics x y string))
 
-(defn scroll-gap-rect
+(defn scroll!
   ""
-  [flow]
-  (let [{:keys [left top width height]} (flow/bounding-rect flow)
-        gap-filler? (flow/scrolled? flow)]
-    {:left left
-     :top (if gap-filler? (- (+ top height) 1) top)
-     :width width
-     :height (if gap-filler? 1 height)}))
+  [screen top bottom distance]
+  (dev/log "[scroll] [" top " " bottom "] @ " distance)
+  (.scrollLines screen top bottom distance))
 
-(defn sub-graphics
+(defn clear!
   ""
-  [screen
-   {:keys [left top width height]}]
-  (->
-    screen
-    .newTextGraphics
-    (.newTextGraphics
-      (TerminalPosition. left top)
-      (TerminalSize. width height))))
-
-(defn fx-graphics
-  ""
-  [graphics
-   {:keys [foreground-color background-color modifiers]}]
-  (->
+  [graphics]
+  (dev/log "[clear] [" (-> graphics .getSize .getColumns) " " (-> graphics .getSize .getRows) "]")
+  (.fillRectangle
     graphics
-    (.enableModifiers (into-array SGR modifiers))
-    (.setForegroundColor foreground-color)
-    (.setBackgroundColor background-color)))
+    (TerminalPosition. 0 0)
+    (.getSize graphics)
+    (->
+      \space
+      TextCharacter.
+      (.withBackgroundColor TextColor$ANSI/RED)))
+  ;(.fill graphics \space)
+  )
 
-(defn render-flow
-  [screen
-   {:as flow
-    :keys [items scroll-delta]}]
-  (let [gap (scroll-gap-rect flow)
-        {:keys [left top width height]} (flow/bounding-rect flow)
-        graphics (sub-graphics screen gap)]
-    (dev/log "BB: " (flow/bounding-rect flow) " - SGap: " gap)
-    (if (flow/scrolled? flow)
-      (.scrollLines screen top (+ top (dec height)) scroll-delta)
-      (.fill graphics \space))
-    (doseq [item items]
-      (when (and (pos? width) (pos? height))
-        (let [bbox {:top (- (gap :top) top)
-                    :height (gap :height)}
-              graphics (fx-graphics graphics item)
-              options (select-keys item [:x :y])
-              f (case (item :type) :markdown put-markdown :string put-string)]
-          (f graphics (flow/payload flow left item bbox) options))))))
+(defn render-recipe
+  [recipe]
+  (doseq [{:keys [function params]} recipe]
+    (let [f (case function
+              :scroll! scroll!
+              :clear! clear!
+              :put-markdown! put-markdown!
+              :put-string! put-string!)]
+      (apply f params))))
 
-(def questions-pane-flow-recipe
+(def questions-pane-flows
   [presentation/questions-pane-separator-flow
    presentation/question-list-flow
    presentation/questions-pane-body-flow
    presentation/question-meta-flow ])
 
-(def answers-pane-flow-recipe
+(def answers-pane-flows
   [presentation/answers-pane-body-flow
    presentation/answer-meta-flow
    presentation/answer-acceptance-flow
@@ -116,10 +102,12 @@
 (defn render [screen world]
   (->>
     (case (world :active-pane)
-      :questions-pane questions-pane-flow-recipe
-      :answers-pane answers-pane-flow-recipe)
+      :questions-pane questions-pane-flows
+      :answers-pane answers-pane-flows)
     (map #(% world))
-    (run! (partial render-flow screen)))
+    (map recipe/make)
+    (map (partial recipe/inflate screen))
+    (run! render-recipe))
   (.refresh screen))
 
 (defn run-input-loop
