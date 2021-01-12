@@ -249,14 +249,19 @@
 (defn questions-pane-body-flow
   ""
   [{:as world
-    :keys [questions selected-question-index active-pane]}]
+    :keys [questions selected-question-index active-pane clear-questions-pane-body?]}]
   (let [question (questions selected-question-index)
-        offset (get-in world [:line-offsets (question "question_id") active-pane])]
-    (flow/y-scroll
+        offset (get-in world [:line-offsets (question "question_id") active-pane])
+        ; TODO rethink concerns here
+        clearf (if clear-questions-pane-body?
+                 #(flow/force-clear % (questions-pane-body-dimensions world))
+                 identity)]
+    (->
       (flow/add
         (question-flow question world)
         (comments-flow question world))
-      (- offset))))
+      (flow/y-scroll (- offset))
+      clearf)))
 
 (defn answers-pane-frame-flow
   ""
