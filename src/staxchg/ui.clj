@@ -88,21 +88,22 @@
       (apply f params))))
 
 (def consignments
-  [{:pane :questions-pane :flow presentation/questions-pane-separator-flow :zone :questions-pane-separator}
-   {:pane :questions-pane :flow presentation/question-list-flow            :zone :questions-list}
-   {:pane :questions-pane :flow presentation/questions-pane-body-flow      :zone :question-body}
-   {:pane :questions-pane :flow presentation/question-meta-flow            :zone :question-meta}
-   {:pane   :answers-pane :flow presentation/answers-pane-body-flow        :zone 0}
-   {:pane   :answers-pane :flow presentation/answer-meta-flow              :zone 0}
-   {:pane   :answers-pane :flow presentation/answer-acceptance-flow        :zone 0}
-   {:pane   :answers-pane :flow presentation/answers-pane-frame-flow       :zone 0}])
+  [{:pane :questions-pane :flow :questions-pane-separator :zone :questions-pane-separator}
+   {:pane :questions-pane :flow :questions-list           :zone :questions-list}
+   {:pane :questions-pane :flow :question-body            :zone :question-body}
+   {:pane :questions-pane :flow :question-meta            :zone :question-meta}
+   {:pane   :answers-pane :flow :answers-pane-body-flow   :zone 0}
+   {:pane   :answers-pane :flow :answer-meta-flow         :zone 0}
+   {:pane   :answers-pane :flow :answer-acceptance-flow   :zone 0}
+   {:pane   :answers-pane :flow :answers-pane-frame-flow  :zone 0}])
 
 (defn render [screen world]
-  (let [zones (presentation/zones world)]
+  (let [flows (presentation/flows world)
+        zones (presentation/zones world)]
     (->>
       consignments
       (filter (comp (partial = (world :active-pane)) :pane))
-      (map #(hash-map :flow ((% :flow) world) :zone (zones (% :zone))))
+      (map #(hash-map :flow (flows (% :flow)) :zone (zones (% :zone))))
       (map recipe/make)
       (map (partial recipe/inflate screen))
       (run! render-recipe)))

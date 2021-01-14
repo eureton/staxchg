@@ -174,26 +174,6 @@
       (filter #(= (% "answer_id") answer-id))
       first)))
 
-(defn question-list-flow
-  ""
-  [world]
-  (reduce
-    flow/add
-    flow/zero
-    (map-indexed
-      #(question-list-item-flow %2 %1 world)
-      (visible-questions world))))
-
-(defn questions-pane-separator-flow
-  ""
-  [{:as world
-    :keys [width question-list-size]}]
-  (flow/make {:type :string
-              :raw (format-questions-pane-separator world)
-              :viewport/top question-list-size
-              :viewport/width width
-              :viewport/height 1}))
-
 (defn questions-pane-body-dimensions
   [{:as world
     :keys [width height question-list-size]}]
@@ -259,39 +239,6 @@
                 :viewport/width width
                 :viewport/height height
                 :scroll-delta (get-in world [:scroll-deltas (question "question_id")])})))
-
-(defn question-meta-flow
-  ""
-  [{:as world
-    :keys [questions selected-question-index]}]
-  (let [{:keys [left top width height]} (questions-pane-body-dimensions world)
-        question (questions selected-question-index)
-        text (format-question-meta question)]
-    (flow/make {:type :string
-                :raw text
-                :x (- width (count text))
-                :viewport/left left
-                :viewport/top (+ top height)
-                :viewport/width width
-                :viewport/height 1
-                :foreground-color TextColor$ANSI/YELLOW})))
-
-(defn questions-pane-body-flow
-  ""
-  [{:as world
-    :keys [questions selected-question-index active-pane clear-questions-pane-body?]}]
-  (let [question (questions selected-question-index)
-        offset (get-in world [:line-offsets (question "question_id") active-pane])
-        ; TODO rethink concerns here
-        clearf (if clear-questions-pane-body?
-                 #(flow/force-clear % (questions-pane-body-dimensions world))
-                 identity)]
-    (->
-      (flow/add
-        (question-flow question world)
-        (comments-flow question world))
-      (flow/y-scroll (- offset))
-      clearf)))
 
 (defn answers-pane-frame-flow
   ""
@@ -382,4 +329,34 @@
     (flow/add
       (answer-flow answer world)
       (comments-flow answer world))))
+
+(defn flows
+  ""
+  [{:as world
+    :keys [width height question-list-size questions selected-question-index
+           active-pane clear-questions-pane-body?]}]
+  (let [question (questions selected-question-index)
+        offset (get-in world [:line-offsets (question "question_id") active-pane])
+        clearf (if clear-questions-pane-body?
+                 #(flow/force-clear % (questions-pane-body-dimensions world))
+                 identity)
+        question-meta-text (format-question-meta question)]
+    {:questions-pane-separator (flow/make {:type :string
+                                           :raw (format-questions-pane-separator world)})
+     :questions-list (reduce
+                       flow/add
+                       flow/zero
+                       (map-indexed
+                         #(question-list-item-flow %2 %1 world)
+                         (visible-questions world)))
+     :question-body (->
+                      (flow/add
+                        (question-flow question world)
+                        (comments-flow question world))
+                      (flow/y-scroll (- offset))
+                      clearf)
+     :question-meta (flow/make {:type :string
+                                :raw question-meta-text
+                                :x (- width (count question-meta-text))
+                                :foreground-color TextColor$ANSI/YELLOW})}))
 
