@@ -27,49 +27,50 @@
      (.setForegroundColor foreground-color)
      (.setBackgroundColor background-color)))
 
-(defn clear-questions-pane-body
+(defn clear-whole
   ""
-  [flow]
-  (when-let [rect (flow :force-clear)]
+  [flow zone]
+  (when-let [rect (zone :force-clear)]
     {:function :clear!
-     :params [(sub-graphics rect)]}))
+     :params [(sub-graphics zone)]}))
 
 (defn scroll
   ""
-  [flow]
+  [flow
+   {:as zone
+    :keys [top height]}]
   (when (flow/scrolled? flow)
-    (let [{:keys [top height]} (flow/bounding-rect flow)]
-      {:function :scroll!
-       :params [:screen
-                top
-                (+ top (dec height))
-                (flow :scroll-delta)]})))
+    {:function :scroll!
+     :params [:screen
+              top
+              (+ top (dec height))
+              (flow :scroll-delta)]}))
 
-(defn clear-footprint
+(defn clear-scroll-gap
   ""
-  [flow]
+  [flow zone]
   (when (flow/scrolled? flow)
     {:function :clear!
-     :params [(sub-graphics (flow/scroll-gap-rect flow))]}))
+     :params [(sub-graphics (flow/scroll-gap-rect flow zone))]}))
 
 (defn put-payload
   ""
-  [flow item]
+  [flow zone item]
   {:function (case (item :type)
                :markdown :put-markdown!
                :string :put-string!)
-   :params [(fx-graphics (flow/scroll-gap-rect flow) item)
+   :params [(fx-graphics (flow/scroll-gap-rect flow zone) item)
             (flow/payload item)
             (select-keys item [:x :y])]})
 
 (defn make
   ""
-  [flow]
-  (let [visible-flow (flow/visible-subset flow)
-        item-processor (partial put-payload visible-flow)]
+  [{:keys [flow zone]}]
+  (let [visible-flow (flow/visible-subset flow zone)
+        item-processor (partial put-payload visible-flow zone)]
     (->>
       (concat
-        ((juxt clear-questions-pane-body scroll clear-footprint) flow)
+        ((juxt clear-whole scroll clear-scroll-gap) flow zone)
         (map item-processor (visible-flow :items)))
       (remove nil?))))
 

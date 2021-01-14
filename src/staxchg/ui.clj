@@ -87,28 +87,26 @@
               :put-string! put-string!)]
       (apply f params))))
 
-(def questions-pane-flows
-  [presentation/questions-pane-separator-flow
-   presentation/question-list-flow
-   presentation/questions-pane-body-flow
-   presentation/question-meta-flow ])
-
-(def answers-pane-flows
-  [presentation/answers-pane-body-flow
-   presentation/answer-meta-flow
-   presentation/answer-acceptance-flow
-   presentation/answers-pane-frame-flow])
+(def consignments
+  [{:pane :questions-pane :flow presentation/questions-pane-separator-flow :zone :questions-pane-separator}
+   {:pane :questions-pane :flow presentation/question-list-flow            :zone :questions-list}
+   {:pane :questions-pane :flow presentation/questions-pane-body-flow      :zone :question-body}
+   {:pane :questions-pane :flow presentation/question-meta-flow            :zone :question-meta}
+   {:pane   :answers-pane :flow presentation/answers-pane-body-flow        :zone 0}
+   {:pane   :answers-pane :flow presentation/answer-meta-flow              :zone 0}
+   {:pane   :answers-pane :flow presentation/answer-acceptance-flow        :zone 0}
+   {:pane   :answers-pane :flow presentation/answers-pane-frame-flow       :zone 0}])
 
 (defn render [screen world]
-  (->>
-    (case (world :active-pane)
-      :questions-pane questions-pane-flows
-      :answers-pane answers-pane-flows)
-    (map #(% world))
-    (map recipe/make)
-    (map (partial recipe/inflate screen))
-    (run! render-recipe))
-  (.refresh screen))
+  (let [zones (presentation/zones world)]
+    (->>
+      consignments
+      (filter (comp (partial = (world :active-pane)) :pane))
+      (map #(hash-map :flow ((% :flow) world) :zone (zones (% :zone))))
+      (map recipe/make)
+      (map (partial recipe/inflate screen))
+      (run! render-recipe)))
+    (.refresh screen))
 
 (defn run-input-loop
   ""

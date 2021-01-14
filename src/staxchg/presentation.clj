@@ -5,6 +5,36 @@
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:gen-class))
 
+(defn zones
+  ""
+  [{:as world
+    :keys [width height]}]
+  (let [question-list-left 1
+        question-list-size 2
+        question-body-left 1
+        question-body-top (inc question-list-size)
+        question-meta-left 1]
+    {:questions-list {:id :question-list
+                      :left question-list-left
+                      :top 0
+                      :width (- width (* question-list-left 2))
+                      :height question-list-size}
+     :questions-pane-separator {:id :questions-pane-separator
+                                :left 0
+                                :top question-list-size
+                                :width width
+                                :height 1}
+     :question-body {:id :question-body
+                     :left question-body-left
+                     :top question-body-top
+                     :width (- width (* question-body-left 2))
+                     :height (- height question-body-top 1)}
+     :question-meta {:id :question-meta
+                     :left question-meta-left
+                     :top (dec height)
+                     :width (- width (* question-meta-left 2))
+                     :height 1}}))
+
 (defn format-date
   ""
   [unixtime]
@@ -342,7 +372,8 @@
   (flow/line-count
     (flow/add
       (question-flow question world)
-      (comments-flow question world))))
+      (comments-flow question world))
+    ((zones world) :question-body)))
 
 (defn answer-line-count
   ""

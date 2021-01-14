@@ -1,5 +1,6 @@
 (ns staxchg.flow
   (:require [staxchg.markdown :as markdown])
+  (:require [staxchg.dev :as dev])
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:gen-class))
 
@@ -8,27 +9,25 @@
 (def y-rhythm 1)
 
 (defn plot-markdown
-  [string
-   {:as args
-    :keys [x y left width]
-    :or {x 0 y 0}}]
-  (let [{:keys [plotted markdown-info]} (markdown/plot
-                                          string
-                                          {:x x :y y :left left :top 0 :width width})
-        categories (->>
-                     plotted
-                     count
-                     range
-                     (map (partial markdown/categories markdown-info)))]
-    (map conj plotted categories)))
+  [{:as zone :keys [width]}
+   {:as item :keys [x y raw]}]
+  (when (= (item :type) :markdown)
+    (let [{:keys [plotted markdown-info]} (markdown/plot
+                                            raw
+                                            {:x x :y y :width width})
+          categories (->>
+                       plotted
+                       count
+                       range
+                       (map (partial markdown/categories markdown-info)))]
+      (map conj plotted categories))))
 
 (defn make
   ""
   [{:as args
     :keys [type x y raw foreground-color background-color modifiers scroll-delta scroll-offset]
-    :viewport/keys [left top width height]
     :or {type :string raw ""
-         x 0 y 0 left 0 top 0 width 0 height 0 scroll-offset 0
+         x 0 y 0 scroll-offset 0
          foreground-color TextColor$ANSI/DEFAULT
          background-color TextColor$ANSI/DEFAULT
          modifiers []}}]
@@ -37,13 +36,7 @@
    :items [{:type type
             :x x
             :y y
-            :viewport/left left
-            :viewport/top top
-            :viewport/width width
-            :viewport/height height
             :raw raw
-            :plot (when (= type :markdown)
-                    (plot-markdown raw {:x x :y y :left left :top 0 :width width}))
             :foreground-color foreground-color
             :background-color background-color
             :modifiers modifiers}]})
@@ -68,19 +61,6 @@
   [flow rect]
   (assoc flow :force-clear rect))
 
-(defn bounding-rect
-  ""
-  [flow]
-  (let [items (remove blank? (flow :items))
-        left (->> items (map :viewport/left) (apply min))
-        right (apply max (map + (map :viewport/left items) (map :viewport/width items)))
-        top (->> items (map :viewport/top) (apply min))
-        bottom (apply max (map + (map :viewport/top items) (map :viewport/height items)))]
-    {:left left
-     :top top
-     :width (- right left)
-     :height (- bottom top)}))
-
 (defn payload
   ""
   [{:as item :keys [raw plot]}]
@@ -90,9 +70,10 @@
 
 (defn payload-line-count
   ""
-  [{:as item
-    :keys [raw]
-    :viewport/keys [width]}]
+  [{:as zone
+    :keys [width]}
+   {:as item
+    :keys [raw]}]
   (case (item :type)
     :markdown (markdown/line-count raw width)
     :string 1))
@@ -113,8 +94,8 @@
 
 (defn line-count
   ""
-  [flow]
-  (reduce + (map payload-line-count (flow :items))))
+  [flow zone]
+  (reduce + (map (partial payload-line-count zone) (flow :items))))
 
 (defn add
   ""
@@ -123,11 +104,10 @@
   ([flow]
    flow)
   ([flow1 flow2]
-   (let [flow2-after (y-offset flow2 (line-count flow1))]
-     (assoc
-       flow1
-       :items
-       (apply concat (map :items [flow1 flow2-after])))))
+   (assoc
+     flow1
+     :items
+     (apply concat (map :items [flow1 flow2]))))
   ([flow1 flow2 & more]
    (reduce add (add flow1 flow2) more)))
 
@@ -144,24 +124,25 @@
 
 (defn apply-scroll
   ""
-  [{:as flow :keys [scroll-offset] :or {scroll-offset 0}}]
-  (->>
-    flow
-    :items
-    (map #(update % :y (partial + (- scroll-offset))))
-    (assoc flow :items)))
+  [{:as flow :keys [scroll-offset] :or {scroll-offset 0}}
+   zone]
+  (let [line-counts (map (partial payload-line-count zone) (flow :items))
+        ys (reduce (fn [acc x] (conj acc (+ x (or (last acc) 0)))) [0] line-counts)]
+    (->>
+      flow
+      :items
+      (map #(assoc % :plot (plot-markdown zone %)))
+      (map #(update %2 :y (partial + %1 (- scroll-offset))) ys)
+      (assoc flow :items))))
 
 (defn translate-into-screen
   ""
-  [flow]
-  (let [{bounding-left :left
-         bounding-top :top} (bounding-rect flow)
-        item-mapper #(let [left (% :viewport/left)
-                           top (% :viewport/top)]
-                       (->
-                         %
-                         (update :x (partial + left (- left bounding-left)))
-                         (update :y (partial + top (- top bounding-top)))))]
+  [flow
+   {:as zone :keys [left top]}]
+  (let [item-mapper #(->
+                       %
+                       (update :x (partial + left))
+                       (update :y (partial + top)))]
     (->>
       flow
       :items
@@ -243,9 +224,10 @@
 (defn scroll-gap-rect
   ""
   [{:as flow
-    :keys [scroll-delta]}]
-  (let [{:keys [left top width height]} (bounding-rect flow)
-        bottom (+ top height)
+    :keys [scroll-delta]}
+   {:as zone
+    :keys [left top width height]}]
+  (let [bottom (+ top height)
         gap-filler? (scrolled? flow)]
     {:left left
      :top (if (and gap-filler? (pos? scroll-delta))
@@ -256,14 +238,15 @@
 
 (defn visible-subset
   ""
-  [{:as flow :keys [scroll-offset]}]
-  (let [rect (scroll-gap-rect flow)]
+  [flow zone]
+  (let [viewport (scroll-gap-rect flow zone)]
+    (dev/log "SGr: " zone)
     (->
       flow
-      apply-scroll
-      translate-into-screen
-      (clip rect)
+      (apply-scroll zone)
+      (translate-into-screen zone)
+      (clip viewport)
       cull
-      (pan rect)
+      (pan viewport)
       )))
 
