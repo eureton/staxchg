@@ -114,7 +114,7 @@
       flow
       :items
       (map #(assoc % :plot (plot-markdown zone %)))
-      (map #(update %2 :y (partial + %1 (- scroll-offset))) ys)
+      (map #(update %2 :y + %1 (- scroll-offset)) ys)
       (assoc flow :items))))
 
 (defn translate-to-screen
@@ -123,8 +123,8 @@
    {:as zone :keys [left top]}]
   (let [item-mapper #(->
                        %
-                       (update :x (partial + left))
-                       (update :y (partial + top)))]
+                       (update :x + left)
+                       (update :y + top))]
     (->>
       flow
       :items
@@ -179,7 +179,7 @@
 (defn translate-to-viewport-string-item
   ""
   [item rect]
-  (update item :y #(- % (rect :top))))
+  (update item :y - (rect :top)))
 
 (defn translate-to-viewport-markdown-item
   ""
