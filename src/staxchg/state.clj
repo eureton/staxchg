@@ -69,8 +69,8 @@
   ""
   [world]
   ((case (world :active-pane)
-     :questions-pane (presentation/questions-pane-body-dimensions world)
-     :answers-pane (presentation/answers-pane-body-dimensions world)) :height))
+     :questions (presentation/questions-pane-body-dimensions world)
+     :answers (presentation/answers-pane-body-dimensions world)) :height))
 
 (defn line-offset
   ""
@@ -96,10 +96,10 @@
    {:as world
     :keys [active-pane]}]
   (let [[countf post] (case active-pane
-                        :questions-pane [presentation/question-line-count
-                                         (selected-question world)]
-                        :answers-pane [presentation/answer-line-count
-                                       (presentation/selected-answer world)])
+                        :questions [presentation/question-line-count
+                                    (selected-question world)]
+                        :answers [presentation/answer-line-count
+                                  (presentation/selected-answer world)])
         id (post "question_id")
         previous (line-offset post world)
         current (clamp-line-offset (scrollf previous world) post world)]
@@ -177,8 +177,8 @@
     :one-screen-down (update-selected-post-line-offset one-screen-down world)
     :previous-question (decrement-selected-question-index world)
     :next-question (increment-selected-question-index world)
-    :answers-pane (assoc world :active-pane :answers-pane)
-    :questions-pane (assoc world :active-pane :questions-pane)
+    :answers-pane (assoc world :active-pane :answers)
+    :questions-pane (assoc world :active-pane :questions)
     :previous-answer (cycle-selected-answer world :backwards)
     :next-answer (cycle-selected-answer world :forwards)
     world))
@@ -224,7 +224,7 @@
   (let [questions (mapv scrub-question (items "items"))
         question-ids (map #(% "question_id") questions)]
     {:line-offsets (reduce
-                     #(assoc %1 %2 {:questions-pane 0 :answers-pane 0})
+                     #(assoc %1 %2 {:questions 0 :answers 0})
                      {}
                      question-ids)
      :selected-question-index 0
@@ -242,5 +242,5 @@
      :questions questions
      :width width
      :height height
-     :active-pane :questions-pane}))
+     :active-pane :questions}))
 

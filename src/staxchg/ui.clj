@@ -88,14 +88,14 @@
       (apply f params))))
 
 (def consignments
-  [{:pane :questions-pane :flow :questions-pane-separator :zone :questions-pane-separator}
-   {:pane :questions-pane :flow :questions-list           :zone :questions-list}
-   {:pane :questions-pane :flow :question-body            :zone :question-body}
-   {:pane :questions-pane :flow :question-meta            :zone :question-meta}
-   {:pane   :answers-pane :flow :answers-pane-body-flow   :zone 0}
-   {:pane   :answers-pane :flow :answer-meta-flow         :zone 0}
-   {:pane   :answers-pane :flow :answer-acceptance-flow   :zone 0}
-   {:pane   :answers-pane :flow :answers-pane-frame-flow  :zone 0}])
+  [{:pane :questions :flow :questions-pane-separator :zone :questions-pane-separator}
+   {:pane :questions :flow :questions-list           :zone :questions-list}
+   {:pane :questions :flow :question-body            :zone :question-body}
+   {:pane :questions :flow :question-meta            :zone :question-meta}
+   {:pane   :answers :flow :answers-pane-body-flow   :zone 0}
+   {:pane   :answers :flow :answer-meta-flow         :zone 0}
+   {:pane   :answers :flow :answer-acceptance-flow   :zone 0}
+   {:pane   :answers :flow :answers-pane-frame-flow  :zone 0}])
 
 (defn render [screen world]
   (let [flows (presentation/flows world)
