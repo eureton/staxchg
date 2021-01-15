@@ -8,7 +8,7 @@
 (defn zones
   ""
   [{:as world
-    :keys [width height]}]
+    :keys [width height clear-questions-pane-body?]}]
   (let [question-list-left 1
         question-list-size 2
         question-body-left 1
@@ -28,7 +28,8 @@
                      :left question-body-left
                      :top question-body-top
                      :width (- width (* question-body-left 2))
-                     :height (- height question-body-top 1)}
+                     :height (- height question-body-top 1)
+                     :clear? clear-questions-pane-body?}
      :question-meta {:id :question-meta
                      :left question-meta-left
                      :top (dec height)
@@ -334,12 +335,9 @@
   ""
   [{:as world
     :keys [width height question-list-size questions selected-question-index
-           active-pane clear-questions-pane-body?]}]
+           active-pane]}]
   (let [question (questions selected-question-index)
         offset (get-in world [:line-offsets (question "question_id") active-pane])
-        clearf (if clear-questions-pane-body?
-                 #(flow/force-clear % (questions-pane-body-dimensions world))
-                 identity)
         question-meta-text (format-question-meta question)]
     {:questions-pane-separator (flow/make {:type :string
                                            :raw (format-questions-pane-separator world)})
@@ -353,8 +351,7 @@
                       (flow/add
                         (question-flow question world)
                         (comments-flow question world))
-                      (flow/y-scroll (- offset))
-                      clearf)
+                      (flow/y-scroll (- offset)))
      :question-meta (flow/make {:type :string
                                 :raw question-meta-text
                                 :x (- width (count question-meta-text))

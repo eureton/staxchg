@@ -56,11 +56,6 @@
   [{:keys [raw]}]
   (clojure.string/blank? raw))
 
-(defn force-clear
-  ""
-  [flow rect]
-  (assoc flow :force-clear rect))
-
 (defn payload
   ""
   [{:as item :keys [raw plot]}]
@@ -226,9 +221,9 @@
   [{:as flow
     :keys [scroll-delta]}
    {:as zone
-    :keys [left top width height]}]
+    :keys [left top width height clear?]}]
   (let [bottom (+ top height)
-        gap-filler? (scrolled? flow)]
+        gap-filler? (and (not clear?) (scrolled? flow))]
     {:left left
      :top (if (and gap-filler? (pos? scroll-delta))
             (- bottom scroll-delta)

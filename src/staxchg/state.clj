@@ -107,7 +107,6 @@
     (dev/log " line-offset[" id "]: " current)
     (->
       world
-      (dissoc :scroll-deltas)
       (assoc-in [:scroll-deltas id] (- current previous))
       (assoc-in [:line-offsets id active-pane] current))))
 
@@ -135,7 +134,7 @@
 (defn one-screen-up [n world]
   (- n (full-screen world)))
 
-(defn update-clear-pane-body
+(defn mark-clear-pane-body
   ""
   [world command]
   (let [pane-clear-commands #{:previous-question
@@ -165,6 +164,13 @@
       \l :next-answer
       nil))
 
+(defn clear-marks
+  ""
+  [world]
+  (->
+    world
+    (dissoc :scroll-deltas)))
+
 (defn effect-command
   ""
   [world command]
@@ -183,12 +189,20 @@
     :next-answer (cycle-selected-answer world :forwards)
     world))
 
+(defn set-marks
+  ""
+  [world command]
+  (->
+    world
+    (mark-clear-pane-body command)))
+
 (defn update-world [world keycode ctrl?]
   (let [command (parse-command keycode ctrl?)]
     (->
       world
+      (clear-marks)
       (effect-command command)
-      (update-clear-pane-body command))))
+      (set-marks command))))
 
 (defn unescape-html [string]
   (org.jsoup.parser.Parser/unescapeEntities string true))

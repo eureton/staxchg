@@ -30,7 +30,7 @@
 (defn clear-whole
   ""
   [flow zone]
-  (when-let [rect (flow :force-clear)]
+  (when (zone :clear?)
     {:function :clear!
      :params [(sub-graphics zone)]}))
 
