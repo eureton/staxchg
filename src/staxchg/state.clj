@@ -33,10 +33,11 @@
       first
       first)))
 
-(defn selected-line-offset [world]
-  (let [selected-question-id ((selected-question world) "question_id")
-        active-pane (world :active-pane)]
-  (get-in world [:line-offsets selected-question-id active-pane])))
+(defn selected-line-offset [{:as world :keys [line-offsets active-pane]}]
+  (let [post-id (case active-pane
+                  :questions ((selected-question world) "question_id")
+                  :answers ((presentation/selected-answer world) "answer_id"))]
+    (line-offsets post-id)))
 
 (defn decrement-selected-question-index
   [{:as world
@@ -74,10 +75,13 @@
 
 (defn line-offset
   ""
-  [question
+  [post
    {:as world
-    :keys [active-pane]}]
-  (get-in world [:line-offsets (question "question_id") active-pane]))
+    :keys [line-offsets active-pane]}]
+  (->>
+    (case active-pane :questions "question_id" :answers "answer_id")
+    post
+    line-offsets))
 
 (defn clamp-line-offset
   ""
@@ -93,22 +97,23 @@
 (defn update-selected-post-line-offset
   ""
   [scrollf
-   {:as world
-    :keys [active-pane]}]
+   {:as world :keys [active-pane]}]
   (let [[countf post] (case active-pane
                         :questions [presentation/question-line-count
                                     (selected-question world)]
                         :answers [presentation/answer-line-count
                                   (presentation/selected-answer world)])
-        id (post "question_id")
+        post-id (post (case active-pane
+                        :questions "question_id"
+                        :answers "answer_id"))
         previous (line-offset post world)
         current (clamp-line-offset (scrollf previous world) post world)]
-    (dev/log "scroll-delta[" id "]: " (- current previous))
-    (dev/log " line-offset[" id "]: " current)
+    (dev/log "scroll-delta[" post-id "]: " (- current previous))
+    (dev/log " line-offset[" post-id "]: " current)
     (->
       world
-      (assoc-in [:scroll-deltas id] (- current previous))
-      (assoc-in [:line-offsets id active-pane] current))))
+      (assoc-in [:scroll-deltas post-id] (- current previous))
+      (assoc-in [:line-offsets post-id] current))))
 
 (defn half-screen [world]
   (/ (active-pane-body-height world) 2))
@@ -236,11 +241,14 @@
   ""
   [items width height]
   (let [questions (mapv scrub-question (items "items"))
-        question-ids (map #(% "question_id") questions)]
-    {:line-offsets (reduce
-                     #(assoc %1 %2 {:questions 0 :answers 0})
-                     {}
-                     question-ids)
+        question-ids (map #(% "question_id") questions)
+        answer-ids (->> questions (map #(% "answers")) flatten (map #(% "answer_id")))]
+    {:line-offsets (->>
+                     (concat question-ids answer-ids)
+                     (map vector (repeat 0))
+                     (map reverse)
+                     (flatten)
+                     (apply hash-map))
      :selected-question-index 0
      :selected-answers (reduce
                          #(assoc %1 %2 (get-in

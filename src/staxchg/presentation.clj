@@ -8,11 +8,13 @@
 (defn zones
   ""
   [{:as world
-    :keys [width height clear-questions-pane-body?]}]
+    :keys [width height clear-questions-pane-body? clear-answers-pane-body?]}]
   (let [question-list-left 1
         question-list-size 2
         questions-body-left 1
-        questions-body-top (inc question-list-size)]
+        questions-body-top (inc question-list-size)
+        answer-body-left 1
+        answer-body-top 2]
     {:questions-header {:id :question-header
                         :left question-list-left
                         :top 0
@@ -33,7 +35,23 @@
                         :left 0
                         :top (dec height)
                         :width width
-                        :height 1}}))
+                        :height 1}
+     :answers-body {:id :answers-body
+                    :left answer-body-left
+                    :top answer-body-top
+                    :width (- width (* answer-body-left 2))
+                    :height (- height answer-body-top 1)
+                    :clear? clear-answers-pane-body?}
+     :answers-footer {:id :answers-footer
+                      :left 0
+                      :top (dec height)
+                      :width width
+                      :height 1}
+     :answers-header {:id :answers-header
+                      :left 0
+                      :top 0
+                      :width width
+                      :height 2}}))
 
 (defn format-date
   ""
@@ -127,6 +145,7 @@
       hint
       "-")))
 
+; TODO: replace this with the appropriate zone
 (defn question-list-dimensions
   [{:as world
     :keys [width height question-list-size]}]
@@ -174,6 +193,7 @@
       (filter #(= (% "answer_id") answer-id))
       first)))
 
+; TODO: replace this with the appropriate zone
 (defn questions-pane-body-dimensions
   [{:as world
     :keys [width height question-list-size]}]
@@ -184,6 +204,7 @@
      :width (- width (* left 2))
      :height (- height top 1)}))
 
+; TODO: replace this with the appropriate zone
 (defn answers-pane-body-dimensions
   ""
   [world]
@@ -192,7 +213,6 @@
      :top top
      :width (- (world :width) (* left 2))
      :height (- (world :height) top 1)}))
-
 
 (def comments-left-margin 4)
 
@@ -231,92 +251,22 @@
 (defn question-flow
   ""
   [question world]
-  (let [{:keys [left top width height]} (questions-pane-body-dimensions world)]
-    (flow/make {:type :markdown
-                :raw (question "body_markdown")
-                :viewport/left left
-                :viewport/top top
-                :viewport/width width
-                :viewport/height height
-                :scroll-delta (get-in world [:scroll-deltas (question "question_id")])})))
-
-(defn answers-pane-frame-flow
-  ""
-  [{:as world
-    :keys [width questions selected-question-index]}]
-  (let [{:keys [top]} (answers-pane-body-dimensions world)
-        question (questions selected-question-index)]
-    (flow/add
-      (flow/make {:type :string
-                  :raw (question "title")
-                  :viewport/left 2
-                  :viewport/width (- width 4)
-                  :viewport/height 2
-                  :modifiers [SGR/REVERSE]})
-      (flow/make {:type :string
-                  :raw (format-answers-pane-separator question world)
-                  :viewport/width width
-                  :viewport/height 2}))))
+  (flow/make {:type :markdown
+              :raw (question "body_markdown")
+              :scroll-delta (get-in world [:scroll-deltas (question "question_id")])}))
 
 (defn answer-flow
   ""
-  [answer
-   {:as world
-    :keys [questions selected-question-index active-pane]}]
-  (let [{:keys [left top width height]} (answers-pane-body-dimensions world)]
-    (flow/make {:type :markdown
-                :raw (answer "body_markdown")
-                :viewport/left left
-                :viewport/top top
-                :viewport/width width
-                :viewport/height height})))
-
-(defn answer-meta-flow
-  ""
-  [world]
-  (let [{:keys [top height]} (answers-pane-body-dimensions world)
-        answer (selected-answer world)
-        text (format-answer-meta answer)
-        length (count text)]
-    (flow/make {:type :string
-                :raw text
-                :viewport/left (- (world :width) length 1)
-                :viewport/top (+ top height)
-                :viewport/width length
-                :viewport/height 1
-                :foreground-color TextColor$ANSI/YELLOW})))
-
-(defn answer-acceptance-flow
-  ""
-  [world]
-  (let [{:keys [top height]} (answers-pane-body-dimensions world)
-        text " ACCEPTED "]
-    (flow/make {:type :string
-                :raw (if ((selected-answer world) "is_accepted") text "")
-                :viewport/left 1
-                :viewport/top (+ top height)
-                :viewport/width (count text)
-                :viewport/height 1
-                :foreground-color TextColor$ANSI/BLACK
-                :background-color TextColor$ANSI/YELLOW})))
-
-(defn answers-pane-body-flow
-  ""
-  [{:as world
-    :keys [questions selected-question-index active-pane]}]
-  (let [question (questions selected-question-index)
-        answer (selected-answer world)
-        offset (get-in world [:line-offsets (question "question_id") active-pane])]
-    (flow/scroll-y
-      (flow/add
-        (answer-flow answer world)
-        (comments-flow answer world))
-      (- offset))))
+  [answer world]
+  (flow/make {:type :markdown
+              :raw (answer "body_markdown")
+              :scroll-delta (get-in world [:scroll-deltas (answer "answer_id")])}))
 
 (defn question-line-count
   ""
   [question world]
   (flow/line-count
+    ; TODO pull this out into a function which the flows coll can share
     (flow/add
       (question-flow question world)
       (comments-flow question world))
@@ -326,18 +276,21 @@
   ""
   [answer world]
   (flow/line-count
+    ; TODO pull this out into a function which the flows coll can share
     (flow/add
       (answer-flow answer world)
-      (comments-flow answer world))))
+      (comments-flow answer world))
+    ((zones world) :answers-body)))
 
 (defn flows
   ""
   [{:as world
     :keys [width height question-list-size questions selected-question-index
-           active-pane]}]
+           active-pane line-offsets]}]
   (let [question (questions selected-question-index)
-        offset (get-in world [:line-offsets (question "question_id") active-pane])
-        question-meta-text (format-question-meta question)]
+        answer (selected-answer world)
+        question-meta-text (format-question-meta question)
+        answer-meta-text (format-answer-meta answer)]
     {:questions-separator (flow/make {:type :string
                                       :raw (format-questions-pane-separator world)})
      :questions-list (reduce
@@ -350,9 +303,29 @@
                       (flow/add
                         (question-flow question world)
                         (comments-flow question world))
-                      (flow/scroll-y (- offset)))
+                      (flow/scroll-y (- (line-offsets (question "question_id")))))
      :question-meta (flow/make {:type :string
                                 :raw question-meta-text
                                 :x (- width (count question-meta-text))
-                                :foreground-color TextColor$ANSI/YELLOW})}))
+                                :foreground-color TextColor$ANSI/YELLOW})
+     :answer (flow/scroll-y
+               (flow/add
+                 (answer-flow answer world)
+                 (comments-flow answer world))
+               (- (line-offsets (answer "answer_id"))))
+     :answer-meta (flow/make {:type :string
+                              :raw answer-meta-text
+                              :x (- width (count answer-meta-text))
+                              :foreground-color TextColor$ANSI/YELLOW})
+     :answer-acceptance (flow/make {:type :string
+                                    :raw (if (answer "is_accepted") " ACCEPTED " "")
+                                    :x 1
+                                    :foreground-color TextColor$ANSI/BLACK
+                                    :background-color TextColor$ANSI/YELLOW})
+     :answers-context (flow/add
+                        (flow/make {:type :string
+                                    :raw (question "title")
+                                    :modifiers [SGR/REVERSE]})
+                        (flow/make {:type :string
+                                    :raw (format-answers-pane-separator question world)}))}))
 

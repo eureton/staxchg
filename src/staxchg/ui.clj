@@ -89,13 +89,13 @@
 
 (def consignments
   [{:pane :questions :flow :questions-separator :zone :questions-separator}
-   {:pane :questions :flow :questions-list           :zone :questions-header}
-   {:pane :questions :flow :question-body            :zone :questions-body}
-   {:pane :questions :flow :question-meta            :zone :questions-footer}
-   {:pane   :answers :flow :answers-pane-body-flow   :zone 0}
-   {:pane   :answers :flow :answer-meta-flow         :zone 0}
-   {:pane   :answers :flow :answer-acceptance-flow   :zone 0}
-   {:pane   :answers :flow :answers-pane-frame-flow  :zone 0}])
+   {:pane :questions :flow :questions-list      :zone :questions-header}
+   {:pane :questions :flow :question-body       :zone :questions-body}
+   {:pane :questions :flow :question-meta       :zone :questions-footer}
+   {:pane   :answers :flow :answer              :zone :answers-body}
+   {:pane   :answers :flow :answer-meta         :zone :answers-footer}
+   {:pane   :answers :flow :answer-acceptance   :zone :answers-footer}
+   {:pane   :answers :flow :answers-context     :zone :answers-header}])
 
 (defn render [screen world]
   (let [flows (presentation/flows world)
