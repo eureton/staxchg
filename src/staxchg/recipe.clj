@@ -66,7 +66,7 @@
 (defn make
   ""
   [{:keys [flow zone]}]
-  (let [visible-flow (flow/visible-subset flow zone)
+  (let [visible-flow (flow/clip flow zone)
         item-processor (partial put-payload visible-flow zone)]
     (->>
       (concat

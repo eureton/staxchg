@@ -103,12 +103,13 @@
       (>= y top)
       (< y bottom))))
 
-(defn apply-scroll
+(defn layout-y
   ""
   [{:as flow :keys [scroll-offset] :or {scroll-offset 0}}
    zone]
   (let [line-counts (map (partial payload-line-count zone) (flow :items))
-        ys (reduce (fn [acc x] (conj acc (+ x (or (last acc) 0)))) [0] line-counts)]
+        arith-prog-reducer (fn [acc x] (conj acc (+ x (last acc))))
+        ys (reduce arith-prog-reducer [0] line-counts)]
     (->>
       flow
       :items
@@ -130,33 +131,33 @@
       (map item-mapper)
       (assoc flow :items))))
 
-(defn clip-string-item
+(defn clip-to-screen-string-item
   ""
   [{:as item :keys [x y raw]}
    rect]
   (assoc item :raw (if (within? x y rect) raw "")))
 
-(defn clip-markdown-item
+(defn clip-to-screen-markdown-item
   ""
   [item rect]
   (assoc item :plot (filter
                       (fn [[_ [x y] _]] (within? (+ x (item :x)) (+ y (item :y)) rect))
                       (item :plot))))
 
-(defn clip-item
+(defn clip-to-screen-item
   ""
   [item rect]
   ((case (item :type)
-     :string clip-string-item
-     :markdown clip-markdown-item) item rect))
+     :string clip-to-screen-string-item
+     :markdown clip-to-screen-markdown-item) item rect))
 
-(defn clip
+(defn clip-to-screen
   ""
   [flow rect]
   (->>
     flow
     :items
-    (map #(clip-item % rect))
+    (map #(clip-to-screen-item % rect))
     (assoc flow :items)))
 
 (defn invisible?
@@ -217,15 +218,15 @@
      :width width
      :height (if gap-filler? (Math/abs scroll-delta) height)}))
 
-(defn visible-subset
+(defn clip
   ""
   [flow zone]
   (let [viewport (scroll-gap-rect flow zone)]
     (->
       flow
-      (apply-scroll zone)
+      (layout-y zone)
       (translate-to-screen zone)
-      (clip viewport)
-      cull
+      (clip-to-screen viewport)
+      (cull)
       (translate-to-viewport viewport))))
 
