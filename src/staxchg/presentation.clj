@@ -11,30 +11,29 @@
     :keys [width height clear-questions-pane-body?]}]
   (let [question-list-left 1
         question-list-size 2
-        question-body-left 1
-        question-body-top (inc question-list-size)
-        question-meta-left 1]
-    {:questions-list {:id :question-list
-                      :left question-list-left
-                      :top 0
-                      :width (- width (* question-list-left 2))
-                      :height question-list-size}
-     :questions-pane-separator {:id :questions-pane-separator
-                                :left 0
-                                :top question-list-size
-                                :width width
-                                :height 1}
-     :question-body {:id :question-body
-                     :left question-body-left
-                     :top question-body-top
-                     :width (- width (* question-body-left 2))
-                     :height (- height question-body-top 1)
-                     :clear? clear-questions-pane-body?}
-     :question-meta {:id :question-meta
-                     :left question-meta-left
-                     :top (dec height)
-                     :width (- width (* question-meta-left 2))
-                     :height 1}}))
+        questions-body-left 1
+        questions-body-top (inc question-list-size)]
+    {:questions-header {:id :question-header
+                        :left question-list-left
+                        :top 0
+                        :width (- width (* question-list-left 2))
+                        :height question-list-size}
+     :questions-separator {:id :questions-separator
+                           :left 0
+                           :top question-list-size
+                           :width width
+                           :height 1}
+     :questions-body {:id :questions-body
+                      :left questions-body-left
+                      :top questions-body-top
+                      :width (- width (* questions-body-left 2))
+                      :height (- height questions-body-top 1)
+                      :clear? clear-questions-pane-body?}
+     :questions-footer {:id :questions-footer
+                        :left 0
+                        :top (dec height)
+                        :width width
+                        :height 1}}))
 
 (defn format-date
   ""
@@ -321,7 +320,7 @@
     (flow/add
       (question-flow question world)
       (comments-flow question world))
-    ((zones world) :question-body)))
+    ((zones world) :questions-body)))
 
 (defn answer-line-count
   ""
@@ -339,8 +338,8 @@
   (let [question (questions selected-question-index)
         offset (get-in world [:line-offsets (question "question_id") active-pane])
         question-meta-text (format-question-meta question)]
-    {:questions-pane-separator (flow/make {:type :string
-                                           :raw (format-questions-pane-separator world)})
+    {:questions-separator (flow/make {:type :string
+                                      :raw (format-questions-pane-separator world)})
      :questions-list (reduce
                        flow/add
                        flow/zero
