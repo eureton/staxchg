@@ -308,7 +308,7 @@
   (let [question (questions selected-question-index)
         answer (selected-answer world)
         offset (get-in world [:line-offsets (question "question_id") active-pane])]
-    (flow/y-scroll
+    (flow/scroll-y
       (flow/add
         (answer-flow answer world)
         (comments-flow answer world))
@@ -351,7 +351,7 @@
                       (flow/add
                         (question-flow question world)
                         (comments-flow question world))
-                      (flow/y-scroll (- offset)))
+                      (flow/scroll-y (- offset)))
      :question-meta (flow/make {:type :string
                                 :raw question-meta-text
                                 :x (- width (count question-meta-text))

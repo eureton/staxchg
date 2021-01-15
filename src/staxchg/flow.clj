@@ -51,11 +51,6 @@
       (some? scroll-delta)
       ((complement zero?) scroll-delta))))
 
-(defn blank?
-  ""
-  [{:keys [raw]}]
-  (clojure.string/blank? raw))
-
 (defn payload
   ""
   [{:as item :keys [raw plot]}]
@@ -73,16 +68,7 @@
     :markdown (markdown/line-count raw width)
     :string 1))
 
-(defn y-offset
-  ""
-  [flow offset]
-  (->>
-    flow
-    :items
-    (map #(update % :y (partial + offset)))
-    (assoc flow :items)))
-
-(defn y-scroll
+(defn scroll-y
   ""
   [flow delta]
   (assoc flow :scroll-offset (- delta)))
@@ -130,7 +116,7 @@
       (map #(update %2 :y (partial + %1 (- scroll-offset))) ys)
       (assoc flow :items))))
 
-(defn translate-into-screen
+(defn translate-to-screen
   ""
   [flow
    {:as zone :keys [left top]}]
@@ -189,31 +175,31 @@
     (remove invisible?)
     (assoc flow :items)))
 
-(defn pan-string-item
+(defn translate-to-viewport-string-item
   ""
   [item rect]
   (update item :y #(- % (rect :top))))
 
-(defn pan-markdown-item
+(defn translate-to-viewport-markdown-item
   ""
   [item rect]
   (let [translator (fn [[c [x y] cs]] [c [x (- (+ y (item :y)) (rect :top))] cs])]
     (update item :plot #(map translator %))))
 
-(defn pan-item
+(defn translate-to-viewport-item
   ""
   [item rect]
   ((case (item :type)
-     :string pan-string-item
-     :markdown pan-markdown-item) item rect))
+     :string translate-to-viewport-string-item
+     :markdown translate-to-viewport-markdown-item) item rect))
 
-(defn pan
+(defn translate-to-viewport
   ""
   [flow rect]
   (->>
     flow
     :items
-    (map #(pan-item % rect))
+    (map #(translate-to-viewport-item % rect))
     (assoc flow :items)))
 
 (defn scroll-gap-rect
@@ -235,13 +221,11 @@
   ""
   [flow zone]
   (let [viewport (scroll-gap-rect flow zone)]
-    (dev/log "SGr: " zone)
     (->
       flow
       (apply-scroll zone)
-      (translate-into-screen zone)
+      (translate-to-screen zone)
       (clip viewport)
       cull
-      (pan viewport)
-      )))
+      (translate-to-viewport viewport))))
 
