@@ -262,24 +262,32 @@
               :raw (answer "body_markdown")
               :scroll-delta (get-in world [:scroll-deltas (answer "answer_id")])}))
 
+(defn questions-body-flow
+  ""
+  [question world]
+  (flow/add
+    (question-flow question world)
+    (comments-flow question world)))
+
 (defn question-line-count
   ""
   [question world]
   (flow/line-count
-    ; TODO pull this out into a function which the flows coll can share
-    (flow/add
-      (question-flow question world)
-      (comments-flow question world))
+    (questions-body-flow question world)
     ((zones world) :questions-body)))
+
+(defn answers-body-flow
+  ""
+  [answer world]
+  (flow/add
+    (answer-flow answer world)
+    (comments-flow answer world)))
 
 (defn answer-line-count
   ""
   [answer world]
   (flow/line-count
-    ; TODO pull this out into a function which the flows coll can share
-    (flow/add
-      (answer-flow answer world)
-      (comments-flow answer world))
+    (answers-body-flow answer world)
     ((zones world) :answers-body)))
 
 (defn flows
@@ -299,19 +307,15 @@
                        (map-indexed
                          #(question-list-item-flow %2 %1 world)
                          (visible-questions world)))
-     :question-body (->
-                      (flow/add
-                        (question-flow question world)
-                        (comments-flow question world))
-                      (flow/scroll-y (- (line-offsets (question "question_id")))))
+     :question-body (flow/scroll-y
+                      (questions-body-flow question world)
+                      (- (line-offsets (question "question_id"))))
      :question-meta (flow/make {:type :string
                                 :raw question-meta-text
                                 :x (- width (count question-meta-text))
                                 :foreground-color TextColor$ANSI/YELLOW})
      :answer (flow/scroll-y
-               (flow/add
-                 (answer-flow answer world)
-                 (comments-flow answer world))
+               (answers-body-flow answer world)
                (- (line-offsets (answer "answer_id"))))
      :answer-meta (flow/make {:type :string
                               :raw answer-meta-text
