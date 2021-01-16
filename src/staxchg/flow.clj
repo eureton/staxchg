@@ -179,7 +179,9 @@
 (defn translate-to-viewport-string-item
   ""
   [item rect]
-  (update item :y - (rect :top)))
+  (-> item
+      (update :x - (rect :left))
+      (update :y - (rect :top))))
 
 (defn translate-to-viewport-markdown-item
   ""
