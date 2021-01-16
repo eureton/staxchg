@@ -1,5 +1,6 @@
 (ns staxchg.presentation
   (:require [staxchg.flow :as flow])
+  (:require [staxchg.dev :as dev])
   (:require [staxchg.markdown :as markdown])
   (:import com.googlecode.lanterna.SGR)
   (:import com.googlecode.lanterna.TextColor$ANSI)
@@ -15,7 +16,7 @@
         questions-body-top (inc question-list-size)
         answer-body-left 1
         answer-body-top 2]
-    {:questions-header {:id :question-header
+    {:questions-header {:id :questions-header
                         :left question-list-left
                         :top 0
                         :width (- width (* question-list-left 2))
@@ -101,13 +102,11 @@
     (format-author post)
     (format-date (post "creation_date"))))
 
-(def question-list-left-margin 1)
-
 (defn format-question-list-item
   ""
   [question width]
   (format
-    (str "%-" (- width (* question-list-left-margin 2)) "s")
+    (str "%-" width "s")
     (question "title")))
 
 (defn format-questions-pane-separator
@@ -145,33 +144,17 @@
       hint
       "-")))
 
-; TODO: replace this with the appropriate zone
-(defn question-list-dimensions
-  [{:as world
-    :keys [width height question-list-size]}]
-  (let [left 1
-        top 0]
-    {:left left
-     :top top
-     :width (- width (* left 2))
-     :height question-list-size}))
-
 (defn question-list-item-flow
   ""
   [question
    index
    {:as world
     :keys [selected-question-index question-list-offset]}]
-  (let [{:keys [left top width height]} (question-list-dimensions world)
+  (let [{:keys [width]} ((zones world) :questions-header)
         text (format-question-list-item question width)
         selected? (= index (- selected-question-index question-list-offset))]
     (flow/make {:type :string
                 :raw text
-                :x question-list-left-margin
-                :viewport/left left
-                :viewport/top top
-                :viewport/width width
-                :viewport/height height
                 :modifiers (if selected? [SGR/REVERSE] [])})))
 
 (defn visible-questions
