@@ -68,10 +68,11 @@
 
 (defn active-pane-body-height
   ""
-  [world]
-  ((case (world :active-pane)
-     :questions (presentation/questions-pane-body-dimensions world)
-     :answers (presentation/answers-pane-body-dimensions world)) :height))
+  [{:as world :keys [active-pane]}]
+  (->>
+    (presentation/zones world)
+    ((case active-pane :questions :questions-body :answers :answers-body))
+    :height))
 
 (defn line-offset
   ""

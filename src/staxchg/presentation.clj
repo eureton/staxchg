@@ -176,27 +176,6 @@
       (filter #(= (% "answer_id") answer-id))
       first)))
 
-; TODO: replace this with the appropriate zone
-(defn questions-pane-body-dimensions
-  [{:as world
-    :keys [width height question-list-size]}]
-  (let [left 1
-        top (inc question-list-size)]
-    {:left left
-     :top top
-     :width (- width (* left 2))
-     :height (- height top 1)}))
-
-; TODO: replace this with the appropriate zone
-(defn answers-pane-body-dimensions
-  ""
-  [world]
-  (let [left 1 top 2]
-    {:left left
-     :top top
-     :width (- (world :width) (* left 2))
-     :height (- (world :height) top 1)}))
-
 (def comments-left-margin 4)
 
 (defn comment-flow
@@ -227,8 +206,8 @@
       #(comment-flow
          %
          ((if (contains? post "answer_id")
-            answers-pane-body-dimensions
-            questions-pane-body-dimensions) world))
+            :questions-body
+            :answers-body) (zones world)))
       (post "comments"))))
 
 (defn question-flow
