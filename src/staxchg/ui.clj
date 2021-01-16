@@ -17,15 +17,15 @@
   (:import com.googlecode.lanterna.terminal.DefaultTerminalFactory)
   (:gen-class))
 
-(defn decorate
+(defn decorate-with-current
   ""
-  [character foreground-color background-color modifiers]
+  [character graphics]
   (as->
     character v
     (TextCharacter. v)
-    (.withForegroundColor v foreground-color)
-    (.withBackgroundColor v background-color)
-    (reduce #(.withModifier %1 %2) v modifiers)))
+    (.withForegroundColor v (.getForegroundColor graphics))
+    (.withBackgroundColor v (.getBackgroundColor graphics))
+    (reduce #(.withModifier %1 %2) v (.getActiveModifiers graphics))))
 
 (defn put-markdown!
   [graphics plot _]
@@ -40,7 +40,7 @@
         x
         y
         (markdown/decorate
-          (TextCharacter. character)
+          (decorate-with-current character graphics)
           categories
           :bold #(.withModifier % SGR/BOLD)
           :italic #(.withModifier % SGR/REVERSE)
