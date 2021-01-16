@@ -9,12 +9,15 @@
 (def y-rhythm 1)
 
 (defn plot-markdown
-  [{:as zone :keys [width]}
-   {:as item :keys [x y raw]}]
+  [zone
+   {:as item
+    :keys [x y sub-zone raw]}]
   (when (= (item :type) :markdown)
-    (let [{:keys [plotted markdown-info]} (markdown/plot
-                                            raw
-                                            {:x x :y y :width width})
+    (let [options {:x x
+                   :y y
+                   :left (if sub-zone (sub-zone :left) 0)
+                   :width (if sub-zone (sub-zone :width) (zone :width))}
+          {:keys [plotted markdown-info]} (markdown/plot raw options)
           categories (->>
                        plotted
                        count
@@ -25,7 +28,8 @@
 (defn make
   ""
   [{:as args
-    :keys [type x y raw foreground-color background-color modifiers scroll-delta scroll-offset]
+    :keys [type x y raw foreground-color background-color modifiers scroll-delta
+           scroll-offset sub-zone]
     :or {type :string raw ""
          x 0 y 0 scroll-offset 0
          foreground-color TextColor$ANSI/DEFAULT
@@ -36,6 +40,7 @@
    :items [{:type type
             :x x
             :y y
+            :sub-zone sub-zone
             :raw raw
             :foreground-color foreground-color
             :background-color background-color

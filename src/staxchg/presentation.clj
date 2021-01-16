@@ -180,21 +180,21 @@
 
 (defn comment-flow
   ""
-  [c viewport]
-  (let [{:keys [top width height]} viewport
-        meta-text (format-comment-meta c)
-        base {:foreground-color TextColor$ANSI/BLUE
-              :viewport/left comments-left-margin
-              :viewport/top top
-              :viewport/width (- width (dec comments-left-margin))
-              :viewport/height height}]
+  [c rect]
+  (let [meta-text (format-comment-meta c)]
     (flow/add
-      (flow/make (merge base {:type :markdown
-                              :raw (c "body_markdown")}))
-      (flow/make (merge base {:type :string
-                              :raw meta-text
-                              :x (- width (count meta-text))
-                              :modifiers [SGR/BOLD]})))))
+      (flow/make {:type :markdown
+                  :raw (c "body_markdown")
+                  :sub-zone (->
+                              rect
+                              (assoc :left comments-left-margin)
+                              (update :width - comments-left-margin))
+                  :foreground-color TextColor$ANSI/BLUE})
+      (flow/make {:type :string
+                  :raw meta-text
+                  :x (- (rect :width) (count meta-text))
+                  :foreground-color TextColor$ANSI/BLUE
+                  :modifiers [SGR/BOLD]}))))
 
 (defn comments-flow
   ""
