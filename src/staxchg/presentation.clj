@@ -14,8 +14,11 @@
         question-list-size 2
         questions-body-left 1
         questions-body-top (inc question-list-size)
+        answers-header-left 1
+        answers-header-height 1
+        answers-separator-height 1
         answer-body-left 1
-        answer-body-top 2]
+        answer-body-top (+ answers-header-height answers-separator-height)]
     {:questions-header {:id :questions-header
                         :left question-list-left
                         :top 0
@@ -49,10 +52,15 @@
                       :width width
                       :height 1}
      :answers-header {:id :answers-header
-                      :left 0
+                      :left answers-header-left
                       :top 0
-                      :width width
-                      :height 2}}))
+                      :width (- width (* answers-header-left 2))
+                      :height answers-header-height}
+     :answers-separator {:id :answers-separator
+                         :left 0
+                         :top answers-header-height
+                         :width width
+                         :height answers-separator-height}}))
 
 (defn format-date
   ""
@@ -288,10 +296,9 @@
                                     :x 1
                                     :foreground-color TextColor$ANSI/BLACK
                                     :background-color TextColor$ANSI/YELLOW})
-     :answers-context (flow/add
-                        (flow/make {:type :string
-                                    :raw (question "title")
-                                    :modifiers [SGR/REVERSE]})
-                        (flow/make {:type :string
-                                    :raw (format-answers-pane-separator question world)}))}))
+     :answers-header (flow/make {:type :string
+                                 :raw (question "title")
+                                 :modifiers [SGR/REVERSE]})
+     :answers-separator (flow/make {:type :string
+                                    :raw (format-answers-pane-separator question world)})}))
 

@@ -95,7 +95,8 @@
    {:pane   :answers :flow :answer              :zone :answers-body}
    {:pane   :answers :flow :answer-meta         :zone :answers-footer}
    {:pane   :answers :flow :answer-acceptance   :zone :answers-footer}
-   {:pane   :answers :flow :answers-context     :zone :answers-header}])
+   {:pane   :answers :flow :answers-header      :zone :answers-header}
+   {:pane   :answers :flow :answers-separator   :zone :answers-separator}])
 
 (defn render [screen world]
   (let [flows (presentation/flows world)

@@ -143,14 +143,12 @@
 (defn mark-clear-pane-body
   ""
   [world command]
-  (let [pane-clear-commands #{:previous-question
-                              :next-question
-                              :previous-answer
-                              :next-answer}]
+  (let [question-commands #{:previous-question :next-question :questions-pane}
+        answer-commands #{:previous-answer :next-answer :answers-pane}]
     (->
       world
-      (assoc :clear-questions-pane-body? (#{:previous-question :next-question} command))
-      (assoc :clear-answers-pane-body? (#{:previous-answer :next-answer} command)))))
+      (assoc :clear-questions-pane-body? (question-commands command))
+      (assoc :clear-answers-pane-body? (answer-commands command)))))
 
 (defn parse-command
   ""
