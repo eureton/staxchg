@@ -184,7 +184,7 @@
       (filter #(= (% "answer_id") answer-id))
       first)))
 
-(def comments-left-margin 4)
+(def comments-left-margin 16)
 
 (defn comment-flow
   ""
