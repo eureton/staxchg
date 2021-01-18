@@ -126,14 +126,16 @@
         screen (TerminalScreen. terminal)
         size (.getTerminalSize screen)]
     (.startScreen screen)
-    (loop [world-before (state/initialize-world questions (.getColumns size) (.getRows size))]
-      (let [keystroke (.readInput screen)
-            keycode (.getCharacter keystroke)
-            world-after (state/update-world
-                          world-before
-                          keycode
-                          (.isCtrlDown keystroke))]
-        (when-not (= world-before world-after) (render screen world-after))
-        (when-not (= keycode \q) (recur world-after))))
+    (let [init-world (state/initialize-world questions (.getColumns size) (.getRows size))]
+      (render screen init-world)
+      (loop [world-before init-world]
+        (let [keystroke (.readInput screen)
+              keycode (.getCharacter keystroke)
+              world-after (state/update-world
+                            world-before
+                            keycode
+                            (.isCtrlDown keystroke))]
+          (when-not (= world-before world-after) (render screen world-after))
+          (when-not (= keycode \q) (recur world-after)))))
     (.stopScreen screen)))
 
