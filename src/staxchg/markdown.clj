@@ -1,5 +1,6 @@
 (ns staxchg.markdown
   (:require [clojure.string :as string])
+  (:import java.util.regex.Pattern)
   (:gen-class))
 
 (defn within? [ranges index]
@@ -28,13 +29,12 @@
     (reduce
       (fn [aggregator category] ((effect-map category) aggregator))
       recipient
-      categories)))
+      (filter (partial contains? effect-map) categories))))
 
-(defn ranges [string pattern multiline?]
-  (let [regexp (java.util.regex.Pattern/compile
-                 pattern
-                 (cond-> 0
-                   multiline? (bit-or java.util.regex.Pattern/DOTALL)))
+(defn ranges [string pattern dotall? multiline?]
+  (let [regexp (Pattern/compile pattern (cond-> 0
+                                          multiline? (bit-or Pattern/MULTILINE)
+                                          dotall? (bit-or Pattern/DOTALL)))
         matcher (.matcher regexp string)]
     (loop [coordinates []]
       (if (.find matcher)
@@ -43,13 +43,14 @@
 
 (defn parse [string]
   (reduce
-    (fn [aggregator [category pattern {:keys [multiline?]}]]
-      (assoc aggregator category (ranges string pattern multiline?)))
+    (fn [aggregator [category pattern {:keys [dotall? multiline?]}]]
+      (update aggregator category concat (ranges string pattern dotall? multiline?)))
     {}
-    [[:bold       "(\\*\\*((?!\\*\\*).)+\\*\\*)"              {:multiline? true }]
-     [:italic     "(?:^|[^*])(\\*[^*^\\r^\\n]+\\*)(?:[^*]|$)" {:multiline? false}]
-     [:monospace  "(?:^|[^`])(`[^`]*`)(?:[^`]|$)"             {:multiline? false}]
-     [:code-block "(```((?!```).)+```)"                       {:multiline? true }]]))
+    [[:bullet-list    "^\\s*?([-+*])\\s+.+?(?:\r\n|$)"            {:dotall? false :multiline? true}]
+     [:bold           "(\\*\\*((?!\\*\\*).)+\\*\\*)"              {:dotall? true  :multiline? false}]
+     [:italic         "(?:^|[^*])(\\*[^*^\\r^\\n]+\\*)(?:[^*]|$)" {:dotall? false :multiline? false}]
+     [:monospace      "(?:^|[^`])(`[^`]*`)(?:[^`]|$)"             {:dotall? false :multiline? false}]
+     [:code-block     "(```((?!```).)+```)"                       {:dotall? true  :multiline? false}]]))
 
 (defn unroll-info
   ""
@@ -97,7 +98,7 @@
          :stripped s
          :markdown-info i}
         (let [[start end category] (first u)
-              length (strip-lengths category)
+              length (or (strip-lengths category) 0)
               bounds-adjuster (fn [i [s e]]
                                 (vector
                                   (if (> s i) (- s length) s)

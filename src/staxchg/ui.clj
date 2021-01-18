@@ -7,6 +7,7 @@
   (:require [staxchg.recipe :as recipe])
   (:require [staxchg.dev :as dev])
   (:import com.googlecode.lanterna.SGR)
+  (:import com.googlecode.lanterna.Symbols)
   (:import com.googlecode.lanterna.TerminalPosition)
   (:import com.googlecode.lanterna.TerminalSize)
   (:import com.googlecode.lanterna.TerminalTextUtils)
@@ -27,25 +28,33 @@
     (.withBackgroundColor v (.getBackgroundColor graphics))
     (reduce #(.withModifier %1 %2) v (.getActiveModifiers graphics))))
 
+(defn rewrite-with-symbols
+  ""
+  [plot]
+  (map
+    #(assoc % 0 (if (contains? (nth % 2) :bullet-list) Symbols/BULLET (nth % 0)))
+    plot))
+
 (defn put-markdown!
   [graphics plot _]
-  (dev/log
-    "[put-markdown] "
-    (->> (map second plot) (take 10) (apply str))
-    " |>" (string/join (map first plot)) "<|")
-  (doseq [[character [x y] categories] plot]
-    (when-not (TerminalTextUtils/isControlCharacter character)
-      (.setCharacter
-        graphics
-        x
-        y
-        (markdown/decorate
-          (decorate-with-current character graphics)
-          categories
-          :bold #(.withModifier % SGR/BOLD)
-          :italic #(.withModifier % SGR/REVERSE)
-          :monospace #(.withForegroundColor % TextColor$ANSI/GREEN)
-          :code-block #(.withForegroundColor % TextColor$ANSI/GREEN))))))
+  (let [plot (rewrite-with-symbols plot)]
+    (dev/log
+      "[put-markdown] "
+      (->> (map second plot) (take 10) (apply str))
+      " |>" (string/join (map first plot)) "<|")
+    (doseq [[character [x y] categories] plot]
+      (when-not (TerminalTextUtils/isControlCharacter character)
+        (.setCharacter
+          graphics
+          x
+          y
+          (markdown/decorate
+            (decorate-with-current character graphics)
+            categories
+            :bold #(.withModifier % SGR/BOLD)
+            :italic #(.withModifier % SGR/REVERSE)
+            :monospace #(.withForegroundColor % TextColor$ANSI/GREEN)
+            :code-block #(.withForegroundColor % TextColor$ANSI/GREEN)))))))
 
 (defn put-string!
   ""
