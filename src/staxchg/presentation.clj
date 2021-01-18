@@ -240,6 +240,18 @@
     (question-flow question world)
     (comments-flow question world)))
 
+(defn answer-acceptance-flow
+  ""
+  [answer world]
+  (let [base {:type :string :x 1}]
+    (flow/make (merge base (if (answer "is_accepted")
+                             {:raw " ACCEPTED "
+                              :foreground-color TextColor$ANSI/BLACK
+                              :background-color TextColor$ANSI/YELLOW}
+                             {:raw "          "
+                              :foreground-color TextColor$ANSI/DEFAULT
+                              :background-color TextColor$ANSI/DEFAULT})))))
+
 (defn question-line-count
   ""
   [question world]
@@ -292,11 +304,7 @@
                               :raw answer-meta-text
                               :x (- width (count answer-meta-text))
                               :foreground-color TextColor$ANSI/YELLOW})
-     :answer-acceptance (flow/make {:type :string
-                                    :raw (if (answer "is_accepted") " ACCEPTED " "")
-                                    :x 1
-                                    :foreground-color TextColor$ANSI/BLACK
-                                    :background-color TextColor$ANSI/YELLOW})
+     :answer-acceptance (answer-acceptance-flow answer world)
      :answers-header (flow/make {:type :string
                                  :raw (question "title")
                                  :modifiers [SGR/REVERSE]})
