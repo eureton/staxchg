@@ -3,6 +3,7 @@
   (:require [staxchg.dev :as dev])
   (:require [staxchg.markdown :as markdown])
   (:import com.googlecode.lanterna.SGR)
+  (:import com.googlecode.lanterna.Symbols)
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:gen-class))
 
@@ -125,9 +126,9 @@
         hint (format "(%d-%d of %d)" from to (count questions))]
     (format
       "%s%s%s"
-      (apply str (repeat (- width (count hint) 1) \-))
+      (apply str (repeat (- width (count hint) 1) Symbols/SINGLE_LINE_HORIZONTAL))
       hint
-      "-")))
+      (str Symbols/SINGLE_LINE_HORIZONTAL))))
 
 (defn format-answers-pane-separator
   ""
@@ -148,9 +149,9 @@
                  (count answers)))]
     (format
       "%s%s%s"
-      (apply str (repeat (- width (count hint) 1) \-))
+      (apply str (repeat (- width (count hint) 1) Symbols/SINGLE_LINE_HORIZONTAL))
       hint
-      "-")))
+      (str Symbols/SINGLE_LINE_HORIZONTAL))))
 
 (defn question-list-item-flow
   ""
