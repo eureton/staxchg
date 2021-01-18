@@ -75,16 +75,7 @@
   ""
   [graphics]
   (dev/log "[clear] [" (-> graphics .getSize .getColumns) " " (-> graphics .getSize .getRows) "]")
-  (.fillRectangle
-    graphics
-    (TerminalPosition. 0 0)
-    (.getSize graphics)
-    (->
-      \space
-      TextCharacter.
-      (.withBackgroundColor TextColor$ANSI/RED)))
-  ;(.fill graphics \space)
-  )
+  (.fill graphics \space))
 
 (defn render-recipe
   [recipe]
@@ -102,8 +93,8 @@
    {:pane :questions :flow :question-body       :zone :questions-body}
    {:pane :questions :flow :question-meta       :zone :questions-footer}
    {:pane   :answers :flow :answer              :zone :answers-body}
-   {:pane   :answers :flow :answer-meta         :zone :answers-footer}
-   {:pane   :answers :flow :answer-acceptance   :zone :answers-footer}
+   {:pane   :answers :flow :answer-meta         :zone :answers-footer-right}
+   {:pane   :answers :flow :answer-acceptance   :zone :answers-footer-left}
    {:pane   :answers :flow :answers-header      :zone :answers-header}
    {:pane   :answers :flow :answers-separator   :zone :answers-separator}])
 

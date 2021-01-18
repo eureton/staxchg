@@ -1,4 +1,5 @@
 (ns staxchg.presentation
+  (:require [clojure.string :as string])
   (:require [staxchg.flow :as flow])
   (:require [staxchg.dev :as dev])
   (:require [staxchg.markdown :as markdown])
@@ -6,6 +7,8 @@
   (:import com.googlecode.lanterna.Symbols)
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:gen-class))
+
+(def acceptance-text " ACCEPTED ")
 
 (defn zones
   ""
@@ -19,7 +22,8 @@
         answers-header-height 1
         answers-separator-height 1
         answer-body-left 1
-        answer-body-top (+ answers-header-height answers-separator-height)]
+        answer-body-top (+ answers-header-height answers-separator-height)
+        answers-footer-left-width (/ width 3)]
     {:questions-header {:id :questions-header
                         :left question-list-left
                         :top 0
@@ -40,18 +44,26 @@
                         :left 0
                         :top (dec height)
                         :width width
-                        :height 1}
+                        :height 1
+                        :clear? clear-questions-pane-body?}
      :answers-body {:id :answers-body
                     :left answer-body-left
                     :top answer-body-top
                     :width (- width (* answer-body-left 2))
                     :height (- height answer-body-top 1)
                     :clear? clear-answers-pane-body?}
-     :answers-footer {:id :answers-footer
-                      :left 0
-                      :top (dec height)
-                      :width width
-                      :height 1}
+     :answers-footer-left {:id :answers-footer-left
+                           :left 0
+                           :top (dec height)
+                           :width answers-footer-left-width
+                           :height 1
+                           :clear? clear-answers-pane-body?}
+     :answers-footer-right {:id :answers-footer-right
+                            :left answers-footer-left-width
+                            :top (dec height)
+                            :width (- width answers-footer-left-width)
+                            :height 1
+                            :clear? clear-answers-pane-body?}
      :answers-header {:id :answers-header
                       :left answers-header-left
                       :top 0
@@ -240,15 +252,24 @@
     (question-flow question world)
     (comments-flow question world)))
 
+(defn answer-meta-flow
+  ""
+  [answer world]
+  (let [text (format-answer-meta answer)
+        zone ((zones world) :answers-footer-right)]
+    (flow/make {:type :string
+                :raw (format (str "%" (zone :width) "s") text)
+                :foreground-color TextColor$ANSI/YELLOW})))
+
 (defn answer-acceptance-flow
   ""
   [answer world]
   (let [base {:type :string :x 1}]
     (flow/make (merge base (if (answer "is_accepted")
-                             {:raw " ACCEPTED "
+                             {:raw acceptance-text
                               :foreground-color TextColor$ANSI/BLACK
                               :background-color TextColor$ANSI/YELLOW}
-                             {:raw "          "
+                             {:raw (string/join (repeat (count acceptance-text) \space))
                               :foreground-color TextColor$ANSI/DEFAULT
                               :background-color TextColor$ANSI/DEFAULT})))))
 
@@ -280,8 +301,7 @@
            active-pane line-offsets]}]
   (let [question (questions selected-question-index)
         answer (selected-answer world)
-        question-meta-text (format-question-meta question)
-        answer-meta-text (format-answer-meta answer)]
+        question-meta-text (format-question-meta question)]
     {:questions-separator (flow/make {:type :string
                                       :raw (format-questions-pane-separator world)})
      :questions-list (reduce
@@ -300,10 +320,7 @@
      :answer (flow/scroll-y
                (answers-body-flow answer world)
                (- (line-offsets (answer "answer_id"))))
-     :answer-meta (flow/make {:type :string
-                              :raw answer-meta-text
-                              :x (- width (count answer-meta-text))
-                              :foreground-color TextColor$ANSI/YELLOW})
+     :answer-meta (answer-meta-flow answer world)
      :answer-acceptance (answer-acceptance-flow answer world)
      :answers-header (flow/make {:type :string
                                  :raw (question "title")
