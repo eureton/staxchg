@@ -13,7 +13,7 @@
 (defn zones
   ""
   [{:as world
-    :keys [width height clear-questions-pane-body? clear-answers-pane-body?]}]
+    :keys [width height switched-pane? switched-question? switched-answer?]}]
   (let [question-list-left 1
         question-list-size 2
         questions-body-left 1
@@ -39,31 +39,31 @@
                       :top questions-body-top
                       :width (- width (* questions-body-left 2))
                       :height (- height questions-body-top 1)
-                      :clear? clear-questions-pane-body?}
+                      :clear? (or switched-pane? switched-question?)}
      :questions-footer {:id :questions-footer
                         :left 0
                         :top (dec height)
                         :width width
                         :height 1
-                        :clear? clear-questions-pane-body?}
+                        :clear? (or switched-pane? switched-question?)}
      :answers-body {:id :answers-body
                     :left answer-body-left
                     :top answer-body-top
                     :width (- width (* answer-body-left 2))
                     :height (- height answer-body-top 1)
-                    :clear? clear-answers-pane-body?}
+                    :clear? (or switched-pane? switched-answer?)}
      :answers-footer-left {:id :answers-footer-left
                            :left 0
                            :top (dec height)
                            :width answers-footer-left-width
                            :height 1
-                           :clear? clear-answers-pane-body?}
+                           :clear? (or switched-pane? switched-answer?)}
      :answers-footer-right {:id :answers-footer-right
                             :left answers-footer-left-width
                             :top (dec height)
                             :width (- width answers-footer-left-width)
                             :height 1
-                            :clear? clear-answers-pane-body?}
+                            :clear? (or switched-pane? switched-answer?)}
      :answers-header {:id :answers-header
                       :left answers-header-left
                       :top 0
@@ -256,7 +256,9 @@
   ""
   [answer world]
   (let [text (format-answer-meta answer)
-        zone ((zones world) :answers-footer-right)]
+        zone ((zones world) :answers-footer-right)] ; TODO remove this and all others like it
+                                                    ;      flows must know nothing about which
+                                                    ;      zone they will be rendered in!
     (flow/make {:type :string
                 :raw (format (str "%" (zone :width) "s") text)
                 :foreground-color TextColor$ANSI/YELLOW})))

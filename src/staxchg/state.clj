@@ -140,15 +140,23 @@
 (defn one-screen-up [n world]
   (- n (full-screen world)))
 
-(defn mark-clear-pane-body
+(defn mark-pane-switch
   ""
   [world command]
-  (let [question-commands #{:previous-question :next-question :questions-pane}
-        answer-commands #{:previous-answer :next-answer :answers-pane}]
-    (->
-      world
-      (assoc :clear-questions-pane-body? (question-commands command))
-      (assoc :clear-answers-pane-body? (answer-commands command)))))
+  (assoc world :switched-pane? (#{:questions-pane :answers-pane} command)))
+
+(defn mark-question-switch
+  ""
+  [world command]
+  (assoc
+    world
+    :switched-question?
+    (#{:previous-question :next-question} command)))
+
+(defn mark-answer-switch
+  ""
+  [world command]
+  (assoc world :switched-answer? (#{:previous-answer :next-answer} command)))
 
 (defn parse-command
   ""
@@ -198,7 +206,9 @@
   [world command]
   (->
     world
-    (mark-clear-pane-body command)))
+    (mark-pane-switch command)
+    (mark-question-switch command)
+    (mark-answer-switch command)))
 
 (defn update-world [world keycode ctrl?]
   (let [command (parse-command keycode ctrl?)]
