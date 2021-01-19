@@ -14,7 +14,7 @@
   ""
   [{:as world
     :keys [width height switched-pane? switched-question? switched-answer?]}]
-  (let [question-list-left 1
+  (let [question-list-left 0
         question-list-size 2
         questions-body-left 1
         questions-body-top (inc question-list-size)
@@ -28,7 +28,8 @@
                         :left question-list-left
                         :top 0
                         :width (- width (* question-list-left 2))
-                        :height question-list-size}
+                        :height question-list-size
+                        :clear? switched-pane?}
      :questions-separator {:id :questions-separator
                            :left 0
                            :top question-list-size
@@ -73,7 +74,8 @@
                          :left 0
                          :top answers-header-height
                          :width width
-                         :height answers-separator-height}}))
+                         :height (inc answers-separator-height)
+                         :clear? switched-pane?}}))
 
 (defn format-date
   ""
@@ -171,11 +173,13 @@
    index
    {:as world
     :keys [selected-question-index question-list-offset]}]
-  (let [{:keys [width]} ((zones world) :questions-header)
-        text (format-question-list-item question width)
+  (let [x-offset 1
+        {:keys [width]} ((zones world) :questions-header)
+        text (format-question-list-item question (- width (* x-offset 2)))
         selected? (= index (- selected-question-index question-list-offset))]
     (flow/make {:type :string
                 :raw text
+                :x x-offset
                 :modifiers (if selected? [SGR/REVERSE] [])})))
 
 (defn visible-questions
