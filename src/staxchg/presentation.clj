@@ -3,6 +3,7 @@
   (:require [staxchg.flow :as flow])
   (:require [staxchg.dev :as dev])
   (:require [staxchg.markdown :as markdown])
+  (:require [staxchg.recipe :as recipe])
   (:import com.googlecode.lanterna.SGR)
   (:import com.googlecode.lanterna.Symbols)
   (:import com.googlecode.lanterna.TextColor$ANSI)
@@ -333,4 +334,24 @@
                                  :modifiers [SGR/REVERSE]})
      :answers-separator (flow/make {:type :string
                                     :raw (format-answers-pane-separator question world)})}))
+
+(def consignments
+  [{:pane :questions :flow :questions-separator :zone :questions-separator}
+   {:pane :questions :flow :questions-list      :zone :questions-header}
+   {:pane :questions :flow :question-body       :zone :questions-body}
+   {:pane :questions :flow :question-meta       :zone :questions-footer}
+   {:pane   :answers :flow :answers-separator   :zone :answers-separator}
+   {:pane   :answers :flow :answer              :zone :answers-body}
+   {:pane   :answers :flow :answer-meta         :zone :answers-footer-right}
+   {:pane   :answers :flow :answer-acceptance   :zone :answers-footer-left}
+   {:pane   :answers :flow :answers-header      :zone :answers-header}])
+
+(defn recipes [world]
+  (let [flows (flows world)
+        zones (zones world)]
+    (->>
+      consignments
+      (filter (comp (partial = (world :active-pane)) :pane))
+      (map #(hash-map :flow (flows (% :flow)) :zone (zones (% :zone))))
+      (map recipe/make))))
 

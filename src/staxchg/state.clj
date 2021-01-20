@@ -174,14 +174,14 @@
       \backspace :questions-pane
       \h :previous-answer
       \l :next-answer
+      \/ :query
+      \q :quit
       nil))
 
 (defn clear-marks
   ""
   [world]
-  (->
-    world
-    (dissoc :scroll-deltas)))
+  (dissoc world :scroll-deltas :query? :quit?))
 
 (defn effect-command
   ""
@@ -199,6 +199,8 @@
     :questions-pane (assoc world :active-pane :questions)
     :previous-answer (cycle-selected-answer world :backwards)
     :next-answer (cycle-selected-answer world :forwards)
+    :query (assoc world :query? true)
+    :quit (assoc world :quit? true)
     world))
 
 (defn set-marks
@@ -210,13 +212,27 @@
     (mark-question-switch command)
     (mark-answer-switch command)))
 
-(defn update-world [world keycode ctrl?]
+(defn update-for-keystroke [world keycode ctrl?]
   (let [command (parse-command keycode ctrl?)]
     (->
       world
       (clear-marks)
       (effect-command command)
       (set-marks command))))
+
+(defn update-for-query-term [world term]
+  (->
+    world
+    (clear-marks)))
+
+(defn update-world
+  ""
+  [world
+   {:as input :keys [function params]}]
+  (case function
+    :read-key! (let [keystroke (nth params 0)]
+                 (update-for-keystroke world (.getCharacter keystroke) (.isCtrlDown keystroke)))
+    :query! (update-for-query-term world (nth params 0))))
 
 (defn unescape-html [string]
   (org.jsoup.parser.Parser/unescapeEntities string true))

@@ -13,9 +13,18 @@
   (:import com.googlecode.lanterna.TerminalTextUtils)
   (:import com.googlecode.lanterna.TextCharacter)
   (:import com.googlecode.lanterna.TextColor$ANSI)
+  (:import com.googlecode.lanterna.bundle.LanternaThemes)
+  (:import com.googlecode.lanterna.graphics.PropertyTheme)
+  (:import com.googlecode.lanterna.gui2.DefaultWindowManager)
+  (:import com.googlecode.lanterna.gui2.EmptySpace)
+  (:import com.googlecode.lanterna.gui2.MultiWindowTextGUI)
+  (:import com.googlecode.lanterna.gui2.SameTextGUIThread$Factory)
+  (:import com.googlecode.lanterna.gui2.Window$Hint)
+  (:import com.googlecode.lanterna.gui2.dialogs.TextInputDialogBuilder)
   (:import com.googlecode.lanterna.screen.Screen$RefreshType)
   (:import com.googlecode.lanterna.screen.TerminalScreen)
   (:import com.googlecode.lanterna.terminal.DefaultTerminalFactory)
+  (:import java.util.Properties)
   (:gen-class))
 
 (defn decorate-with-current
@@ -77,7 +86,49 @@
   (dev/log "[clear] [" (-> graphics .getSize .getColumns) " " (-> graphics .getSize .getRows) "]")
   (.fill graphics \space))
 
-(defn render-recipe
+(defn read-key!
+  ""
+  [screen]
+  (dev/log "[read-key]")
+  (let [keystroke (.readInput screen)]
+    (dev/log "[read-key] code: '" (.getCharacter keystroke) "', ctrl? " (.isCtrlDown keystroke))
+    {:function :read-key!
+     :params [keystroke]}))
+
+(defn query!
+  ""
+  [screen]
+  (dev/log "[query]")
+  (let [theme (LanternaThemes/getRegisteredTheme "staxchg")
+        size (.getTerminalSize screen)
+        gui (MultiWindowTextGUI.
+              (SameTextGUIThread$Factory.)
+              screen
+              (DefaultWindowManager. size)
+              nil
+              (EmptySpace. TextColor$ANSI/DEFAULT))
+        dialog-width (int (* (.getColumns size) 0.8))
+        dialog (->
+                 (TextInputDialogBuilder.)
+                 (.setTitle "the title")
+                 (.setDescription "the description")
+                 (.setTextBoxSize (TerminalSize. dialog-width 1))
+                 (.setExtraWindowHints #{Window$Hint/CENTERED})
+                 (.build))]
+    (.setTheme gui theme)
+    (let [term (.showDialog dialog gui)]
+      (dev/log "[query] term: '" term "'")
+      {:function :query!
+       :params [term]})))
+
+(defn read-input
+  ""
+  [screen world]
+  (cond
+    (world :query?) (query! screen)
+    :else (read-key! screen)))
+
+(defn commit-recipe
   [recipe]
   (doseq [{:keys [function params]} recipe]
     (let [f (case function
@@ -87,28 +138,22 @@
               :put-string! put-string!)]
       (apply f params))))
 
-(def consignments
-  [{:pane :questions :flow :questions-separator :zone :questions-separator}
-   {:pane :questions :flow :questions-list      :zone :questions-header}
-   {:pane :questions :flow :question-body       :zone :questions-body}
-   {:pane :questions :flow :question-meta       :zone :questions-footer}
-   {:pane   :answers :flow :answer              :zone :answers-body}
-   {:pane   :answers :flow :answer-meta         :zone :answers-footer-right}
-   {:pane   :answers :flow :answer-acceptance   :zone :answers-footer-left}
-   {:pane   :answers :flow :answers-header      :zone :answers-header}
-   {:pane   :answers :flow :answers-separator   :zone :answers-separator}])
+(defn write-output
+  ""
+  [screen world]
+  (->>
+    (presentation/recipes world)
+    (map (partial recipe/inflate screen))
+    (run! commit-recipe))
+  (.refresh screen))
 
-(defn render [screen world]
-  (let [flows (presentation/flows world)
-        zones (presentation/zones world)]
-    (->>
-      consignments
-      (filter (comp (partial = (world :active-pane)) :pane))
-      (map #(hash-map :flow (flows (% :flow)) :zone (zones (% :zone))))
-      (map recipe/make)
-      (map (partial recipe/inflate screen))
-      (run! render-recipe)))
-    (.refresh screen))
+(defn register-theme!
+  ""
+  [theme-name pathname]
+  (let [properties (Properties.)]
+    (with-open [stream (clojure.java.io/reader pathname)]
+      (.load properties stream))
+    (LanternaThemes/registerTheme theme-name (PropertyTheme. properties false))))
 
 (defn run-input-loop
   ""
@@ -118,15 +163,11 @@
         size (.getTerminalSize screen)]
     (.startScreen screen)
     (let [init-world (state/initialize-world questions (.getColumns size) (.getRows size))]
-      (render screen init-world)
+      (write-output screen init-world)
       (loop [world-before init-world]
-        (let [keystroke (.readInput screen)
-              keycode (.getCharacter keystroke)
-              world-after (state/update-world
-                            world-before
-                            keycode
-                            (.isCtrlDown keystroke))]
-          (when-not (= world-before world-after) (render screen world-after))
-          (when-not (= keycode \q) (recur world-after)))))
+        (let [input (read-input screen world-before)
+              world-after (state/update-world world-before input)]
+          (when-not (= world-before world-after) (write-output screen world-after))
+          (when-not (world-after :quit?) (recur world-after)))))
     (.stopScreen screen)))
 

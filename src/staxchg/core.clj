@@ -3585,14 +3585,20 @@
   "quota_remaining" 9966
 })
 
+(defn initialize
+  ""
+  []
+  (ui/register-theme! "staxchg" "resources/lanterna-theme.properties"))
+
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
+  (initialize)
   (ui/run-input-loop items))
 
 (def w (-> (staxchg.state/initialize-world staxchg.core/items 118 37)
-           (staxchg.state/update-world \J false)
-           (staxchg.state/update-world \J false)
-           (staxchg.state/update-world \j false)
-           (staxchg.state/update-world \j false)))
+           (staxchg.state/update-for-keystroke \J false)
+           (staxchg.state/update-for-keystroke \J false)
+           (staxchg.state/update-for-keystroke \j false)
+           (staxchg.state/update-for-keystroke \j false)))
 

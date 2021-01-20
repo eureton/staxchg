@@ -1,6 +1,5 @@
 (ns staxchg.recipe
   (:require [staxchg.flow :as flow])
-  (:require [staxchg.presentation :as presentation])
   (:require [staxchg.dev :as dev])
   (:import com.googlecode.lanterna.SGR)
   (:import com.googlecode.lanterna.TerminalPosition)
