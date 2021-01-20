@@ -145,7 +145,7 @@
     (presentation/recipes world)
     (map (partial recipe/inflate screen))
     (run! commit-recipe))
-  (.refresh screen))
+  (.refresh screen)) ; TODO provide refresh type according to outgoing recipes
 
 (defn register-theme!
   ""
