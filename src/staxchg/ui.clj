@@ -16,7 +16,6 @@
   (:import com.googlecode.lanterna.bundle.LanternaThemes)
   (:import com.googlecode.lanterna.graphics.PropertyTheme)
   (:import com.googlecode.lanterna.gui2.DefaultWindowManager)
-  (:import com.googlecode.lanterna.gui2.EmptySpace)
   (:import com.googlecode.lanterna.gui2.MultiWindowTextGUI)
   (:import com.googlecode.lanterna.gui2.SameTextGUIThread$Factory)
   (:import com.googlecode.lanterna.gui2.Window$Hint)
@@ -104,9 +103,7 @@
         gui (MultiWindowTextGUI.
               (SameTextGUIThread$Factory.)
               screen
-              (DefaultWindowManager. size)
-              nil
-              (EmptySpace. TextColor$ANSI/DEFAULT))
+              (DefaultWindowManager. size))
         dialog-width (int (* (.getColumns size) 0.8))
         dialog (->
                  (TextInputDialogBuilder.)
