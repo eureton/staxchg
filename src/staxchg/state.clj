@@ -270,7 +270,11 @@
   ""
   [{:as world :keys [width height]}
    response]
-  (initialize-world (api/parse-response response) width height))
+  (->
+    response
+    api/parse-response
+    (initialize-world width height)
+    (assoc :switched-question? true)))
 
 (defn update-world
   ""
