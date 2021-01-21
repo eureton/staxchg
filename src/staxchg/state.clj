@@ -244,6 +244,7 @@
 
 (defn update-for-keystroke [world keycode ctrl?]
   (let [command (parse-command keycode ctrl?)]
+    (dev/log "command: " (name command))
     (->
       world
       (clear-marks)
