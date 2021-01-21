@@ -136,7 +136,7 @@
    {:as world :keys [query? search-term]}]
   (cond
     query? (query! screen)
-    search-term (fetch! (api/url) (api/query-params {:search-term search-term}))
+    search-term (fetch! (api/url) (api/query-params search-term))
     :else (read-key! screen)))
 
 (defn commit-recipe

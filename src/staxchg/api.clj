@@ -12,9 +12,17 @@
         endpoint "search"]
     (str base "/" version "/" endpoint)))
 
+(defn query-tags
+  ""
+  [search-term]
+  (->>
+    search-term
+    (re-seq #"\[([a-z_-]+)\]")
+    (map second)))
+
 (defn query-params
   ""
-  [{:keys [search-term tags]}]
+  [search-term]
   (let [conf (util/properties-hash (util/config-pathname))
         page 1
         page-size 4
@@ -22,7 +30,7 @@
         site "stackoverflow"
         order "desc"
         sort-attr "relevance"
-        tagged (clojure.string/join \; tags)
+        tags (query-tags search-term)
         base {:client_id (conf "CLIENT_ID")
               :key (conf "API_KEY")
               :access_token (conf "ACCESS_TOKEN")
@@ -34,7 +42,7 @@
               :filter attrs}]
     (cond-> base
       (some? search-term) (assoc :intitle search-term)
-      (some? tags) (assoc :tagged tagged))))
+      (not-empty tags) (assoc :tagged (clojure.string/join \; tags)))))
 
 (defn unescape-html [string]
   (org.jsoup.parser.Parser/unescapeEntities string true))
