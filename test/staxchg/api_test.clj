@@ -10,5 +10,13 @@
   (testing "colon-separated list of tags in :tagged"
     (is (=
          ((query-params "[clojure] lorem [repl] driven [development]") :tagged)
-         "clojure;repl;development"))))
+         "clojure;repl;development")))
+  (testing "when no users, no :user key out"
+    (is (not (contains? (query-params "clojure repl driven development") :user))))
+  (testing "when users, :user key exists"
+    (is (contains? (query-params "clojure repl user:1234 development") :user)))
+  (testing "first user in :user, the rest ignored"
+    (is (=
+         ((query-params "clojure user:1234 repl user:4321 development") :user)
+         "1234"))))
 

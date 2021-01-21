@@ -9,7 +9,7 @@
   []
   (let [base "https://api.stackexchange.com"
         version "2.2"
-        endpoint "search"]
+        endpoint "search/advanced"]
     (str base "/" version "/" endpoint)))
 
 (defn query-tags
@@ -19,6 +19,15 @@
     search-term
     (re-seq #"\[([a-z_-]+)\]")
     (map second)))
+
+(defn query-user
+  ""
+  [search-term]
+  (->>
+    search-term
+    (re-seq #"user:(\d+)")
+    (map second)
+    (first)))
 
 (defn query-params
   ""
@@ -31,6 +40,7 @@
         order "desc"
         sort-attr "relevance"
         tags (query-tags search-term)
+        user (query-user search-term)
         base {:client_id (conf "CLIENT_ID")
               :key (conf "API_KEY")
               :access_token (conf "ACCESS_TOKEN")
@@ -42,7 +52,8 @@
               :filter attrs}]
     (cond-> base
       (some? search-term) (assoc :intitle search-term)
-      (not-empty tags) (assoc :tagged (clojure.string/join \; tags)))))
+      (not-empty tags) (assoc :tagged (clojure.string/join \; tags))
+      (some? user) (assoc :user user))))
 
 (defn unescape-html [string]
   (org.jsoup.parser.Parser/unescapeEntities string true))
