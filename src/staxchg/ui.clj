@@ -109,16 +109,10 @@
               screen
               (DefaultWindowManager. size))
         dialog-width (int (* (.getColumns size) 0.8))
-        description (clojure.string/join \newline ["         [tag] search within a tag"
-                                                   "     user:1234 seach by author"
-                                                   "  \"words here\" exact phrase"
-                                                   "     answers:0 unanswered questions"
-                                                   "       score:3 posts with a 3+ score"
-                                                   "isaccepted:yes seach within status"])
         dialog (->
                  (TextInputDialogBuilder.)
                  (.setTitle "")
-                 (.setDescription description)
+                 (.setDescription presentation/search-legend)
                  (.setTextBoxSize (TerminalSize. dialog-width 1))
                  (.setExtraWindowHints #{Window$Hint/CENTERED})
                  (.build))]

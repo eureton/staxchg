@@ -11,6 +11,13 @@
 
 (def acceptance-text " ACCEPTED ")
 
+(def search-legend (clojure.string/join \newline ["         [tag] search within a tag"
+                                                  "     user:1234 seach by author"
+                                                  "  \"words here\" exact phrase"
+                                                  "     answers:0 unanswered questions"
+                                                  "       score:3 posts with a 3+ score"
+                                                  "isaccepted:yes seach within status"]))
+
 (defn zones
   ""
   [{:as world
