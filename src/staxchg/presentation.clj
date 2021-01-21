@@ -100,13 +100,14 @@
 
 (defn format-question-meta
   ""
-  [question]
+  [{:as question :strs [answers score view_count last_activity_date]}]
   (format
-    "(S: %d) | (V: %d) | %s | %s"
-    (question "score")
-    (question "view_count")
+    "(A: %d) | (S: %d) | (V: %d) | %s | %s"
+    (count answers)
+    score
+    view_count
     (format-author question)
-    (format-date (question "last_activity_date"))))
+    (format-date last_activity_date)))
 
 (defn format-answer-meta
   ""
