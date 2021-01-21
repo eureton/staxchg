@@ -242,16 +242,6 @@
     (mark-question-switch command)
     (mark-answer-switch command)))
 
-(defn update-for-keystroke [world keystroke]
-  (let [keycode (.getCharacter keystroke)
-        ctrl? (.isCtrlDown keystroke)
-        command (parse-command keycode ctrl?)]
-    (->
-      world
-      (clear-marks)
-      (effect-command command)
-      (set-marks command))))
-
 (defn update-for-keystroke [world keycode ctrl?]
   (let [command (parse-command keycode ctrl?)]
     (->
