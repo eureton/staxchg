@@ -1,7 +1,37 @@
 (ns staxchg.state
   (:require [staxchg.presentation :as presentation])
+  (:require [staxchg.api :as api])
   (:require [staxchg.dev :as dev])
   (:gen-class))
+
+(defn initialize-world
+  ""
+  [response-body width height]
+  (let [questions (mapv api/scrub-question (response-body "items"))
+        question-ids (map #(% "question_id") questions)
+        answer-ids (->> questions (map #(% "answers")) flatten (map #(% "answer_id")))]
+    {:line-offsets (->>
+                     (concat question-ids answer-ids)
+                     (map vector (repeat 0))
+                     (map reverse)
+                     (flatten)
+                     (apply hash-map))
+     :selected-question-index 0
+     :selected-answers (reduce
+                         #(assoc %1 %2 (get-in
+                                         (->>
+                                           questions
+                                           (filter (fn [q] (= (q "question_id") %2)))
+                                           first)
+                                         ["answers" 0 "answer_id"]))
+                         {}
+                         question-ids)
+     :question-list-size 2
+     :question-list-offset 0
+     :questions questions
+     :width width
+     :height height
+     :active-pane :questions}))
 
 (defn increment-selected-question-index
   [{:as world
@@ -181,7 +211,7 @@
 (defn clear-marks
   ""
   [world]
-  (dissoc world :scroll-deltas :query? :quit?))
+  (dissoc world :scroll-deltas :query? :quit? :search-term))
 
 (defn effect-command
   ""
@@ -212,6 +242,16 @@
     (mark-question-switch command)
     (mark-answer-switch command)))
 
+(defn update-for-keystroke [world keystroke]
+  (let [keycode (.getCharacter keystroke)
+        ctrl? (.isCtrlDown keystroke)
+        command (parse-command keycode ctrl?)]
+    (->
+      world
+      (clear-marks)
+      (effect-command command)
+      (set-marks command))))
+
 (defn update-for-keystroke [world keycode ctrl?]
   (let [command (parse-command keycode ctrl?)]
     (->
@@ -220,74 +260,31 @@
       (effect-command command)
       (set-marks command))))
 
-(defn update-for-query-term [world term]
-  (->
+(defn update-for-search-term [world term]
+  (cond->
     world
-    (clear-marks)))
+    true (clear-marks)
+    (not (clojure.string/blank? term)) (assoc :search-term term)))
+
+(defn update-for-query-response
+  ""
+  [{:as world :keys [width height]}
+   response]
+  (initialize-world (api/parse-response response) width height))
 
 (defn update-world
   ""
   [world
    {:as input :keys [function params]}]
-  (case function
-    :read-key! (let [keystroke (nth params 0)]
-                 (update-for-keystroke world (.getCharacter keystroke) (.isCtrlDown keystroke)))
-    :query! (update-for-query-term world (nth params 0))))
+  (let [f (case function
+            :read-key! update-for-keystroke
+            :query! update-for-search-term
+            :fetch! update-for-query-response)]
+    (apply f world params)))
 
-(defn unescape-html [string]
-  (org.jsoup.parser.Parser/unescapeEntities string true))
-
-(defn scrub-body
-  ""
-  [post]
-  (update post "body_markdown" unescape-html))
-
-(defn scrub-answer
-  ""
-  [{:as answer
-    :strs [body_markdown comments]}]
-  (assoc
-    answer
-    "body_markdown" (unescape-html body_markdown)
-    "comments" (mapv scrub-body (vec comments))))
-
-(defn scrub-question
-  ""
-  [{:as question
-    :strs [title body_markdown answers comments]}]
-  (assoc
-    question
-    "title" (unescape-html title)
-    "body_markdown" (unescape-html body_markdown)
-    "answers" (mapv scrub-answer (vec answers))
-    "comments" (mapv scrub-body (vec comments))))
-
-(defn initialize-world
-  ""
-  [items width height]
-  (let [questions (mapv scrub-question (items "items"))
-        question-ids (map #(% "question_id") questions)
-        answer-ids (->> questions (map #(% "answers")) flatten (map #(% "answer_id")))]
-    {:line-offsets (->>
-                     (concat question-ids answer-ids)
-                     (map vector (repeat 0))
-                     (map reverse)
-                     (flatten)
-                     (apply hash-map))
-     :selected-question-index 0
-     :selected-answers (reduce
-                         #(assoc %1 %2 (get-in
-                                         (->>
-                                           questions
-                                           (filter (fn [q] (= (q "question_id") %2)))
-                                           first)
-                                         ["answers" 0 "answer_id"]))
-                         {}
-                         question-ids)
-     :question-list-size 2
-     :question-list-offset 0
-     :questions questions
-     :width width
-     :height height
-     :active-pane :questions}))
+(def w (-> (initialize-world dev/response-body 118 37)
+           (update-for-keystroke \J false)
+           (update-for-keystroke \J false)
+           (update-for-keystroke \j false)
+           (update-for-keystroke \j false)))
 

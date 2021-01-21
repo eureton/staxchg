@@ -5,7 +5,10 @@
   (:require [staxchg.presentation :as presentation])
   (:require [staxchg.flow :as flow])
   (:require [staxchg.recipe :as recipe])
+  (:require [staxchg.api :as api])
   (:require [staxchg.dev :as dev])
+  (:require [staxchg.util :as util])
+  (:require [clj-http.client :as http])
   (:import com.googlecode.lanterna.SGR)
   (:import com.googlecode.lanterna.Symbols)
   (:import com.googlecode.lanterna.TerminalPosition)
@@ -23,7 +26,6 @@
   (:import com.googlecode.lanterna.screen.Screen$RefreshType)
   (:import com.googlecode.lanterna.screen.TerminalScreen)
   (:import com.googlecode.lanterna.terminal.DefaultTerminalFactory)
-  (:import java.util.Properties)
   (:gen-class))
 
 (defn decorate-with-current
@@ -89,10 +91,12 @@
   ""
   [screen]
   (dev/log "[read-key]")
-  (let [keystroke (.readInput screen)]
-    (dev/log "[read-key] code: '" (.getCharacter keystroke) "', ctrl? " (.isCtrlDown keystroke))
+  (let [keystroke (.readInput screen)
+        keycode (.getCharacter keystroke)
+        ctrl? (.isCtrlDown keystroke)]
+    (dev/log "[read-key] code: '" keycode "', ctrl? " ctrl?)
     {:function :read-key!
-     :params [keystroke]}))
+     :params [keycode ctrl?]}))
 
 (defn query!
   ""
@@ -105,24 +109,40 @@
               screen
               (DefaultWindowManager. size))
         dialog-width (int (* (.getColumns size) 0.8))
+        description (clojure.string/join \newline ["         [tag] search within a tag"
+                                                   "     user:1234 seach by author"
+                                                   "  \"words here\" exact phrase"
+                                                   "     answers:0 unanswered questions"
+                                                   "       score:3 posts with a 3+ score"
+                                                   "isaccepted:yes seach within status"])
         dialog (->
                  (TextInputDialogBuilder.)
-                 (.setTitle "the title")
-                 (.setDescription "the description")
+                 (.setTitle "")
+                 (.setDescription description)
                  (.setTextBoxSize (TerminalSize. dialog-width 1))
                  (.setExtraWindowHints #{Window$Hint/CENTERED})
                  (.build))]
     (.setTheme gui theme)
     (let [term (.showDialog dialog gui)]
-      (dev/log "[query] term: '" term "'")
+      (dev/log "[query] " (if (some? term) (str "term: '" term "'") "<canceled>"))
       {:function :query!
        :params [term]})))
 
+(defn fetch!
+  [url query-params]
+  (dev/log "[fetch] url: " url ", query-params: " query-params)
+  {:function :fetch!
+   :params [(http/request {:url url
+                           :method "get"
+                           :query-params query-params})]})
+
 (defn read-input
   ""
-  [screen world]
+  [screen
+   {:as world :keys [query? search-term]}]
   (cond
-    (world :query?) (query! screen)
+    query? (query! screen)
+    search-term (fetch! (api/url) (api/query-params {:search-term search-term}))
     :else (read-key! screen)))
 
 (defn commit-recipe
@@ -147,10 +167,9 @@
 (defn register-theme!
   ""
   [theme-name pathname]
-  (let [properties (Properties.)]
-    (with-open [stream (clojure.java.io/reader pathname)]
-      (.load properties stream))
-    (LanternaThemes/registerTheme theme-name (PropertyTheme. properties false))))
+  (LanternaThemes/registerTheme
+    theme-name
+    (PropertyTheme. (util/read-properties pathname) false)))
 
 (defn run-input-loop
   ""
