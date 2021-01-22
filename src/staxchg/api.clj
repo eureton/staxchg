@@ -17,7 +17,7 @@
   [search-term]
   (->>
     search-term
-    (re-seq #"\[([a-z_-]+)\]")
+    (re-seq #"(?:^|\s)\[([a-z_-]+)\](?:$|\s)")
     (map second)))
 
 (defn query-user
@@ -25,7 +25,7 @@
   [search-term]
   (->>
     search-term
-    (re-seq #"user:(\d+)")
+    (re-seq #"\buser:(\d+)")
     (map second)
     (first)))
 
