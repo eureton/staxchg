@@ -14,33 +14,33 @@
 
 (defn query-tags
   ""
-  [search-term]
+  [term]
   (->>
-    search-term
+    term
     (re-seq #"(?:^|\s)\[([a-z_-]+)\](?:$|\s)")
     (map second)))
 
 (defn query-user
   ""
-  [search-term]
+  [term]
   (->>
-    search-term
+    term
     (re-seq #"\buser:(\d+)")
     (map second)
     (first)))
 
-(defn query-isaccepted
+(defn query-accepted
   ""
-  [search-term]
+  [term]
   (->>
-    search-term
+    term
     (re-seq #"\bisaccepted:(yes|no)\b")
     (map second)
     (first)))
 
 (defn query-params
   ""
-  [search-term]
+  [term]
   (let [conf (util/properties-hash (util/config-pathname))
         page 1
         page-size 4
@@ -48,9 +48,7 @@
         site "stackoverflow"
         order "desc"
         sort-attr "relevance"
-        tags (query-tags search-term)
-        user (query-user search-term)
-        is-accepted (query-isaccepted search-term)
+        [tags user accepted] ((juxt query-tags query-user query-accepted) term)
         base {:client_id (conf "CLIENT_ID")
               :key (conf "API_KEY")
               :access_token (conf "ACCESS_TOKEN")
@@ -61,10 +59,10 @@
               :site site
               :filter attrs}]
     (cond-> base
-      (some? search-term) (assoc :intitle search-term)
+      (some? term) (assoc :intitle term)
       (not-empty tags) (assoc :tagged (clojure.string/join \; tags))
       (some? user) (assoc :user user)
-      (some? is-accepted) (assoc :accepted is-accepted))))
+      (some? accepted) (assoc :accepted accepted))))
 
 (defn unescape-html [string]
   (org.jsoup.parser.Parser/unescapeEntities string true))

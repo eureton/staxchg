@@ -63,5 +63,7 @@
          "abc isaccepted:yes xyz"
          "abc\tisaccepted:yes xyz"
          "abc isaccepted:yes\txyz"
-         "abc\tisaccepted:yes\txyz")))
+         "abc\tisaccepted:yes\txyz"))
+  (testing "isaccepted: first wins"
+    (is (= ((query-params "isaccepted:no klm isaccepted:yes") :accepted) "no"))))
 
