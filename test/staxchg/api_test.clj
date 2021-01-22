@@ -3,6 +3,7 @@
             [staxchg.api :refer :all]))
 
 (deftest query-params-test
+  ; tag
   (testing "when no tags, no :tagged key out"
     (is (not (contains? (query-params "clojure repl driven development") :tagged))))
   (testing "when tags, :tagged key exists"
@@ -11,24 +12,26 @@
     (is (=
          ((query-params "[clojure] lorem [repl] driven [development]") :tagged)
          "clojure;repl;development")))
-  (testing "surrounded by whitespace"
+  (testing "tag: surrounded by whitespace"
     (are [term] (= ((query-params term) :tagged) "tag")
          "abc [tag] xyz"
          "abc\t[tag] xyz"
          "abc [tag]\txyz"
          "abc\t[tag]\txyz"))
-  (testing "surrounded by boundaries"
+  (testing "tag: surrounded by boundaries"
     (are [term] (= ((query-params term) :tagged) "tag")
          "[tag] xyz"
          "abc [tag]"
          "[tag]"))
-  (testing "surrounded by neither whitespace nor boundaries"
+  (testing "tag: surrounded by neither whitespace nor boundaries"
     (are [term] (not (contains? (query-params term) :tagged))
          "abc[tag]xyz"
          "abc [tag]xyz"
          "abc[tag] xyz"
          "abc[tag]"
          "[tag]xyz"))
+
+  ; user
   (testing "when no users, no :user key out"
     (is (not (contains? (query-params "clojure repl driven development") :user))))
   (testing "when users, :user key exists"
@@ -41,5 +44,24 @@
          "1234")))
   (testing "text ending with 'user' is ignored"
     (is (not (contains? (query-params "yuser:1234 repl") :user))))
-  )
+
+  ; isaccepted
+  (testing "isaccepted: yes"
+    (is (= ((query-params "abc isaccepted:yes xyz") :accepted) "yes")))
+  (testing "isaccepted: no"
+    (is (= ((query-params "abc isaccepted:no xyz") :accepted) "no")))
+  (testing "isaccepted: valid values => key exists"
+    (are [term] (contains? (query-params term) :accepted)
+         "abc isaccepted:yes xyz"
+         "abc isaccepted:no xyz"))
+  (testing "isaccepted: invalid values => no key"
+    (are [term] (not (contains? (query-params term) :accepted))
+         "abc isaccepted:yess xyz"
+         "abc isaccepted:nno xyz"))
+  (testing "isaccepted: surrounded by whitespace"
+    (are [term] (contains? (query-params term) :accepted)
+         "abc isaccepted:yes xyz"
+         "abc\tisaccepted:yes xyz"
+         "abc isaccepted:yes\txyz"
+         "abc\tisaccepted:yes\txyz")))
 

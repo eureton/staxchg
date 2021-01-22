@@ -29,6 +29,15 @@
     (map second)
     (first)))
 
+(defn query-isaccepted
+  ""
+  [search-term]
+  (->>
+    search-term
+    (re-seq #"\bisaccepted:(yes|no)\b")
+    (map second)
+    (first)))
+
 (defn query-params
   ""
   [search-term]
@@ -41,6 +50,7 @@
         sort-attr "relevance"
         tags (query-tags search-term)
         user (query-user search-term)
+        is-accepted (query-isaccepted search-term)
         base {:client_id (conf "CLIENT_ID")
               :key (conf "API_KEY")
               :access_token (conf "ACCESS_TOKEN")
@@ -53,7 +63,8 @@
     (cond-> base
       (some? search-term) (assoc :intitle search-term)
       (not-empty tags) (assoc :tagged (clojure.string/join \; tags))
-      (some? user) (assoc :user user))))
+      (some? user) (assoc :user user)
+      (some? is-accepted) (assoc :accepted is-accepted))))
 
 (defn unescape-html [string]
   (org.jsoup.parser.Parser/unescapeEntities string true))
