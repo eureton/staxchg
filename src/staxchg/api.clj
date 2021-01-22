@@ -1,7 +1,8 @@
 (ns staxchg.api
+  (:require [clojure.string :as string])
+  (:require [cheshire.core])
   (:require [staxchg.presentation :as presentation])
   (:require [staxchg.util :as util])
-  (:require [cheshire.core])
   (:gen-class))
 
 (defn url
@@ -12,12 +13,18 @@
         endpoint "search/advanced"]
     (str base "/" version "/" endpoint)))
 
+(def tag-re #"(?:^|\s)\[([a-z_-]+)\](?:$|\s)")
+
+(def user-re #"\buser:(\d+)")
+
+(def accepted-re #"\bisaccepted:(yes|no)\b")
+
 (defn query-tags
   ""
   [term]
   (->>
     term
-    (re-seq #"(?:^|\s)\[([a-z_-]+)\](?:$|\s)")
+    (re-seq tag-re)
     (map second)))
 
 (defn query-user
@@ -25,7 +32,7 @@
   [term]
   (->>
     term
-    (re-find #"\buser:(\d+)")
+    (re-find user-re)
     (second)))
 
 (defn query-accepted
@@ -33,8 +40,17 @@
   [term]
   (->>
     term
-    (re-find #"\bisaccepted:(yes|no)\b")
+    (re-find accepted-re)
     (second)))
+
+(defn query-freeform
+  ""
+  [term]
+  (let [replace-with-blank #(string/replace %1 %2 " ")]
+    (->
+      (reduce replace-with-blank term [tag-re user-re accepted-re])
+      (string/replace #"\s+" " ")
+      (string/trim))))
 
 (defn query-params
   ""
@@ -46,7 +62,11 @@
         site "stackoverflow"
         order "desc"
         sort-attr "relevance"
-        [tags user accepted] ((juxt query-tags query-user query-accepted) term)
+        [tags user accepted q] ((juxt
+                                  query-tags
+                                  query-user
+                                  query-accepted
+                                  query-freeform) term)
         base {:client_id (conf "CLIENT_ID")
               :key (conf "API_KEY")
               :access_token (conf "ACCESS_TOKEN")
@@ -58,9 +78,10 @@
               :filter attrs}]
     (cond-> base
       (some? term) (assoc :intitle term)
-      (not-empty tags) (assoc :tagged (clojure.string/join \; tags))
+      (not-empty tags) (assoc :tagged (string/join \; tags))
       (some? user) (assoc :user user)
-      (some? accepted) (assoc :accepted accepted))))
+      (some? accepted) (assoc :accepted accepted)
+      (not (string/blank? q)) (assoc :q q))))
 
 (defn unescape-html [string]
   (org.jsoup.parser.Parser/unescapeEntities string true))

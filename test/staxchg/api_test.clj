@@ -65,5 +65,25 @@
          "abc isaccepted:yes\txyz"
          "abc\tisaccepted:yes\txyz"))
   (testing "isaccepted: first wins"
-    (is (= ((query-params "isaccepted:no klm isaccepted:yes") :accepted) "no"))))
+    (is (= ((query-params "isaccepted:no klm isaccepted:yes") :accepted) "no")))
+  
+  ; q
+  (testing "q: removes"
+    (are [term] (= ((query-params term) :q) "abc xyz")
+         "abc [tag] xyz"
+         "[tag] abc xyz"
+         "abc xyz [tag]"
+         "abc user:1234 xyz"
+         "user:1234 abc xyz"
+         "abc xyz user:1234"
+         "abc isaccepted:yes xyz"
+         "isaccepted:yes abc xyz"
+         "abc xyz isaccepted:yes"
+         "[tag] abc user:1234 xyz isaccepted:yes"))
+  (testing "q: no value => no key"
+    (are [term] (not (contains? (query-params term) :q))
+         "[tag]"
+         "user:1234"
+         "isaccepted:yes"
+         "")))
 
