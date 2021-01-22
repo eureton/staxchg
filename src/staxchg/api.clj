@@ -25,18 +25,16 @@
   [term]
   (->>
     term
-    (re-seq #"\buser:(\d+)")
-    (map second)
-    (first)))
+    (re-find #"\buser:(\d+)")
+    (second)))
 
 (defn query-accepted
   ""
   [term]
   (->>
     term
-    (re-seq #"\bisaccepted:(yes|no)\b")
-    (map second)
-    (first)))
+    (re-find #"\bisaccepted:(yes|no)\b")
+    (second)))
 
 (defn query-params
   ""
