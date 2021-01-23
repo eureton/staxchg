@@ -34,13 +34,6 @@
     (is (=
          ((query-params "[clojure] lorem [repl] driven [development]") :tagged)
          "clojure;repl;development")))
-  (testing "tag: surrounded by neither whitespace nor boundaries"
-    (are [term] (not (contains? (query-params term) :tagged))
-         "abc[tag]xyz"
-         "abc [tag]xyz"
-         "abc[tag] xyz"
-         "abc[tag]"
-         "[tag]xyz"))
 
   ; user
   (testing "when no users, no :user key out"

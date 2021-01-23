@@ -13,52 +13,31 @@
         endpoint "search/advanced"]
     (str base "/" version "/" endpoint)))
 
-(def tag-re #"(?:^|\s)\[([a-z_-]+)\](?:$|\s)")
+(def query-params-patterns [{:regex #"\[([a-z_-]+)\]"          :multi? true }
+                            {:regex #"\buser:(\d+)"            :multi? false}
+                            {:regex #"\bisaccepted:(yes|no)\b" :multi? false}
+                            {:regex #"\bscore:(\d+)"           :multi? false}])
 
-(def user-re #"\buser:(\d+)")
-
-(def accepted-re #"\bisaccepted:(yes|no)\b")
-
-(def score-re #"\bscore:(\d+)")
-
-(defn query-tags
+(defn query-params-match
   ""
-  [term]
-  (->>
-    term
-    (re-seq tag-re)
-    (map second)))
-
-(defn query-user
-  ""
-  [term]
-  (->>
-    term
-    (re-find user-re)
-    (second)))
-
-(defn query-accepted
-  ""
-  [term]
-  (->>
-    term
-    (re-find accepted-re)
-    (second)))
-
-(defn query-score
-  ""
-  [term]
-  (->>
-    term
-    (re-find score-re)
-    (second)))
+  [term
+   {:as pattern :keys [regex multi?]}]
+  (if multi?
+    (->>
+      term
+      (re-seq regex)
+      (map second))
+    (->>
+      term
+      (re-find regex)
+      (second))))
 
 (defn query-freeform
   ""
   [term]
   (let [replace-with-blank #(string/replace %1 %2 " ")]
     (->
-      (reduce replace-with-blank term [tag-re user-re accepted-re score-re])
+      (reduce replace-with-blank term (map :regex query-params-patterns))
       (string/replace #"\s+" " ")
       (string/trim))))
 
@@ -72,12 +51,10 @@
         site "stackoverflow"
         order "desc"
         sort-attr "relevance"
-        [tags user accepted score q] ((juxt
-                                        query-tags
-                                        query-user
-                                        query-accepted
-                                        query-score
-                                        query-freeform) term)
+        [tags user accepted score] (map
+                                     (partial query-params-match term)
+                                     query-params-patterns)
+        q (query-freeform term)
         base {:client_id (conf "CLIENT_ID")
               :key (conf "API_KEY")
               :access_token (conf "ACCESS_TOKEN")
