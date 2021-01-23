@@ -3,6 +3,28 @@
             [staxchg.api :refer :all]))
 
 (deftest query-params-test
+  ; general
+  (testing "delimitation"
+    (are [expr param value] (let [terms [expr
+                                         (str "xyz " expr)
+                                         (str expr " xyz")
+                                         (str "xyz\t" expr)
+                                         (str expr "\txyz")
+                                         (str "xyz " expr " abc")
+                                         (str "xyz " expr "\tabc")
+                                         (str "xyz\t" expr " abc")
+                                         (str "xyz\t" expr "\tabc")]]
+                              (->>
+                                terms
+                                (map query-params)
+                                (map param)
+                                (every? (partial = value))))
+         "[tag]"          :tagged   "tag"
+         "user:1234"      :user     "1234"
+         "isaccepted:yes" :accepted "yes"
+         "score:3"        :sort     "votes"
+         "score:3"        :min      "3"))
+
   ; tag
   (testing "when no tags, no :tagged key out"
     (is (not (contains? (query-params "clojure repl driven development") :tagged))))
@@ -12,17 +34,6 @@
     (is (=
          ((query-params "[clojure] lorem [repl] driven [development]") :tagged)
          "clojure;repl;development")))
-  (testing "tag: surrounded by whitespace"
-    (are [term] (= ((query-params term) :tagged) "tag")
-         "abc [tag] xyz"
-         "abc\t[tag] xyz"
-         "abc [tag]\txyz"
-         "abc\t[tag]\txyz"))
-  (testing "tag: surrounded by boundaries"
-    (are [term] (= ((query-params term) :tagged) "tag")
-         "[tag] xyz"
-         "abc [tag]"
-         "[tag]"))
   (testing "tag: surrounded by neither whitespace nor boundaries"
     (are [term] (not (contains? (query-params term) :tagged))
          "abc[tag]xyz"
@@ -58,15 +69,21 @@
     (are [term] (not (contains? (query-params term) :accepted))
          "abc isaccepted:yess xyz"
          "abc isaccepted:nno xyz"))
-  (testing "isaccepted: surrounded by whitespace"
-    (are [term] (contains? (query-params term) :accepted)
-         "abc isaccepted:yes xyz"
-         "abc\tisaccepted:yes xyz"
-         "abc isaccepted:yes\txyz"
-         "abc\tisaccepted:yes\txyz"))
   (testing "isaccepted: first wins"
     (is (= ((query-params "isaccepted:no klm isaccepted:yes") :accepted) "no")))
   
+  ; score
+  (testing "score: valid values => keys set"
+    (are [k v] (= ((query-params "abc score:3 xyz") k) v)
+         :sort "votes"
+         :min "3"))
+  (testing "score: invalid values => no key"
+    (are [term] (let [params (query-params term)]
+                  (and (not= (params :sort) "votes")
+                       (not (contains? params :min))))
+         "abc score:x3 xyz"
+         "abc sscore:3 xyz"))
+
   ; q
   (testing "q: removes"
     (are [term] (= ((query-params term) :q) "abc xyz")
@@ -79,7 +96,10 @@
          "abc isaccepted:yes xyz"
          "isaccepted:yes abc xyz"
          "abc xyz isaccepted:yes"
-         "[tag] abc user:1234 xyz isaccepted:yes"))
+         "abc score:3 xyz"
+         "score:3 abc xyz"
+         "abc xyz score:3"
+         "[tag] abc user:1234 score:3 xyz isaccepted:yes"))
   (testing "q: no value => no key"
     (are [term] (not (contains? (query-params term) :q))
          "[tag]"

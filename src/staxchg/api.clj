@@ -19,6 +19,8 @@
 
 (def accepted-re #"\bisaccepted:(yes|no)\b")
 
+(def score-re #"\bscore:(\d+)")
+
 (defn query-tags
   ""
   [term]
@@ -43,12 +45,20 @@
     (re-find accepted-re)
     (second)))
 
+(defn query-score
+  ""
+  [term]
+  (->>
+    term
+    (re-find score-re)
+    (second)))
+
 (defn query-freeform
   ""
   [term]
   (let [replace-with-blank #(string/replace %1 %2 " ")]
     (->
-      (reduce replace-with-blank term [tag-re user-re accepted-re])
+      (reduce replace-with-blank term [tag-re user-re accepted-re score-re])
       (string/replace #"\s+" " ")
       (string/trim))))
 
@@ -62,11 +72,12 @@
         site "stackoverflow"
         order "desc"
         sort-attr "relevance"
-        [tags user accepted q] ((juxt
-                                  query-tags
-                                  query-user
-                                  query-accepted
-                                  query-freeform) term)
+        [tags user accepted score q] ((juxt
+                                        query-tags
+                                        query-user
+                                        query-accepted
+                                        query-score
+                                        query-freeform) term)
         base {:client_id (conf "CLIENT_ID")
               :key (conf "API_KEY")
               :access_token (conf "ACCESS_TOKEN")
@@ -81,6 +92,7 @@
       (not-empty tags) (assoc :tagged (string/join \; tags))
       (some? user) (assoc :user user)
       (some? accepted) (assoc :accepted accepted)
+      (some? score) (merge {:sort "votes" :min score})
       (not (string/blank? q)) (assoc :q q))))
 
 (defn unescape-html [string]
