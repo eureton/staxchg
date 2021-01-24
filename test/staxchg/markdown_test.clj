@@ -4,23 +4,31 @@
 
 (deftest parse-test
   (testing "preformatted: surroundings"
-    (are [prefix suffix] (let [block "    (defn double [x]\r\n      (* x 2))"
-                               string (str prefix block suffix)
-                               result (->> string parse :preformatted)
-                               single? #(->> % count (= 1))
-                               block? #(->> % first (apply subs string) clojure.string/trimr (= block))]
-                           ((every-pred not-empty single? block?) result))
-         "" ""
-         "# xyz\r\n" ""
-         "" "\r\n# xyz"))
+    (let [spaces-block "    (defn double [x]\r\n      (* x 2))"
+          tab-block "\t(defn double [x]\r\n\t  (* x 2))"]
+      (are [prefix block suffix]
+           (let [string (str prefix block suffix)
+                 result (->> string parse :preformatted)
+                 single? #(->> % count (= 1))
+                 block? #(->> % first (apply subs string) clojure.string/trimr (= block))]
+             ((every-pred not-empty single? block?) result))
+           ""          spaces-block ""
+           "# xyz\r\n" spaces-block ""
+           ""          spaces-block "\r\n# xyz"
+           ""          tab-block    ""
+           "# xyz\r\n" tab-block    ""
+           ""          tab-block    "\r\n# xyz")))
   (testing "preformatted: match"
     (are [string] (->> string parse :preformatted not-empty)
          "    (def x 42)"
-         "    (def x 42)\r\n"))
+         "    (def x 42)\r\n"
+         "\t(def x 42)"
+         "\t(def x 42)\r\n"))
   (testing "preformatted: no match"
     (are [string] (->> string parse :preformatted empty?)
          "   (def x 42)"
-         "!    (def x 42)")))
+         "!    (def x 42)"
+         "!\t(def x 42)")))
 
 (deftest plot-test
   (let [s "123\r\n456\r\n789"

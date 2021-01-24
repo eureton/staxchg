@@ -51,7 +51,7 @@
      [:italic       "(?:^|[^*])(\\*[^*^\\r^\\n]+\\*)(?:[^*]|$)" {:dotall? false :multiline? false}]
      [:monospace    "(?:^|[^`])(`[^`]*`)(?:[^`]|$)"             {:dotall? false :multiline? false}]
      [:code-block   "(```((?!```).)+```)"                       {:dotall? true  :multiline? false}]
-     [:preformatted "((?:^[ ]{4}.+(?:\\z|\r\n))+)"              {:dotall? false :multiline? true }]]))
+     [:preformatted "((?:^(?:[ ]{4}|\\t).+(?:\\z|\r\n))+)"      {:dotall? false :multiline? true }]]))
 
 (defn unroll-info
   ""
