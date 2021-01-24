@@ -2,6 +2,26 @@
   (:require [clojure.test :refer :all]
             [staxchg.markdown :refer :all]))
 
+(deftest parse-test
+  (testing "preformatted: surroundings"
+    (are [prefix suffix] (let [block "    (defn double [x]\r\n      (* x 2))"
+                               string (str prefix block suffix)
+                               result (->> string parse :preformatted)
+                               single? #(->> % count (= 1))
+                               block? #(->> % first (apply subs string) clojure.string/trimr (= block))]
+                           ((every-pred not-empty single? block?) result))
+         "" ""
+         "# xyz\r\n" ""
+         "" "\r\n# xyz"))
+  (testing "preformatted: match"
+    (are [string] (->> string parse :preformatted not-empty)
+         "    (def x 42)"
+         "    (def x 42)\r\n"))
+  (testing "preformatted: no match"
+    (are [string] (->> string parse :preformatted empty?)
+         "   (def x 42)"
+         "!    (def x 42)")))
+
 (deftest plot-test
   (let [s "123\r\n456\r\n789"
         opts {:left 10 :top 20 :width 100 :height 100}

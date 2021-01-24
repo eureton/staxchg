@@ -46,11 +46,12 @@
     (fn [aggregator [category pattern {:keys [dotall? multiline?]}]]
       (update aggregator category concat (ranges string pattern dotall? multiline?)))
     {}
-    [[:bullet-list    "^\\s*?([-+*])\\s+.+?(?:\r\n|$)"            {:dotall? false :multiline? true}]
-     [:bold           "(\\*\\*((?!\\*\\*).)+\\*\\*)"              {:dotall? true  :multiline? false}]
-     [:italic         "(?:^|[^*])(\\*[^*^\\r^\\n]+\\*)(?:[^*]|$)" {:dotall? false :multiline? false}]
-     [:monospace      "(?:^|[^`])(`[^`]*`)(?:[^`]|$)"             {:dotall? false :multiline? false}]
-     [:code-block     "(```((?!```).)+```)"                       {:dotall? true  :multiline? false}]]))
+    [[:bullet-list  "^\\s*?([-+*])\\s+.+?(?:\r\n|$)"            {:dotall? false :multiline? true }]
+     [:bold         "(\\*\\*((?!\\*\\*).)+\\*\\*)"              {:dotall? true  :multiline? false}]
+     [:italic       "(?:^|[^*])(\\*[^*^\\r^\\n]+\\*)(?:[^*]|$)" {:dotall? false :multiline? false}]
+     [:monospace    "(?:^|[^`])(`[^`]*`)(?:[^`]|$)"             {:dotall? false :multiline? false}]
+     [:code-block   "(```((?!```).)+```)"                       {:dotall? true  :multiline? false}]
+     [:preformatted "((?:^[ ]{4}.+(?:\\z|\r\n))+)"              {:dotall? false :multiline? true }]]))
 
 (defn unroll-info
   ""

@@ -64,7 +64,8 @@
             :bold #(.withModifier % SGR/BOLD)
             :italic #(.withModifier % SGR/REVERSE)
             :monospace #(.withForegroundColor % TextColor$ANSI/GREEN)
-            :code-block #(.withForegroundColor % TextColor$ANSI/GREEN)))))))
+            :code-block #(.withForegroundColor % TextColor$ANSI/GREEN)
+            :preformatted #(.withForegroundColor % TextColor$ANSI/GREEN)))))))
 
 (defn put-string!
   ""
