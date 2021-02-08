@@ -16,14 +16,8 @@
     (let [options {:x x
                    :y y
                    :left (if sub-zone (sub-zone :left) 0)
-                   :width (if sub-zone (sub-zone :width) (zone :width))}
-          {:keys [plotted markdown-info]} (markdown/plot raw options)
-          categories (->>
-                       plotted
-                       count
-                       range
-                       (map (partial markdown/categories markdown-info)))]
-      (map conj plotted categories))))
+                   :width (if sub-zone (sub-zone :width) (zone :width))}]
+      (markdown/plot raw options))))
 
 (defn make
   ""

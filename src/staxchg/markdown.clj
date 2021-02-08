@@ -1,21 +1,80 @@
 (ns staxchg.markdown
   (:require [clojure.string :as string])
-  (:import java.util.regex.Pattern)
+  (:import (com.vladsch.flexmark.parser Parser))
   (:gen-class))
 
-(defn within? [ranges index]
-  (some
-    (fn [[from to]] (and (<= from index) (< index to)))
-    ranges))
+(defn tag
+  ""
+  [node]
+  (case (->> node type str)
+    "class com.vladsch.flexmark.util.ast.Document" :doc
+    "class com.vladsch.flexmark.ast.AutoLink" :auto-link
+    "class com.vladsch.flexmark.ast.BlockQuote" :block-quot
+    "class com.vladsch.flexmark.ast.BulletList" :blist
+    "class com.vladsch.flexmark.ast.BulletListItem" :blitem
+    "class com.vladsch.flexmark.ast.Code" :code
+    "class com.vladsch.flexmark.ast.Delimit" :delim
+    "class com.vladsch.flexmark.ast.Emphasis" :em
+    "class com.vladsch.flexmark.ast.FencedCodeBlock" :fenced-code-block
+    "class com.vladsch.flexmark.ast.HardLineBreak" :hbr
+    "class com.vladsch.flexmark.ast.Heading" :h
+    "class com.vladsch.flexmark.ast.HtmlBlock" :html-block
+    "class com.vladsch.flexmark.ast.HtmlCommentBlock" :html-comment-block
+    "class com.vladsch.flexmark.ast.HtmlEntity" :html-entity
+    "class com.vladsch.flexmark.ast.HtmlInline" :html-inline
+    "class com.vladsch.flexmark.ast.HtmlInlineComment" :html-inline-comment
+    "class com.vladsch.flexmark.ast.HtmlInnerBlockComment" :html-inner-block-comment
+    "class com.vladsch.flexmark.ast.Image" :img
+    "class com.vladsch.flexmark.ast.ImageRef" :img-ref
+    "class com.vladsch.flexmark.ast.IndentedCodeBlock" :indented-code-block
+    "class com.vladsch.flexmark.ast.Link" :link
+    "class com.vladsch.flexmark.ast.LinkRef" :link-ref
+    "class com.vladsch.flexmark.ast.MailLink" :mail-link
+    "class com.vladsch.flexmark.ast.OrderedList" :olist
+    "class com.vladsch.flexmark.ast.OrderedListItem" :olitem
+    "class com.vladsch.flexmark.ast.Paragraph" :p
+    "class com.vladsch.flexmark.ast.Reference" :ref
+    "class com.vladsch.flexmark.ast.ThematicBreak" :tbr
+    "class com.vladsch.flexmark.ast.SoftLineBreak" :sbr
+    "class com.vladsch.flexmark.ast.StrongEmphasis" :strong
+    "class com.vladsch.flexmark.ast.Text" :txt))
 
-(defn categories [info index]
-  (reduce
-    (fn [aggregator [category ranges]]
-      (if (within? ranges index)
-        (conj aggregator category)
-        aggregator))
-    #{}
-    info))
+(defn unpack
+  ""
+  [node]
+  (if (.hasChildren node)
+    (loop [iterator (.getChildIterator node)
+           result [(tag node)]]
+      (if (.hasNext iterator)
+        (recur iterator (conj result (unpack (.next iterator))))
+        result))
+    [(tag node) (-> node .getChars .unescape)]))
+
+(defn parse
+  ""
+  [string]
+  (let [parser (-> (Parser/builder) .build)
+        root (.parse parser string)]
+    (unpack root)))
+
+(def sample (->> ["- item one"
+                  "- item two"
+                  "- item three"
+                  "    - item three (a)"
+                  "    - item three (b)"
+                  "where to?\r\n"
+                  "# Heading BIG and **STRONG** #\r\n"
+                  "Display *emphasized* stuff here!\r\n"
+                  "``` clojure"
+                  "(defn dbl [x]"
+                  "  (* x 2))"
+                  "```\r\n"
+                  "    (defn sqr [x]"
+                  "      (* x x))\r\n"
+                  "Goodbye and `happy coding`!"]
+                 (string/join "\r\n")))
+
+(def md-ast (parse sample))
 
 (defn decorate [recipient categories & clauses]
   (let [effect-map (apply
@@ -31,91 +90,6 @@
       recipient
       (filter (partial contains? effect-map) categories))))
 
-(defn ranges [string pattern dotall? multiline?]
-  (let [regexp (Pattern/compile pattern (cond-> 0
-                                          multiline? (bit-or Pattern/MULTILINE)
-                                          dotall? (bit-or Pattern/DOTALL)))
-        matcher (.matcher regexp string)]
-    (loop [coordinates []]
-      (if (.find matcher)
-        (recur (conj coordinates [(.start matcher 1) (.end matcher 1)]))
-        coordinates))))
-
-(defn parse [string]
-  (reduce
-    (fn [aggregator [category pattern {:keys [dotall? multiline?]}]]
-      (update aggregator category concat (ranges string pattern dotall? multiline?)))
-    {}
-    [[:bullet-list  "^\\s*?([-+*])\\s+.+?(?:\r\n|$)"            {:dotall? false :multiline? true }]
-     [:bold         "(\\*\\*((?!\\*\\*).)+\\*\\*)"              {:dotall? true  :multiline? false}]
-     [:italic       "(?:^|[^*])(\\*[^*^\\r^\\n]+\\*)(?:[^*]|$)" {:dotall? false :multiline? false}]
-     [:monospace    "(?:^|[^`])(`[^`]*`)(?:[^`]|$)"             {:dotall? false :multiline? false}]
-     [:code-block   "(```((?!```).)+```)"                       {:dotall? true  :multiline? false}]
-     [:preformatted "((?:^(?:[ ]{4}|\\t).+(?:\\z|\r\n))+)"      {:dotall? false :multiline? true }]]))
-
-(defn unroll-info
-  ""
-  [info]
-  (->>
-    info
-    (map
-      (fn [[category ranges]]
-        (map
-          (fn [[start end]] (vector start end category))
-          ranges)))
-    flatten
-    (partition 3)))
-
-(defn roll-info
-  ""
-  [info]
-  (reduce
-    (fn [aggregator [start end character]]
-      (update aggregator character conj [start end]))
-    {:bold [] :italic [] :monospace [] :code-block []}
-    info))
-
-(defn adjust-info
-  ""
-  [info index range-f]
-  (->>
-    info
-    unroll-info
-    (map
-      (fn [[start end category]]
-        (let [range-after (range-f index [start end])]
-          (vector (first range-after) (second range-after) category))))
-    roll-info))
-
-(defn strip
-  ""
-  [string info]
-  (let [strip-lengths {:italic 1 :bold 2 :monospace 1 :code-block 3}]
-    (loop [s string
-           i info
-           u (unroll-info info)]
-      (if (empty? u)
-        {:input string
-         :stripped s
-         :markdown-info i}
-        (let [[start end category] (first u)
-              length (or (strip-lengths category) 0)
-              bounds-adjuster (fn [i [s e]]
-                                (vector
-                                  (if (> s i) (- s length) s)
-                                  (if (> e i) (- e length) e)))
-              info-adjuster #(->
-                               %
-                               (adjust-info (- end length) bounds-adjuster)
-                               (adjust-info start bounds-adjuster))]
-          (recur
-            (str
-              (subs s 0 start)
-              (subs s (+ start length) (- end length))
-              (subs s end))
-            (info-adjuster i)
-            (->> u rest roll-info info-adjuster unroll-info)))))))
-
 (defn pack [string width]
   (if (->> string count (>= width))
     [string]
@@ -129,16 +103,15 @@
       []
       (string/split string #"(?!\s*$) "))))
 
+(defmulti plot-ast (fn [node _] (first node)))
+
+(defmulti next-at (fn [node _ _] (first node)))
+
 (defn reflow
   ""
   [string
-   info
    {:keys [width height]}]
-  (let [truncate #(take (or height (count %)) %)
-        bounds-adjuster (fn [i [s e]]
-                          (vector
-                            (if (> s i) (inc s) s)
-                            (if (> e i) (inc e) e)))]
+  (let [truncate #(take (or height (count %)) %)]
     (as-> string v
       (string/split-lines v)
       (map
@@ -159,70 +132,184 @@
             :reflowed (conj (agg :reflowed) (h :s))))
         {:reflowed [] :breaks [] :length 0}
         v)
-       (assoc
-         v
-         :reflowed (string/join "\r\n" (v :reflowed))
-         :markdown-info (reduce
-                          (fn [agg i] (adjust-info agg i bounds-adjuster))
-                          info
-                          (reverse (remove nil? (v :breaks)))))
-       (dissoc v :length :breaks))))
+      (assoc v
+         :reflowed (string/join "\r\n" (v :reflowed)))
+       (dissoc v :length :breaks)
+       (:reflowed v)
+       )))
 
-(defn slice
-  "Slices the input string into pieces of the given length and returns them in a
-  sequence. No padding is applied to the last piece."
-  [string width]
-  (->>
-    string
-    (partition width width (repeat \space))
-    (map string/join)))
+(defmethod next-at :txt
+  [_
+   plot
+   {:keys [width]}]
+  (let [[x y] (second (last plot))
+        overrun? (>= (inc x) width)]
+    {:x (if overrun? 0 (inc x))
+     :y (if overrun? (inc y) y)}))
+
+(defmethod next-at :p
+  [_ _ {:keys [y] :or {y 0}}]
+  {:x 0
+   :y (inc y)})
+
+(defmethod next-at :sbr
+  [_ _ {:keys [x y]}]
+  {:x (+ x 2)
+   :y y})
+
+(defmethod next-at :hbr
+  [_ _ {:keys [y]}]
+  {:x 0
+   :y (inc y)})
+
+(defmethod next-at :blist
+  [_
+   plot
+   {:keys [top level]
+    :or {top 0 level 0}}]
+  (let [last-y (-> plot last second second (- top))]
+    {:x 0
+     :y (+ last-y (if (zero? level) 2 1))}))
+
+(defmethod next-at :blitem
+  [_ plot _]
+  (let [[_ y] (second (last plot))]
+    {:x 0
+     :y (inc y)}))
+
+ (defmethod next-at :default
+   [_ _ _]
+   {:x -1 :y -1})
+
+(defmethod plot-ast :txt
+  [node
+   {:keys [x y left top width height]
+    :or {x 0 y 0 left 0 top 0}}]
+  (let [string (second node)
+        reflowed (reflow string {:width width})
+        lines (string/split-lines reflowed)
+        truncate #(take (or height (count %)) %)
+        lengths (->> lines flatten truncate (map count))]
+    (map
+      vector
+      (seq (string/join lines))
+      (->>
+        lengths
+        (map-indexed (fn [index length]
+                       (->>
+                         length
+                         range
+                         (map #(vector (+ % left (if (zero? index) x 0)) (+ index top y))))))
+        (reduce concat)))))
+
+(defmethod plot-ast :default
+  [node
+   {:as options
+    :keys [x y]
+    :or {x 0 y 0}}]
+  (loop [contents (rest node)
+         result []
+         origin {:x x :y y}]
+    (if (empty? contents)
+      result
+      (let [head (first contents)
+            panned-options (merge options origin)
+            head-plot (plot-ast head panned-options)
+            next-at (next-at head head-plot panned-options)]
+        (recur (rest contents) (concat result head-plot) next-at)))))
+
+(defmethod plot-ast :blitem
+  [node
+   {:as options
+    :keys [x y level]
+    :or {x 0 y 0 level 0}}]
+  (let [indent-length (* level 2)
+        indent (->>
+                 indent-length
+                 range
+                 (map (partial + x))
+                 (map vector (repeat y))
+                 (map reverse)
+                 (map vector (repeat \space)))
+        decor [[\+     [(+ x indent-length  ) y] {:traits #{:bullet}}]
+               [\space [(+ x indent-length 1) y]                     ]]
+        inner-options (assoc
+                        options
+                        :x (+ x indent-length (count decor))
+                        :level (inc level))
+        inner (plot-ast (assoc node 0 :default) inner-options)]
+    (concat indent decor inner)))
+
+(defmethod plot-ast :sbr
+  [_
+   {:keys [x y]
+    :or {x 0 y 0}}]
+  [[\space [x y]] [\space [(inc x) y]]])
+
+(defmethod plot-ast :hbr
+  [_ _]
+  [])
+
+(defn decorate-plot
+  [plot & traits]
+  (map
+    #(apply update % 2 update :traits (comp set conj) traits)
+    plot))
+
+(defmethod plot-ast :h
+  [node options]
+  (-> node (assoc 0 :default) (plot-ast options) (decorate-plot :h)))
+
+(defmethod plot-ast :em
+  [node options]
+  (-> node (assoc 0 :default) (plot-ast options) (decorate-plot :em)))
+
+(defmethod plot-ast :strong
+  [node options]
+  (-> node (assoc 0 :default) (plot-ast options) (decorate-plot :strong)))
+
+(defmethod plot-ast :fenced-code-block
+  [node options]
+  (-> node (assoc 0 :default) (plot-ast options) (decorate-plot :code)))
+
+(defmethod plot-ast :indented-code-block
+  [node options]
+  (-> node (assoc 0 :txt) (plot-ast options) (decorate-plot :code)))
+
+(defmethod plot-ast :html-inline
+  [node options]
+  (-> node (assoc 0 :txt) (plot-ast options) (decorate-plot :code)))
+
+(defmethod plot-ast :ref
+  [node options]
+  (-> node (assoc 0 :txt) (plot-ast options) (decorate-plot :code)))
+
+(defmethod plot-ast :html-block
+  [node options]
+  (-> node (assoc 0 :txt) (plot-ast options) (decorate-plot :code)))
+
+(defmethod plot-ast :tbr
+  [node options]
+  (-> node (assoc 0 :txt) (plot-ast options) (decorate-plot :code)))
+
+(defmethod plot-ast :code
+  [node options]
+  (-> node (assoc 0 :default) (plot-ast options) (decorate-plot :code)))
 
 (defn plot
   "Returns a sequence of pairs -one for each character of the input string-
-  consisting of:
-    * the character
-    * the [x y] coordinates of the character"
-  [string
-   {:keys [x y left top width height]
-    :or {x 0 y 0 left 0 top 0}}]
-  (let [{:keys [stripped markdown-info]} (strip string (parse string))
-        {:keys [reflowed markdown-info]} (reflow
-                                           stripped
-                                           markdown-info
-                                           {:width width})
-        lines (string/split-lines reflowed)
-        truncate #(take (or height (count %)) %)
-        lengths (->>
-                  lines
-                  ;(map #(slice % width))
-                  flatten
-                  truncate
-                  (map count))
-        adjust-range (fn [index [start end]]
-                       (vector
-                         (if (> start index) (- start 2) start)
-                         (if (> end index) (- end 2) end)))]
-    {:plotted (map
-                vector
-                (seq (string/join lines))
-                (->>
-                  lengths
-                  (map-indexed (fn [index length]
-                                 (->>
-                                   length
-                                   range
-                                   (map #(vector (+ % left (if (zero? index) x 0)) (+ index top y))))))
-                  (reduce concat)))
-     :markdown-info (->>
-                      lengths
-                      (reduce (fn [agg x] (conj agg (if (empty? agg) x (+ (last agg) x 2)))) [])
-                      reverse
-                      (reduce (fn [agg x] (adjust-info agg x adjust-range)) markdown-info))}))
+   consisting of:
+     * the character
+     * the [x y] coordinates of the character"
+  [string options]
+  (plot-ast (parse string) options))
 
 (defn line-count
   [string width]
-  (let [{:keys [plotted]} (plot string {:width width})]
-    (inc (-
-          (->> plotted last second second)
-          (->> plotted first second second)))))
-
+  (->>
+    (plot string {:width width})
+    ((juxt last first))
+    (map second)
+    (map second)
+    (reduce -)
+    inc))
