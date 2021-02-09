@@ -98,5 +98,25 @@
                      [0 2] [1 2] [2 2] [3 2] [4 2] [5 2] [6 2] [7 2] [8 2]
                      [0 3] [1 3] [2 3] [3 3] [4 3] [5 3] [6 3] [7 3] [8 3]
                                  [0 4] [1 4] [2 4] [3 4] [4 4] [5 4]
-                                             [0 5] [1 5] [2 5]            ])))))))
+                                             [0 5] [1 5] [2 5]            ])))))
+    (testing "fenced code block: coordinates"
+      (is (= (xys "```\r\n12\r\n34\r\n```" {:width 100})
+             [[0 0] [1 0]
+              [0 1] [1 1]])))
+    (testing "fenced code block: bottom margin"
+      (is (= (xys "```\r\n12\r\n```\r\n34" {:width 100})
+             [[0 0] [1 0]
+              [0 2] [1 2]])))
+    (testing "indented code block"
+      (let [s "    12\r\n    34"]
+        (is (and (= (cs s {:width 100})
+                    [\space \space \space \space \1 \2
+                     \space \space \space \space \3 \4])
+                 (= (xys s {:width 100})
+                    [[0 0] [1 0] [2 0] [3 0] [4 0] [5 0]
+                     [0 1] [1 1] [2 1] [3 1] [4 1] [5 1]])))))
+    (testing "indented code block: bottom margin"
+      (is (= (xys "    12\r\n34" {:width 100})
+             [[0 0] [1 0] [2 0] [3 0] [4 0] [5 0]
+              [0 2] [1 2]])))))
 

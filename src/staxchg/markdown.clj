@@ -76,6 +76,13 @@
 
 (def md-ast (parse sample))
 
+(def ontology (->
+                (make-hierarchy)
+                (derive :blist :block)
+                (derive :fenced-code-block :block)
+                (derive :indented-code-block :block)
+                atom))
+
 (defn decorate [recipient categories & clauses]
   (let [effect-map (apply
                      zipmap
@@ -103,9 +110,15 @@
       []
       (string/split string #"(?!\s*$) "))))
 
+(defn decorate-plot
+  [plot & traits]
+  (map
+    #(apply update % 2 update :traits (comp set conj) traits)
+    plot))
+
 (defmulti plot-ast (fn [node _] (first node)))
 
-(defmulti next-at (fn [node _ _] (first node)))
+(defmulti next-at (fn [node _ _] (first node)) :hierarchy ontology)
 
 (defn reflow
   ""
@@ -162,7 +175,7 @@
   {:x 0
    :y (inc y)})
 
-(defmethod next-at :blist
+(defmethod next-at :block
   [_
    plot
    {:keys [top level]
@@ -177,9 +190,9 @@
     {:x 0
      :y (inc y)}))
 
- (defmethod next-at :default
-   [_ _ _]
-   {:x -1 :y -1})
+(defmethod next-at :default
+  [_ _ _]
+  {:x -1 :y -1})
 
 (defmethod plot-ast :txt
   [node
@@ -202,21 +215,24 @@
                          (map #(vector (+ % left (if (zero? index) x 0)) (+ index top y))))))
         (reduce concat)))))
 
-(defmethod plot-ast :default
+(defmethod plot-ast :indented-code-block
   [node
    {:as options
     :keys [x y]
     :or {x 0 y 0}}]
-  (loop [contents (rest node)
-         result []
-         origin {:x x :y y}]
-    (if (empty? contents)
-      result
-      (let [head (first contents)
-            panned-options (merge options origin)
-            head-plot (plot-ast head panned-options)
-            next-at (next-at head head-plot panned-options)]
-        (recur (rest contents) (concat result head-plot) next-at)))))
+  (let [indent-length 4
+        indent (->>
+                 indent-length
+                 range
+                 (map (partial + x))
+                 (map vector (repeat y))
+                 (map reverse)
+                 (map vector (repeat \space)))
+        inner-options (assoc options :x (+ x indent-length))
+        inner (plot-ast (assoc node 0 :txt) inner-options)]
+    (->
+      (concat indent inner)
+      (decorate-plot :code))))
 
 (defmethod plot-ast :blitem
   [node
@@ -250,11 +266,21 @@
   [_ _]
   [])
 
-(defn decorate-plot
-  [plot & traits]
-  (map
-    #(apply update % 2 update :traits (comp set conj) traits)
-    plot))
+(defmethod plot-ast :default
+  [node
+   {:as options
+    :keys [x y]
+    :or {x 0 y 0}}]
+  (loop [contents (rest node)
+         result []
+         origin {:x x :y y}]
+    (if (empty? contents)
+      result
+      (let [head (first contents)
+            panned-options (merge options origin)
+            head-plot (plot-ast head panned-options)
+            next-at (next-at head head-plot panned-options)]
+        (recur (rest contents) (concat result head-plot) next-at)))))
 
 (defmethod plot-ast :h
   [node options]
@@ -271,10 +297,6 @@
 (defmethod plot-ast :fenced-code-block
   [node options]
   (-> node (assoc 0 :default) (plot-ast options) (decorate-plot :code)))
-
-(defmethod plot-ast :indented-code-block
-  [node options]
-  (-> node (assoc 0 :txt) (plot-ast options) (decorate-plot :code)))
 
 (defmethod plot-ast :html-inline
   [node options]
