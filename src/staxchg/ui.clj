@@ -40,32 +40,33 @@
 
 (defn rewrite-with-symbols
   ""
-  [plot]
-  (map
-    #(assoc % 0 (if (contains? (nth % 2) :bullet-list) Symbols/BULLET (nth % 0)))
-    plot))
+  [character traits]
+  (cond
+    (contains? traits :bullet) Symbols/BULLET
+    (contains? traits :horz) Symbols/SINGLE_LINE_HORIZONTAL
+    :else character))
 
 (defn put-markdown!
   [graphics plot _]
-  (let [plot (rewrite-with-symbols plot)]
-    (dev/log
-      "[put-markdown] "
-      (->> (map second plot) (take 10) (apply str))
-      " |>" (string/join (map first plot)) "<|")
-    (doseq [[character [x y] categories] plot]
-      (when-not (TerminalTextUtils/isControlCharacter character)
-        (.setCharacter
-          graphics
-          x
-          y
-          (markdown/decorate
-            (decorate-with-current character graphics)
-            categories
-            :bold #(.withModifier % SGR/BOLD)
-            :italic #(.withModifier % SGR/REVERSE)
-            :monospace #(.withForegroundColor % TextColor$ANSI/GREEN)
-            :code-block #(.withForegroundColor % TextColor$ANSI/GREEN)
-            :preformatted #(.withForegroundColor % TextColor$ANSI/GREEN)))))))
+  (dev/log
+    "[put-markdown] "
+    (->> (map second plot) (take 10) (apply str))
+    " |>" (string/join (map first plot)) "<|")
+  (doseq [[character [x y] {:keys [traits]}] plot]
+    (when-not (TerminalTextUtils/isControlCharacter character)
+      (.setCharacter
+        graphics
+        x
+        y
+        (markdown/decorate
+          (->
+            character
+            (rewrite-with-symbols traits)
+            (decorate-with-current graphics))
+          traits
+          :strong #(.withModifier % SGR/BOLD)
+          :em #(.withModifier % SGR/REVERSE)
+          :code #(.withForegroundColor % TextColor$ANSI/GREEN))))))
 
 (defn put-string!
   ""
