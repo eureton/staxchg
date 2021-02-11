@@ -3,13 +3,17 @@
             [staxchg.markdown :refer :all]))
 
 (deftest plot-test
-  (let [res #(apply plot %&)
-        cs #(->> (apply res %&) (map first))
-        xys #(->> (apply res %&) (map second))
-        xs #(map first (apply xys %&))
-        ys #(map second (apply xys %&))]
+  (with-test
+    (defn cs [s opts]
+      (->> (plot s opts) (map first)))
+    (defn xys [s opts]
+      (->> (plot s opts) (map second)))
+    (defn xs [s opts]
+      (->> (xys s opts) (map first)))
+    (defn ys [s opts]
+      (->> (xys s opts) (map second)))
     (testing "defaults"
-      (is (= (res "Hello world!" {:width 100})
+      (is (= (plot "Hello world!" {:width 100})
              [[\H     [ 0 0]]
               [\e     [ 1 0]]
               [\l     [ 2 0]]
@@ -35,7 +39,7 @@
     (testing ":y and :top"
       (is (= (ys "123" {:width 100 :y 7 :top 20}) [27 27 27])))
     (testing "soft line break"
-      (is (= (res "12\r\n34" {:width 100})
+      (is (= (plot "12\r\n34" {:width 100})
              [[\1     [0 0]]
               [\2     [1 0]]
               [\space [2 0]]
@@ -43,13 +47,13 @@
               [\3     [4 0]]
               [\4     [5 0]]])))
     (testing "hard line break"
-      (is (= (res "12  \r\n34" {:width 100})
+      (is (= (plot "12  \r\n34" {:width 100})
              [[\1 [0 0]]
               [\2 [1 0]]
               [\3 [0 1]]
               [\4 [1 1]]])))
     (testing "new paragraph"
-      (is (= (res "12\r\n\r\n34" {:width 100})
+      (is (= (plot "12\r\n\r\n34" {:width 100})
              [[\1 [0 0]]
               [\2 [1 0]]
               [\3 [0 1]]
