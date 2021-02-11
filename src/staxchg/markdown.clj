@@ -1,5 +1,6 @@
 (ns staxchg.markdown
   (:require [clojure.string :as string])
+  (:require [clojure.set])
   (:require [staxchg.flexmark :as flexmark])
   (:require [staxchg.ast :as ast])
   (:gen-class))
@@ -27,7 +28,7 @@
   [node _]
   node)
 
-(defn decorate [recipient categories & clauses]
+(defn decorate [recipient traits & clauses]
   (let [effect-map (apply
                      zipmap
                      (map
@@ -37,9 +38,9 @@
                            (filter #(->> % first f) (map-indexed vector clauses))))
                        [even? odd?]))]
     (reduce
-      (fn [aggregator category] ((effect-map category) aggregator))
+      (fn [aggregator trait] ((effect-map trait) aggregator))
       recipient
-      (filter (partial contains? effect-map) categories))))
+      (clojure.set/intersection (set (keys effect-map)) traits))))
 
 (defn pack [string width]
   (if (->> string count (>= width))
@@ -121,6 +122,12 @@
   {:x 0
    :y (inc y)})
 
+(defmethod next-at :tbr
+  [_ plot _]
+  (let [[_ y] (second (last plot))]
+    {:x 0
+     :y (inc y)}))
+
 (defmethod next-at :block
   [_
    plot
@@ -179,6 +186,18 @@
     (->
       (concat indent inner)
       (decorate-plot :code))))
+
+(defmethod plot-ast :tbr
+  [node
+   {:keys [y width]
+    :or {y 0}}]
+  (decorate-plot
+    (->>
+      (range width)
+      (map vector (repeat y))
+      (map reverse)
+      (map vector (repeat \-)))
+    :horz))
 
 (defn plot-horizontally [x y string]
   (->>
@@ -279,10 +298,6 @@
   (-> node (assoc :tag :txt) (plot-ast options) (decorate-plot :code)))
 
 (defmethod plot-ast :html-block
-  [node options]
-  (-> node (assoc :tag :txt) (plot-ast options) (decorate-plot :code)))
-
-(defmethod plot-ast :tbr
   [node options]
   (-> node (assoc :tag :txt) (plot-ast options) (decorate-plot :code)))
 

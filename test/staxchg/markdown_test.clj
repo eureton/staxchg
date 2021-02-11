@@ -52,6 +52,18 @@
               [\2 [1 0]]
               [\3 [0 1]]
               [\4 [1 1]]])))
+    (testing "thematic line break"
+      (is (= (plot "----" {:width 10})
+             [[\- [0 0] {:traits #{:horz}}]
+              [\- [1 0] {:traits #{:horz}}]
+              [\- [2 0] {:traits #{:horz}}]
+              [\- [3 0] {:traits #{:horz}}]
+              [\- [4 0] {:traits #{:horz}}]
+              [\- [5 0] {:traits #{:horz}}]
+              [\- [6 0] {:traits #{:horz}}]
+              [\- [7 0] {:traits #{:horz}}]
+              [\- [8 0] {:traits #{:horz}}]
+              [\- [9 0] {:traits #{:horz}}]])))
     (testing "new paragraph"
       (is (= (plot "12\r\n\r\n34" {:width 100})
              [[\1 [0 0]]
