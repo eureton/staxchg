@@ -140,9 +140,8 @@
 
 (defmethod next-at :list-item
   [_ plot _]
-  (let [[_ y] (second (last plot))]
-    {:x 0
-     :y (inc y)}))
+  {:x 0
+   :y (-> plot last second second inc)})
 
 (defmethod next-at :default
   [_ _ _]
