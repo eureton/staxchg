@@ -1,87 +1,31 @@
 (ns staxchg.markdown
   (:require [clojure.string :as string])
-  (:import (com.vladsch.flexmark.parser Parser))
+  (:require [staxchg.flexmark :as flexmark])
+  (:require [staxchg.ast :as ast])
   (:gen-class))
-
-(defn tag
-  ""
-  [node]
-  (case (->> node type str)
-    "class com.vladsch.flexmark.util.ast.Document" :doc
-    "class com.vladsch.flexmark.ast.AutoLink" :auto-link
-    "class com.vladsch.flexmark.ast.BlockQuote" :block-quot
-    "class com.vladsch.flexmark.ast.BulletList" :blist
-    "class com.vladsch.flexmark.ast.BulletListItem" :blitem
-    "class com.vladsch.flexmark.ast.Code" :code
-    "class com.vladsch.flexmark.ast.Delimit" :delim
-    "class com.vladsch.flexmark.ast.Emphasis" :em
-    "class com.vladsch.flexmark.ast.FencedCodeBlock" :fenced-code-block
-    "class com.vladsch.flexmark.ast.HardLineBreak" :hbr
-    "class com.vladsch.flexmark.ast.Heading" :h
-    "class com.vladsch.flexmark.ast.HtmlBlock" :html-block
-    "class com.vladsch.flexmark.ast.HtmlCommentBlock" :html-comment-block
-    "class com.vladsch.flexmark.ast.HtmlEntity" :html-entity
-    "class com.vladsch.flexmark.ast.HtmlInline" :html-inline
-    "class com.vladsch.flexmark.ast.HtmlInlineComment" :html-inline-comment
-    "class com.vladsch.flexmark.ast.HtmlInnerBlockComment" :html-inner-block-comment
-    "class com.vladsch.flexmark.ast.Image" :img
-    "class com.vladsch.flexmark.ast.ImageRef" :img-ref
-    "class com.vladsch.flexmark.ast.IndentedCodeBlock" :indented-code-block
-    "class com.vladsch.flexmark.ast.Link" :link
-    "class com.vladsch.flexmark.ast.LinkRef" :link-ref
-    "class com.vladsch.flexmark.ast.MailLink" :mail-link
-    "class com.vladsch.flexmark.ast.OrderedList" :olist
-    "class com.vladsch.flexmark.ast.OrderedListItem" :olitem
-    "class com.vladsch.flexmark.ast.Paragraph" :p
-    "class com.vladsch.flexmark.ast.Reference" :ref
-    "class com.vladsch.flexmark.ast.ThematicBreak" :tbr
-    "class com.vladsch.flexmark.ast.SoftLineBreak" :sbr
-    "class com.vladsch.flexmark.ast.StrongEmphasis" :strong
-    "class com.vladsch.flexmark.ast.Text" :txt))
-
-(defn unpack
-  ""
-  [node]
-  (if (.hasChildren node)
-    (loop [iterator (.getChildIterator node)
-           result [(tag node)]]
-      (if (.hasNext iterator)
-        (recur iterator (conj result (unpack (.next iterator))))
-        result))
-    [(tag node) (-> node .getChars .unescape)]))
-
-(defn parse
-  ""
-  [string]
-  (let [parser (-> (Parser/builder) .build)
-        root (.parse parser string)]
-    (unpack root)))
-
-(def sample (->> ["- item one"
-                  "- item two"
-                  "- item three"
-                  "    - item three (a)"
-                  "    - item three (b)"
-                  "where to?\r\n"
-                  "# Heading BIG and **STRONG** #\r\n"
-                  "Display *emphasized* stuff here!\r\n"
-                  "``` clojure"
-                  "(defn dbl [x]"
-                  "  (* x 2))"
-                  "```\r\n"
-                  "    (defn sqr [x]"
-                  "      (* x x))\r\n"
-                  "Goodbye and `happy coding`!"]
-                 (string/join "\r\n")))
-
-(def md-ast (parse sample))
 
 (def ontology (->
                 (make-hierarchy)
                 (derive :blist :block)
+                (derive :olist :block)
                 (derive :fenced-code-block :block)
                 (derive :indented-code-block :block)
+                (derive :blitem :list-item)
+                (derive :olitem :list-item)
                 atom))
+
+(defmulti annotate (fn [node _] (node :tag)) :hierarchy ontology)
+
+(defmethod annotate :olist
+  [node _]
+  (update node :children #(map-indexed
+                            (fn [i item]
+                              (assoc item :index (inc i) :list-size (count %)))
+                            %)))
+
+(defmethod annotate :default
+  [node _]
+  node)
 
 (defn decorate [recipient categories & clauses]
   (let [effect-map (apply
@@ -116,9 +60,11 @@
     #(apply update % 2 update :traits (comp set conj) traits)
     plot))
 
-(defmulti plot-ast (fn [node _] (first node)))
+(defn dispatch-fn [node & _] (node :tag))
 
-(defmulti next-at (fn [node _ _] (first node)) :hierarchy ontology)
+(defmulti plot-ast dispatch-fn :hierarchy ontology)
+
+(defmulti next-at dispatch-fn :hierarchy ontology)
 
 (defn reflow
   ""
@@ -184,7 +130,7 @@
     {:x 0
      :y (+ last-y (if (zero? level) 2 1))}))
 
-(defmethod next-at :blitem
+(defmethod next-at :list-item
   [_ plot _]
   (let [[_ y] (second (last plot))]
     {:x 0
@@ -198,7 +144,7 @@
   [node
    {:keys [x y left top width height]
     :or {x 0 y 0 left 0 top 0}}]
-  (let [string (second node)
+  (let [string (node :content)
         reflowed (reflow string {:width width})
         lines (string/split-lines reflowed)
         truncate #(take (or height (count %)) %)
@@ -229,31 +175,57 @@
                  (map reverse)
                  (map vector (repeat \space)))
         inner-options (assoc options :x (+ x indent-length))
-        inner (plot-ast (assoc node 0 :txt) inner-options)]
+        inner (plot-ast (assoc node :tag :txt) inner-options)]
     (->
       (concat indent inner)
       (decorate-plot :code))))
 
-(defmethod plot-ast :blitem
+(defn plot-horizontally [x y string]
+  (->>
+    (count string)
+    range
+    (map (partial + x))
+    (map vector (repeat y))
+    (map reverse)
+    (map vector (seq string))))
+
+(defmulti plot-list-item-decor (fn [tag _] tag) :hierarchy ontology)
+
+(defmethod plot-list-item-decor :blitem
+  [_ {:keys [x y]}]
+  [[\+     [     x  y] {:traits #{:bullet}}]
+   [\space [(inc x) y]                     ]])
+
+(defmethod plot-list-item-decor :olitem
+  [_ {:keys [index level x y list-size]}]
+  (let [alphabetical-numeral #(-> % dec (+ (int \a)) char)
+        alpha? (odd? level)
+        figure-count (-> list-size Math/log10 Math/floor int inc)]
+    (->>
+      index
+      ((if alpha? alphabetical-numeral str))
+      (format (str "%" (if alpha? 1 figure-count) "s. "))
+      (plot-horizontally x y))))
+
+(defmethod plot-ast :list-item
   [node
    {:as options
     :keys [x y level]
     :or {x 0 y 0 level 0}}]
   (let [indent-length (* level 2)
-        indent (->>
-                 indent-length
-                 range
-                 (map (partial + x))
-                 (map vector (repeat y))
-                 (map reverse)
-                 (map vector (repeat \space)))
-        decor [[\+     [(+ x indent-length  ) y] {:traits #{:bullet}}]
-               [\space [(+ x indent-length 1) y]                     ]]
+        indent (plot-horizontally x y (string/join (repeat indent-length \space)))
+        decor (plot-list-item-decor
+                (dispatch-fn node)
+                {:index (-> node :index)
+                 :level level
+                 :x (+ x indent-length)
+                 :y y
+                 :list-size (-> node :list-size)})
         inner-options (assoc
                         options
                         :x (+ x indent-length (count decor))
                         :level (inc level))
-        inner (plot-ast (assoc node 0 :default) inner-options)]
+        inner (plot-ast (assoc node :tag :default) inner-options)]
     (concat indent decor inner)))
 
 (defmethod plot-ast :sbr
@@ -271,7 +243,7 @@
    {:as options
     :keys [x y]
     :or {x 0 y 0}}]
-  (loop [contents (rest node)
+  (loop [contents (node :children)
          result []
          origin {:x x :y y}]
     (if (empty? contents)
@@ -284,39 +256,39 @@
 
 (defmethod plot-ast :h
   [node options]
-  (-> node (assoc 0 :default) (plot-ast options) (decorate-plot :h)))
+  (-> node (assoc :tag :default) (plot-ast options) (decorate-plot :h)))
 
 (defmethod plot-ast :em
   [node options]
-  (-> node (assoc 0 :default) (plot-ast options) (decorate-plot :em)))
+  (-> node (assoc :tag :default) (plot-ast options) (decorate-plot :em)))
 
 (defmethod plot-ast :strong
   [node options]
-  (-> node (assoc 0 :default) (plot-ast options) (decorate-plot :strong)))
+  (-> node (assoc :tag :default) (plot-ast options) (decorate-plot :strong)))
 
 (defmethod plot-ast :fenced-code-block
   [node options]
-  (-> node (assoc 0 :default) (plot-ast options) (decorate-plot :code)))
+  (-> node (assoc :tag :default) (plot-ast options) (decorate-plot :code)))
 
 (defmethod plot-ast :html-inline
   [node options]
-  (-> node (assoc 0 :txt) (plot-ast options) (decorate-plot :code)))
+  (-> node (assoc :tag :txt) (plot-ast options) (decorate-plot :code)))
 
 (defmethod plot-ast :ref
   [node options]
-  (-> node (assoc 0 :txt) (plot-ast options) (decorate-plot :code)))
+  (-> node (assoc :tag :txt) (plot-ast options) (decorate-plot :code)))
 
 (defmethod plot-ast :html-block
   [node options]
-  (-> node (assoc 0 :txt) (plot-ast options) (decorate-plot :code)))
+  (-> node (assoc :tag :txt) (plot-ast options) (decorate-plot :code)))
 
 (defmethod plot-ast :tbr
   [node options]
-  (-> node (assoc 0 :txt) (plot-ast options) (decorate-plot :code)))
+  (-> node (assoc :tag :txt) (plot-ast options) (decorate-plot :code)))
 
 (defmethod plot-ast :code
   [node options]
-  (-> node (assoc 0 :default) (plot-ast options) (decorate-plot :code)))
+  (-> node (assoc :tag :default) (plot-ast options) (decorate-plot :code)))
 
 (defn plot
   "Returns a sequence of pairs -one for each character of the input string-
@@ -324,7 +296,11 @@
      * the character
      * the [x y] coordinates of the character"
   [string options]
-  (plot-ast (parse string) options))
+  (->
+    string
+    flexmark/parse
+    (ast/depth-first-walk annotate)
+    (plot-ast options)))
 
 (defn line-count
   [string width]
