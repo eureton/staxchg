@@ -13,6 +13,10 @@
                 (derive :indented-code-block :block)
                 (derive :blitem :list-item)
                 (derive :olitem :list-item)
+                (derive :txt :inline)
+                (derive :code :inline)
+                (derive :strong :inline)
+                (derive :html-inline :inline)
                 atom))
 
 (defmulti annotate (fn [node _] (node :tag)) :hierarchy ontology)
@@ -70,14 +74,15 @@
 (defn reflow
   ""
   [string
-   {:keys [width height]}]
+   {:keys [x width height]
+    :or {x 0}}]
   (let [truncate #(take (or height (count %)) %)]
     (as-> string v
       (string/split-lines v)
       (map
         (fn [line]
           (->>
-            (pack line width)
+            (pack line (- width x))
             (map #(hash-map :s % :c  (count %)))
             (#(reduce  (fn  [agg h]  (conj agg  (assoc h :art  (not= h  (last %)))))  [] %))))
         v)
@@ -98,7 +103,7 @@
        (:reflowed v)
        )))
 
-(defmethod next-at :txt
+(defmethod next-at :inline
   [_
    plot
    {:keys [width]}]
@@ -108,9 +113,10 @@
      :y (if overrun? (inc y) y)}))
 
 (defmethod next-at :p
-  [_ _ {:keys [y] :or {y 0}}]
-  {:x 0
-   :y (inc y)})
+  [_ plot _]
+  (let [[_ y] (second (last plot))]
+    {:x 0
+     :y (inc y)}))
 
 (defmethod next-at :sbr
   [_ _ {:keys [x y]}]
@@ -152,7 +158,7 @@
    {:keys [x y left top width height]
     :or {x 0 y 0 left 0 top 0}}]
   (let [string (node :content)
-        reflowed (reflow string {:width width})
+        reflowed (reflow string {:x x :width width})
         lines (string/split-lines reflowed)
         truncate #(take (or height (count %)) %)
         lengths (->> lines flatten truncate (map count))]
