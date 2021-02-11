@@ -126,14 +126,14 @@
     (testing "indented code block"
       (let [s "    12\r\n    34"]
         (is (and (= (cs s {:width 100})
-                    [\space \space \space \space \1 \2
-                     \space \space \space \space \3 \4])
+                    [\1 \2
+                     \3 \4])
                  (= (xys s {:width 100})
-                    [[0 0] [1 0] [2 0] [3 0] [4 0] [5 0]
-                     [0 1] [1 1] [2 1] [3 1] [4 1] [5 1]])))))
+                    [[0 0] [1 0]
+                     [0 1] [1 1]])))))
     (testing "indented code block: bottom margin"
       (is (= (xys "    12\r\n34" {:width 100})
-             [[0 0] [1 0] [2 0] [3 0] [4 0] [5 0]
+             [[0 0] [1 0]
               [0 2] [1 2]])))
     (testing "ordered list: characters"
       (is (= (cs "1. 1\r\n1. 2\r\n1. 3" {:width 100}) [\1 \. \space \1

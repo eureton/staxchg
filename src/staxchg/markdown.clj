@@ -173,19 +173,12 @@
    {:as options
     :keys [x y]
     :or {x 0 y 0}}]
-  (let [indent-length 4
-        indent (->>
-                 indent-length
-                 range
-                 (map (partial + x))
-                 (map vector (repeat y))
-                 (map reverse)
-                 (map vector (repeat \space)))
-        inner-options (assoc options :x (+ x indent-length))
-        inner (plot-ast (assoc node :tag :txt) inner-options)]
-    (->
-      (concat indent inner)
-      (decorate-plot :code))))
+  (->
+    node
+    (assoc :tag :txt)
+    (update :content string/replace #"(?im)^(?:    |\t)" "")
+    (plot-ast options)
+    (decorate-plot :code)))
 
 (defmethod plot-ast :tbr
   [node
