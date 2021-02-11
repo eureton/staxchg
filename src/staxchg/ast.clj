@@ -71,7 +71,8 @@
 (defn dump
   ""
   ([ast]
-   (walk :breadth-first ast dump))
+   (do (walk :breadth-first ast dump)
+       nil))
   ([node {:keys [trail leaf?]}]
    (let [level (count trail)
          prefix (if leaf? "-|" "->")
