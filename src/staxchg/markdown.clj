@@ -7,6 +7,7 @@
 
 (def ontology (->
                 (make-hierarchy)
+                (derive :p :block)
                 (derive :blist :block)
                 (derive :olist :block)
                 (derive :fenced-code-block :block)
@@ -111,12 +112,6 @@
         overrun? (>= (inc x) width)]
     {:x (if overrun? 0 (inc x))
      :y (if overrun? (inc y) y)}))
-
-(defmethod next-at :p
-  [_ plot _]
-  (let [[_ y] (second (last plot))]
-    {:x 0
-     :y (inc y)}))
 
 (defmethod next-at :sbr
   [_ _ {:keys [x y]}]

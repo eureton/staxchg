@@ -64,12 +64,12 @@
               [\- [7 0] {:traits #{:horz}}]
               [\- [8 0] {:traits #{:horz}}]
               [\- [9 0] {:traits #{:horz}}]])))
-    (testing "new paragraph"
+    (testing "paragraph"
       (is (= (plot "12\r\n\r\n34" {:width 100})
              [[\1 [0 0]]
               [\2 [1 0]]
-              [\3 [0 1]]
-              [\4 [1 1]]])))
+              [\3 [0 2]]
+              [\4 [1 2]]])))
     (testing "bullet list: characters"
       (are [marker]
            (let [s (format "%1$s 1\r\n%1$s 2\r\n%1$s 3" marker)]
