@@ -3,6 +3,7 @@
   (:require [clojure.set])
   (:require [staxchg.flexmark :as flexmark])
   (:require [staxchg.ast :as ast])
+  (:require [staxchg.string])
   (:gen-class))
 
 (def ontology (->
@@ -49,19 +50,6 @@
       recipient
       (clojure.set/intersection (set (keys effect-map)) traits))))
 
-(defn pack [string width]
-  (if (->> string count (>= width))
-    [string]
-    (reduce
-      (fn [aggregator word]
-        (let [previous (peek aggregator)
-              popped (if-not (empty? aggregator) (pop aggregator) aggregator)]
-          (if (<= (+ (count previous) (count word) 1) width)
-            (conj popped (string/join \space (remove nil? [previous word])))
-            (conj aggregator word))))
-      []
-      (string/split string #"(?!\s*$) "))))
-
 (defn decorate-plot
   [plot & traits]
   (map
@@ -73,48 +61,6 @@
 (defmulti plot-ast dispatch-fn :hierarchy ontology)
 
 (defmulti next-at dispatch-fn :hierarchy ontology)
-
-(defn reflow
-  ""
-  [string
-   {:keys [x width]
-    :or {x 0}}]
-  (as-> string v
-    (string/split-lines v)
-    (map
-      #(loop [l %
-              result []
-              index 0]
-         (let [packed (pack l (- width (if (zero? index) x 0)))]
-           (if (= (count packed) 1)
-             (concat result packed)
-             (recur
-               (string/join \space (rest packed))
-               (conj result (first packed))
-               (inc index)))))
-      v)
-    (map
-      (fn [lines]
-        (->>
-          lines
-          (map #(hash-map :s % :c  (count %)))
-          (#(reduce  (fn  [agg h]  (conj agg  (assoc h :art  (not= h  (last %)))))  [] %))))
-      v)
-    (flatten v)
-    (reduce
-      (fn [agg h]
-        (assoc
-          agg
-          :length (+ (agg :length) (h :c) (if (h :art) 1 2))
-          :breaks (conj (agg :breaks) (if (h :art) (+ (h :c) (agg :length)) nil))
-          :reflowed (conj (agg :reflowed) (h :s))))
-      {:reflowed [] :breaks [] :length 0}
-      v)
-    (assoc v
-       :reflowed (string/join "\r\n" (v :reflowed)))
-     (dissoc v :length :breaks)
-     (:reflowed v)
-     ))
 
 (defmethod next-at :inline
   [_
@@ -183,7 +129,7 @@
                                     line))]
     (as->
       (node :content) v
-      (reflow v {:x x :width width})
+      (staxchg.string/reflow v {:x x :width width})
       (string/split-lines v)
       (truncate v)
       (map-indexed line-plotter v)
