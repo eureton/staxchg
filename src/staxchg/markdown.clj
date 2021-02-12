@@ -12,6 +12,8 @@
                 (derive :olist :block)
                 (derive :fenced-code-block :block)
                 (derive :indented-code-block :block)
+                (derive :html-block :block)
+                (derive :ref :block)
                 (derive :blitem :list-item)
                 (derive :olitem :list-item)
                 (derive :txt :inline)
@@ -147,6 +149,19 @@
   [_ _ _]
   {:x -1 :y -1})
 
+(defn plot-horizontally
+  ""
+  ([x y n character]
+   (plot-horizontally x y (repeat n character)))
+  ([x y string]
+   (->>
+     (count string)
+     range
+     (map (partial + x))
+     (map vector (repeat y))
+     (map reverse)
+     (map vector (seq string)))))
+
 (defmethod plot-ast :txt
   [node
    {:keys [x y left top width height]
@@ -185,21 +200,8 @@
    {:keys [y width]
     :or {y 0}}]
   (decorate-plot
-    (->>
-      (range width)
-      (map vector (repeat y))
-      (map reverse)
-      (map vector (repeat \-)))
+    (plot-horizontally 0 y width \-)
     :horz))
-
-(defn plot-horizontally [x y string]
-  (->>
-    (count string)
-    range
-    (map (partial + x))
-    (map vector (repeat y))
-    (map reverse)
-    (map vector (seq string))))
 
 (defmulti plot-list-item-decor (fn [tag _] tag) :hierarchy ontology)
 
