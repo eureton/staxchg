@@ -77,34 +77,44 @@
 (defn reflow
   ""
   [string
-   {:keys [x width height]
+   {:keys [x width]
     :or {x 0}}]
-  (let [truncate #(take (or height (count %)) %)]
-    (as-> string v
-      (string/split-lines v)
-      (map
-        (fn [line]
-          (->>
-            (pack line (- width x))
-            (map #(hash-map :s % :c  (count %)))
-            (#(reduce  (fn  [agg h]  (conj agg  (assoc h :art  (not= h  (last %)))))  [] %))))
-        v)
-      (flatten v)
-      (truncate v)
-      (reduce
-        (fn [agg h]
-          (assoc
-            agg
-            :length (+ (agg :length) (h :c) (if (h :art) 1 2))
-            :breaks (conj (agg :breaks) (if (h :art) (+ (h :c) (agg :length)) nil))
-            :reflowed (conj (agg :reflowed) (h :s))))
-        {:reflowed [] :breaks [] :length 0}
-        v)
-      (assoc v
-         :reflowed (string/join "\r\n" (v :reflowed)))
-       (dissoc v :length :breaks)
-       (:reflowed v)
-       )))
+  (as-> string v
+    (string/split-lines v)
+    (map
+      #(loop [l %
+              result []
+              index 0]
+         (let [packed (pack l (- width (if (zero? index) x 0)))]
+           (if (= (count packed) 1)
+             (concat result packed)
+             (recur
+               (string/join \space (rest packed))
+               (conj result (first packed))
+               (inc index)))))
+      v)
+    (map
+      (fn [lines]
+        (->>
+          lines
+          (map #(hash-map :s % :c  (count %)))
+          (#(reduce  (fn  [agg h]  (conj agg  (assoc h :art  (not= h  (last %)))))  [] %))))
+      v)
+    (flatten v)
+    (reduce
+      (fn [agg h]
+        (assoc
+          agg
+          :length (+ (agg :length) (h :c) (if (h :art) 1 2))
+          :breaks (conj (agg :breaks) (if (h :art) (+ (h :c) (agg :length)) nil))
+          :reflowed (conj (agg :reflowed) (h :s))))
+      {:reflowed [] :breaks [] :length 0}
+      v)
+    (assoc v
+       :reflowed (string/join "\r\n" (v :reflowed)))
+     (dissoc v :length :breaks)
+     (:reflowed v)
+     ))
 
 (defmethod next-at :inline
   [_
@@ -166,22 +176,18 @@
   [node
    {:keys [x y left top width height]
     :or {x 0 y 0 left 0 top 0}}]
-  (let [string (node :content)
-        reflowed (reflow string {:x x :width width})
-        lines (string/split-lines reflowed)
-        truncate #(take (or height (count %)) %)
-        lengths (->> lines flatten truncate (map count))]
-    (map
-      vector
-      (seq (string/join lines))
-      (->>
-        lengths
-        (map-indexed (fn [index length]
-                       (->>
-                         length
-                         range
-                         (map #(vector (+ % left (if (zero? index) x 0)) (+ index top y))))))
-        (reduce concat)))))
+  (let [truncate #(take (or height (count %)) %)
+        line-plotter (fn [i line] (plot-horizontally
+                                    (+ left (if (zero? i) x 0))
+                                    (+ top y i)
+                                    line))]
+    (as->
+      (node :content) v
+      (reflow v {:x x :width width})
+      (string/split-lines v)
+      (truncate v)
+      (map-indexed line-plotter v)
+      (reduce concat v))))
 
 (defmethod plot-ast :indented-code-block
   [node
