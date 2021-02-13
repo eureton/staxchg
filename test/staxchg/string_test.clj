@@ -17,8 +17,14 @@
          3 "abc xyz"   ["abc" "xyz"  ]
          4 "abc xyz "  ["abc" "xyz " ]
          5 "abc xyz  " ["abc" "xyz  "]))
+  (testing "truncation"
+    (is (= (pack 3 "abcd") ["ab…"])))
   (testing "x"
     (is (= (pack 1 7 "abc xyz") ["abc" "xyz"])))
   (testing "x affects first line only"
-    (is (= (pack 1 7 "abc xyz klm") ["abc" "xyz klm"]))))
+    (is (= (pack 1 7 "abc xyz klm") ["abc" "xyz klm"])))
+  (testing "x and truncation (word fits below)"
+    (is (= (pack 1 4 "abcd") ["" "abcd"])))
+  (testing "x and truncation (word doesn't fit below)"
+    (is (= (pack 1 3 "abcd") ["" "ab…"]))))
 
