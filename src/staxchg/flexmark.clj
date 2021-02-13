@@ -39,12 +39,18 @@
     "class com.vladsch.flexmark.ast.StrongEmphasis" :strong
     "class com.vladsch.flexmark.ast.Text" :txt))
 
+(defn attributes
+  ""
+  [node]
+  (cond-> {}
+    (= (tag node) :link) (assoc :url (-> node .getUrl .toString))))
+
 (defn unpack
   ""
   [node zerof addf leaff]
   (if (.hasChildren node)
     (loop [iterator (.getChildIterator node)
-           result (zerof (tag node))]
+           result (apply zerof ((juxt tag attributes) node))]
       (if (.hasNext iterator)
         (recur
           iterator

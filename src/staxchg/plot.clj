@@ -15,8 +15,12 @@
                 (derive :blitem :list-item)
                 (derive :olitem :list-item)
                 (derive :txt :inline)
+                (derive :sbr :inline)
                 (derive :code :inline)
                 (derive :strong :inline)
+                (derive :em :inline)
+                (derive :link :inline)
+                (derive :url :inline)
                 (derive :html-inline :inline)
                 atom))
 
@@ -46,16 +50,10 @@
 (defmethod next-at :inline
   [_
    plot
-   {:keys [width]}]
-  (let [[x y] (second (last plot))
-        overrun? (>= (inc x) width)]
-    {:x (if overrun? 0 (inc x))
-     :y (if overrun? (inc y) y)}))
-
-(defmethod next-at :sbr
-  [_ _ {:keys [x y]}]
-  {:x (+ x 2)
-   :y y})
+   {:keys [left top] :or {left 0 top 0}}]
+  (let [[x y] (->> plot last second (map + [(- left) (- top)]))]
+    {:x (inc x)
+     :y y}))
 
 (defmethod next-at :hbr
   [_ _ {:keys [y]}]
@@ -63,10 +61,9 @@
    :y (inc y)})
 
 (defmethod next-at :tbr
-  [_ plot _]
-  (let [[_ y] (second (last plot))]
-    {:x 0
-     :y (inc y)}))
+  [_ plot {:keys [top] :or {top 0}}]
+  {:x 0
+   :y (-> plot last second second (- top) inc)})
 
 (defmethod next-at :block
   [_
@@ -78,9 +75,9 @@
      :y (+ last-y (if (zero? level) 2 1))}))
 
 (defmethod next-at :list-item
-  [_ plot _]
+  [_ plot {:keys [top] :or {top 0}}]
   {:x 0
-   :y (-> plot last second second inc)})
+   :y (-> plot last second second (- top) inc)})
 
 (defmethod next-at :default
   [_ _ _]
@@ -149,7 +146,7 @@
     :keys [x y level]
     :or {x 0 y 0 level 0}}]
   (let [indent-length (* level 2)
-        indent (straight x y (string/join (repeat indent-length \space)))
+        indent (straight x y indent-length \space)
         decor (list-item-decor
                 (ast-dispatch-fn node)
                 {:index (-> node :index)
@@ -166,9 +163,9 @@
 
 (defmethod ast :sbr
   [_
-   {:keys [x y]
-    :or {x 0 y 0}}]
-  [[\space [x y]] [\space [(inc x) y]]])
+   {:keys [x y left top]
+    :or {x 0 y 0 left 0 top 0}}]
+  (straight (+ left x) (+ top y) 2 \space))
 
 (defmethod ast :hbr
   [_ _]
@@ -211,6 +208,10 @@
   (-> node (assoc :tag :txt) (ast options) (decorate :code)))
 
 (defmethod ast :ref
+  [node options]
+  (-> node (assoc :tag :txt) (ast options) (decorate :code)))
+
+(defmethod ast :url
   [node options]
   (-> node (assoc :tag :txt) (ast options) (decorate :code)))
 

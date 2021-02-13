@@ -16,6 +16,12 @@
                               (assoc item :index (inc i) :list-size (count %)))
                             %)))
 
+(defmethod annotate :link
+  [node _]
+  (let [spacing {:tag :txt :content " "}
+        url {:tag :url :content (node :url)}]
+    (update node :children conj spacing url)))
+
 (defmethod annotate :default
   [node _]
   node)

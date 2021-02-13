@@ -4,9 +4,8 @@
 
 (defn zero
   ""
-  [tag]
-  {:tag tag
-   :children []})
+  [tag attributes]
+  (merge {:tag tag :children []} attributes))
 
 (defn add
   ""
@@ -30,7 +29,7 @@
   (if (leaf? ast)
     ast
     (loop [nodes (:children ast)
-           result {:tag (:tag ast) :children []}
+           result (assoc ast :children [])
            trail (conj trail 0)]
       (if (empty? nodes)
         result
