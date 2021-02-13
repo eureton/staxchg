@@ -8,7 +8,7 @@
   (let [length (count word)]
     (if (<= length width)
       word
-      (str (subs word 0 (dec width)) \…))))
+      (str (subs word 0 (max 0 (dec width))) \…))))
 
 (defn truncated?
   ""
@@ -28,7 +28,7 @@
              (conj popped (string/join \space (remove nil? [previous word])))
              (conj aggregator (truncate word width)))))
        []
-       (string/split string #"(?!\s*$) "))))
+       (string/split string #"(?<!^\s*)\s(?!\s|$)"))))
   ([x width string]
    (loop [string string
           result []
@@ -36,7 +36,7 @@
      (let [top? (zero? index)
            packed (pack (- width (if top? x 0)) string)
            packed (if (and top? (truncated? (first packed)))
-                    ["" string]
+                    ["" (string/triml string)]
                     packed)]
        (if (= (count packed) 1)
          (concat result packed)

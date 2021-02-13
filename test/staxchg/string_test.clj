@@ -23,8 +23,14 @@
     (is (= (pack 1 7 "abc xyz") ["abc" "xyz"])))
   (testing "x affects first line only"
     (is (= (pack 1 7 "abc xyz klm") ["abc" "xyz klm"])))
-  (testing "x and truncation (word fits below)"
+  (testing "x: truncation (word fits below)"
     (is (= (pack 1 4 "abcd") ["" "abcd"])))
-  (testing "x and truncation (word doesn't fit below)"
-    (is (= (pack 1 3 "abcd") ["" "ab…"]))))
+  (testing "x: truncation (word doesn't fit below)"
+    (is (= (pack 1 3 "abcd") ["" "ab…"])))
+  (testing "x equal to width"
+    (is (= (pack 3 3 "abc") ["" "abc"])))
+  (testing "x greater than width"
+    (is (= (pack 4 3 "abc") ["" "abc"])))
+  (testing "x: trim left"
+    (is (= (pack 7 7 " abc def") ["" "abc def"]))))
 
