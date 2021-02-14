@@ -144,7 +144,7 @@
 (defmethod ast :list-item
   [node
    {:as options
-    :keys [x y level]
+    :keys [x y level width]
     :or {x 0 y 0 level 0}}]
   (let [indent-length (* level 2)
         indent (straight x y indent-length \space)
@@ -155,9 +155,11 @@
                  :x (+ x indent-length)
                  :y y
                  :list-size (-> node :list-size)})
+        inner-x-offset (+ indent-length (count decor))
         inner-options (assoc
                         options
-                        :x (+ x indent-length (count decor))
+                        :left (+ x inner-x-offset)
+                        :width (- width inner-x-offset)
                         :level (inc level))
         inner (ast (assoc node :tag :default) inner-options)]
     (concat indent decor inner)))

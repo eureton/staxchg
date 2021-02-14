@@ -87,6 +87,18 @@
     (testing "bullet list: bottom margin"
       (is (= (ys "- 1\r\n\r\n23" {:width 100})
              [0 0 0 2 2])))
+    (testing "bullet list: reflow"
+      (let [s "- abc def\r\n- 123 456"]
+        (is (and (= (cs s {:width 8})
+                    [\+ \space \a \b \c
+                               \d \e \f
+                     \+ \space \1 \2 \3
+                               \4 \5 \6])
+                 (= (xys s {:width 8})
+                    [[0 0] [1 0] [2 0] [3 0] [4 0]
+                                 [2 1] [3 1] [4 1]
+                     [0 2] [1 2] [2 2] [3 2] [4 2]
+                                 [2 3] [3 3] [4 3]])))))
     (testing "bullet list: nesting (one level)"
       (let [s "- 1\r\n    - 1a\r\n    - 1b\r\n- 2"]
         (is (and (= (cs s {:width 100})
@@ -146,6 +158,18 @@
     (testing "ordered list: bottom margin"
       (is (= (ys "1. 1\r\n\r\n23" {:width 100})
              [0 0 0 0 2 2])))
+    (testing "ordered list: reflow"
+      (let [s "1. abc def\r\n1. 123 456"]
+        (is (and (= (cs s {:width 8})
+                    [\1 \. \space \a \b \c
+                                  \d \e \f
+                     \2 \. \space \1 \2 \3
+                                  \4 \5 \6])
+                 (= (xys s {:width 8})
+                    [[0 0] [1 0] [2 0] [3 0] [4 0] [5 0]
+                                       [3 1] [4 1] [5 1]
+                     [0 2] [1 2] [2 2] [3 2] [4 2] [5 2]
+                                       [3 3] [4 3] [5 3]])))))
     (testing "ordered list: nesting (one level)"
       (let [s "1. 1\r\n    1. 1a\r\n    1. 1b\r\n1. 2"]
         (is (and (= (cs s {:width 100})
