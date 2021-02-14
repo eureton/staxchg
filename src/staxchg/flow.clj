@@ -59,13 +59,13 @@
 
 (defn payload-line-count
   ""
-  [{:as zone
-    :keys [width]}
+  [zone
    {:as item
-    :keys [raw]}]
-  (case (item :type)
-    :markdown (markdown/line-count raw width)
-    :string 1))
+    :keys [sub-zone raw]}]
+  (let [width (if sub-zone (sub-zone :width) (zone :width))]
+    (case (item :type)
+      :markdown (markdown/line-count raw width)
+      :string 1)))
 
 (defn scroll-y
   ""

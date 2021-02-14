@@ -22,6 +22,7 @@
                 (derive :link :inline)
                 (derive :url :inline)
                 (derive :html-inline :inline)
+                (derive :link-ref :inline)
                 atom))
 
 (defn straight
