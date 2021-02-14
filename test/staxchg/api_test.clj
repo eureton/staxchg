@@ -46,8 +46,11 @@
     (is (=
          ((query-params "clojure user:1234 repl user:4321 development") :user)
          "1234")))
-  (testing "text ending with 'user' is ignored"
-    (is (not (contains? (query-params "yuser:1234 repl") :user))))
+  (testing "user: invalid values => no key"
+    (are [term] (not (contains? (query-params term) :user))
+         "abc user:x123 xyz"
+         "abc user:123x xyz"
+         "abc uuser:123 xyz"))
 
   ; isaccepted
   (testing "isaccepted: yes"

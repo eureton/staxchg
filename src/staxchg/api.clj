@@ -14,7 +14,7 @@
     (str base "/" version "/" endpoint)))
 
 (def query-params-patterns [{:regex #"\[([a-z_-]+)\]"          :multi? true }
-                            {:regex #"\buser:(\d+)"            :multi? false}
+                            {:regex #"\buser:(\d+)\b"          :multi? false}
                             {:regex #"\bisaccepted:(yes|no)\b" :multi? false}
                             {:regex #"\bscore:(\d+)\b"         :multi? false}
                             {:regex #"\"(.*?)\""               :multi? false}])
