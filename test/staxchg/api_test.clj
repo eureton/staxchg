@@ -77,6 +77,12 @@
          "abc score:x3 xyz"
          "abc sscore:3 xyz"))
 
+  ; exact
+  (testing "exact: valid values => keys set"
+    (is (= ((query-params "abc \"klm\" xyz") :title) "klm")))
+  (testing "exact: first wins"
+    (is (= ((query-params "\"abc\" klm \"xyz\"") :title) "abc")))
+
   ; q
   (testing "q: removes"
     (are [term] (= ((query-params term) :q) "abc xyz")

@@ -16,7 +16,8 @@
 (def query-params-patterns [{:regex #"\[([a-z_-]+)\]"          :multi? true }
                             {:regex #"\buser:(\d+)"            :multi? false}
                             {:regex #"\bisaccepted:(yes|no)\b" :multi? false}
-                            {:regex #"\bscore:(\d+)"           :multi? false}])
+                            {:regex #"\bscore:(\d+)"           :multi? false}
+                            {:regex #"\"(.*?)\""               :multi? false}])
 
 (defn query-params-match
   ""
@@ -51,9 +52,10 @@
         site "stackoverflow"
         order "desc"
         sort-attr "relevance"
-        [tags user accepted score] (map
-                                     (partial query-params-match term)
-                                     query-params-patterns)
+        [tags user accepted
+         score title] (map
+                        (partial query-params-match term)
+                        query-params-patterns)
         q (query-freeform term)
         base {:client_id (conf "CLIENT_ID")
               :key (conf "API_KEY")
@@ -65,11 +67,11 @@
               :site site
               :filter attrs}]
     (cond-> base
-      (some? term) (assoc :intitle term)
       (not-empty tags) (assoc :tagged (string/join \; tags))
       (some? user) (assoc :user user)
       (some? accepted) (assoc :accepted accepted)
-      (some? score) (merge {:sort "votes" :min score})
+      (some? score) (assoc :sort "votes" :min score)
+      (some? title) (assoc :title title)
       (not (string/blank? q)) (assoc :q q))))
 
 (defn unescape-html [string]
