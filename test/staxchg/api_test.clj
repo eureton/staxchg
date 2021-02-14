@@ -102,7 +102,10 @@
          "abc score:3 xyz"
          "score:3 abc xyz"
          "abc xyz score:3"
-         "[tag] abc user:1234 score:3 xyz isaccepted:yes"))
+         "abc \"12 : 34\" xyz"
+         "\"12 : 34\" abc xyz"
+         "abc xyz \"12 : 34\""
+         "[tag] abc user:1234 score:3 \"12 : 34\" xyz isaccepted:yes"))
   (testing "q: no value => no key"
     (are [term] (not (contains? (query-params term) :q))
          "[tag]"
