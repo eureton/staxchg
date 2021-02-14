@@ -16,7 +16,7 @@
 (def query-params-patterns [{:regex #"\[([a-z_-]+)\]"          :multi? true }
                             {:regex #"\buser:(\d+)"            :multi? false}
                             {:regex #"\bisaccepted:(yes|no)\b" :multi? false}
-                            {:regex #"\bscore:(\d+)"           :multi? false}
+                            {:regex #"\bscore:(\d+)\b"         :multi? false}
                             {:regex #"\"(.*?)\""               :multi? false}])
 
 (defn query-params-match

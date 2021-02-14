@@ -75,6 +75,7 @@
                   (and (not= (params :sort) "votes")
                        (not (contains? params :min))))
          "abc score:x3 xyz"
+         "abc score:3x xyz"
          "abc sscore:3 xyz"))
 
   ; exact
