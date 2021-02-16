@@ -21,7 +21,7 @@
         endpoint "questions"]
     (str base "/" version "/" endpoint "/" question-id "/answers")))
 
-(def query-params-patterns [{:regex #"\[([a-z_-]+)\]"          :multi? true }
+(def query-params-patterns [{:regex #"\[([a-z.#_-]+)\]"        :multi? true }
                             {:regex #"\buser:(\d+)\b"          :multi? false}
                             {:regex #"\bisaccepted:(yes|no)\b" :multi? false}
                             {:regex #"\bscore:(\d+)\b"         :multi? false}

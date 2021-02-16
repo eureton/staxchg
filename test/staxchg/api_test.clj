@@ -34,6 +34,12 @@
     (is (=
          ((questions-query-params "[clojure] lorem [repl] driven [development]") :tagged)
          "clojure;repl;development")))
+  (testing "tag: # symbol"
+    (is (= ((questions-query-params "abc [c#] klm [f#] xyz") :tagged)
+           "c#;f#")))
+  (testing "tag: . symbol"
+    (is (= ((questions-query-params "abc [vue.js] xyz") :tagged)
+           "vue.js")))
 
   ; user
   (testing "when no users, no :user key out"
