@@ -85,54 +85,77 @@
                          :height (inc answers-separator-height)
                          :clear? switched-pane?}}))
 
+(defn line-offset
+  ""
+  [post
+   {:as world
+    :keys [active-pane]}]
+  (let [id-key (case active-pane :questions "question_id" :answers "answer_id")
+        post-id (get post id-key)]
+   (or (get-in world [:line-offsets post-id])
+       0)))
+
+(defn selected-answer
+  ([{:as question
+     :strs [question_id answers]}
+    {:as world
+     :keys [questions selected-question-index]}]
+   (let [answer-id (get-in world [:selected-answers question_id])]
+     (some
+       #(when (= answer-id (% "answer_id")) %)
+       answers)))
+  ([{:as world
+     :keys [questions selected-question-index]}]
+   (selected-answer (questions selected-question-index) world)))
+
 (defn format-date
   ""
   [unixtime]
-  (let [datetime (java.time.LocalDateTime/ofEpochSecond unixtime 0 java.time.ZoneOffset/UTC)]
-    (format
-      "%4d-%02d-%02d %02d:%02d"
-      (.getYear datetime)
-      (.getValue (.getMonth datetime))
-      (.getDayOfMonth datetime)
-      (.getHour datetime)
-      (.getMinute datetime))))
+  (if (nil? unixtime)
+    nil
+    (let [datetime (java.time.LocalDateTime/ofEpochSecond unixtime 0 java.time.ZoneOffset/UTC)]
+      (format
+        "%4d-%02d-%02d %02d:%02d"
+        (.getYear datetime)
+        (.getValue (.getMonth datetime))
+        (.getDayOfMonth datetime)
+        (.getHour datetime)
+        (.getMinute datetime)))))
 
 (defn format-author
   ""
-  [post]
-  (format
-    "%s (%s)"
-    (get-in post ["owner" "display_name"])
-    (get-in post ["owner" "reputation"])))
+  [{:as author
+    :strs [display_name reputation]}]
+  (format "%s (%s)" display_name reputation))
 
 (defn format-question-meta
   ""
-  [{:as question :strs [answers score view_count last_activity_date]}]
+  [{:as question :strs [answers score view_count last_activity_date owner]}]
   (format
     "(A: %d) | (S: %d) | (V: %d) | %s | %s"
     (count answers)
     score
     view_count
-    (format-author question)
+    (format-author owner)
     (format-date last_activity_date)))
 
 (defn format-answer-meta
   ""
-  [answer]
+  [{:as answer :strs [score last_activity_date owner]}]
   (format
     "%d | %s | %s"
-    (answer "score")
-    (format-author answer)
-    (format-date (answer "last_activity_date"))))
+    score
+    (format-author owner)
+    (format-date last_activity_date)))
 
 (defn format-comment-meta
   ""
-  [post]
+  [{:as post :strs [owner score creation_date]}]
   (format
     "%d | %s | %s"
-    (post "score")
-    (format-author post)
-    (format-date (post "creation_date"))))
+    score
+    (format-author owner)
+    (format-date creation_date)))
 
 (defn format-question-list-item
   ""
@@ -156,14 +179,13 @@
 (defn format-answers-pane-separator
   ""
   [{:as question :strs [question_id answers]}
-   {:as world :keys [width selected-answers]}]
-  (let [answer-id (selected-answers question_id)
+   {:as world :keys [width]}]
+  (let [{:strs [answer_id]} (selected-answer question world)
         index (->>
                 answers
+                (map #(get % "answer_id"))
                 (map-indexed vector)
-                (filter (fn [[i a]] (= (a "answer_id") answer-id)))
-                first
-                first)
+                (some (fn [[i id]] (when (= id answer_id) i))))
         hint (if (nil? index)
                "(question has no answers)"
                (format
@@ -200,16 +222,6 @@
     question-list-offset
     (min (count questions) (+ question-list-offset question-list-size))))
 
-(defn selected-answer
-  [{:as world
-    :keys [questions selected-question-index selected-answers]}]
-  (let [selected-question (questions selected-question-index)
-        answer-id (selected-answers (selected-question "question_id"))]
-    (->>
-      (selected-question "answers")
-      (filter #(= (% "answer_id") answer-id))
-      first)))
-
 (def comments-left-margin 16)
 
 (defn comment-flow
@@ -232,7 +244,7 @@
 
 (defn comments-flow
   ""
-  [post world]
+  [{:as post :strs [comments]} world]
   (reduce
     #(flow/add %1 flow/y-separator %2)
     flow/zero
@@ -242,7 +254,7 @@
          ((if (contains? post "answer_id")
             :questions-body
             :answers-body) (zones world)))
-      (post "comments"))))
+      comments)))
 
 (defn question-flow
   ""
@@ -253,10 +265,10 @@
 
 (defn answer-flow
   ""
-  [answer world]
+  [{:as answer :strs [body_markdown answer_id]} world]
   (flow/make {:type :markdown
-              :raw (answer "body_markdown")
-              :scroll-delta (get-in world [:scroll-deltas (answer "answer_id")])}))
+              :raw body_markdown
+              :scroll-delta (get-in world [:scroll-deltas answer_id])}))
 
 (defn questions-body-flow
   ""
@@ -278,9 +290,9 @@
 
 (defn answer-acceptance-flow
   ""
-  [answer world]
+  [{:as answer :strs [is_accepted]} world]
   (let [base {:type :string :x 1}]
-    (flow/make (merge base (if (answer "is_accepted")
+    (flow/make (merge base (if is_accepted
                              {:raw acceptance-text
                               :foreground-color TextColor$ANSI/BLACK
                               :background-color TextColor$ANSI/YELLOW}
@@ -312,10 +324,9 @@
 (defn flows
   ""
   [{:as world
-    :keys [width height question-list-size questions selected-question-index
-           active-pane line-offsets]}]
+    :keys [width height question-list-size questions selected-question-index]}]
   (let [question (questions selected-question-index)
-        answer (selected-answer world)
+        {:as answer :strs [answer_id]} (selected-answer world)
         question-meta-text (format-question-meta question)]
     {:questions-separator (flow/make {:type :string
                                       :raw (format-questions-pane-separator world)})
@@ -327,14 +338,14 @@
                          (visible-questions world)))
      :question-body (flow/scroll-y
                       (questions-body-flow question world)
-                      (- (line-offsets (question "question_id"))))
+                      (- (line-offset question world)))
      :question-meta (flow/make {:type :string
                                 :raw question-meta-text
                                 :x (- width (count question-meta-text))
                                 :foreground-color TextColor$ANSI/YELLOW})
      :answer (flow/scroll-y
                (answers-body-flow answer world)
-               (- (line-offsets (answer "answer_id"))))
+               (- (line-offset answer world)))
      :answer-meta (answer-meta-flow answer world)
      :answer-acceptance (answer-acceptance-flow answer world)
      :answers-header (flow/make {:type :string
