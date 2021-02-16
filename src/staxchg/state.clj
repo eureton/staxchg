@@ -247,7 +247,11 @@
     :keys [selected-question-index]}
    response]
   (let [{:strs [question_id]} (selected-question world)
-        answers (-> response api/parse-response (get "items"))]
+        answers (as->
+                  response v
+                  (api/parse-response v)
+                  (v "items")
+                  (mapv api/scrub-answer v))]
     (->
       world
       (clear-marks)
