@@ -12,6 +12,7 @@
                 (derive :indented-code-block :block)
                 (derive :html-block :block)
                 (derive :ref :block)
+                (derive :block-quot :block)
                 (derive :blitem :list-item)
                 (derive :olitem :list-item)
                 (derive :txt :inline)
@@ -163,6 +164,20 @@
                         :level (inc level))
         inner (ast (assoc node :tag :default) inner-options)]
     (concat indent decor inner)))
+
+(defmethod ast :block-quot
+  [node
+   {:as options
+    :keys [x y width]
+    :or {x 0 y 0}}]
+  (let [decor (straight x y "> ")
+        inner-x-offset (count decor)
+        inner-options (assoc
+                        options
+                        :left (+ x inner-x-offset)
+                        :width (- width inner-x-offset))
+        inner (ast (assoc node :tag :default) inner-options)]
+    (concat decor inner)))
 
 (defmethod ast :sbr
   [_
