@@ -243,5 +243,18 @@
         (is (and (= (cs s opts)
                     [\a \b \space \c \d \space \x \y])
                  (= (xys s opts)
-                    [[0 0] [1 0] [2 0] [3 0] [4 0] [5 0] [6 0] [7 0]])))))))
+                    [[0 0] [1 0] [2 0] [3 0] [4 0] [5 0] [6 0] [7 0]])))))
+    (testing "block quote"
+      (let [s "> 12  \r\n34"
+            opts {:width 100}]
+        (is (and (= (cs s opts)
+                    [\>     \space \1 \2
+                                   \3 \4])
+                 (= (xys s opts)
+                    [[0 0] [1 0] [2 0] [3 0]
+                                 [2 1] [3 1]])))))
+    (testing "block quote: bottom margin"
+      (is (= (xys "> 12\r\n\r\n34" {:width 100})
+             [[0 0] [1 0] [2 0] [3 0]
+              [0 2] [1 2]])))))
 
