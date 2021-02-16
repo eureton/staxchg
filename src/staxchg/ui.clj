@@ -124,10 +124,18 @@
       {:function :query!
        :params [term]})))
 
-(defn fetch!
+(defn fetch-questions!
   [url query-params]
-  (dev/log "[fetch] url: " url ", query-params: " query-params)
-  {:function :fetch!
+  (dev/log "[fetch-questions] url: " url ", query-params: " query-params)
+  {:function :fetch-questions!
+   :params [(http/request {:url url
+                           :method "get"
+                           :query-params query-params})]})
+
+(defn fetch-answers!
+  [url query-params]
+  (dev/log "[fetch-answers] url: " url ", query-params: " query-params)
+  {:function :fetch-answers!
    :params [(http/request {:url url
                            :method "get"
                            :query-params query-params})]})
@@ -135,10 +143,16 @@
 (defn read-input
   ""
   [screen
-   {:as world :keys [query? search-term]}]
+   {:as world
+    :keys [query? search-term fetch-answers]}]
   (cond
     query? (query! screen)
-    search-term (fetch! (api/url) (api/query-params search-term))
+    search-term (fetch-questions!
+                  (api/questions-url)
+                  (api/questions-query-params search-term))
+    fetch-answers (fetch-answers!
+                    (api/answers-url fetch-answers)
+                    (api/answers-query-params))
     :else (read-key! screen)))
 
 (defn commit-recipe
@@ -179,7 +193,9 @@
       (loop [world-before init-world]
         (let [input (read-input screen world-before)
               world-after (state/update-world world-before input)]
-          (when-not (= world-before world-after) (write-output screen world-after))
-          (when-not (world-after :quit?) (recur world-after)))))
+          (when-not (state/generated-output? world-before world-after)
+            (write-output screen world-after))
+          (when-not (world-after :quit?)
+            (recur world-after)))))
     (.stopScreen screen)))
 

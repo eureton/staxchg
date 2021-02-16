@@ -8,24 +8,9 @@
   ""
   [response-body width height]
   (let [questions (mapv api/scrub-question (response-body "items"))
-        question-ids (map #(% "question_id") questions)
-        answer-ids (->> questions (map #(% "answers")) flatten (map #(% "answer_id")))]
-    {:line-offsets (->>
-                     (concat question-ids answer-ids)
-                     (map vector (repeat 0))
-                     (map reverse)
-                     (flatten)
-                     (apply hash-map))
+        question-ids (map #(% "question_id") questions)]
+    {:line-offsets (zipmap question-ids (repeat 0))
      :selected-question-index 0
-     :selected-answers (reduce
-                         #(assoc %1 %2 (get-in
-                                         (->>
-                                           questions
-                                           (filter (fn [q] (= (q "question_id") %2)))
-                                           first)
-                                         ["answers" 0 "answer_id"]))
-                         {}
-                         question-ids)
      :question-list-size 2
      :question-list-offset 0
      :questions questions
@@ -63,12 +48,6 @@
       first
       first)))
 
-(defn selected-line-offset [{:as world :keys [line-offsets active-pane]}]
-  (let [post-id (case active-pane
-                  :questions ((selected-question world) "question_id")
-                  :answers ((presentation/selected-answer world) "answer_id"))]
-    (line-offsets post-id)))
-
 (defn decrement-selected-question-index
   [{:as world
     :keys [selected-question-index question-list-offset]}]
@@ -80,21 +59,15 @@
 
 (defn cycle-selected-answer
   ""
-  [{:as world
-    :keys [questions selected-question-index selected-answers]}
-   direction]
-  (let [selected-question (selected-question world)
-        answers (selected-question "answers")
-        destination-answer (->>
-                             (selected-answer-index world)
-                             ((case direction :forwards inc :backwards dec))
-                             (max 0)
-                             (min (dec (count answers)))
-                             answers)]
-    (update-in
-      world
-      [:selected-answers (selected-question "question_id")]
-      (constantly (destination-answer "answer_id")))))
+  [world direction]
+  (let [{:strs [question_id answers]} (selected-question world)
+        {:strs [answer_id]} (->>
+                              (selected-answer-index world)
+                              ((case direction :forwards inc :backwards dec))
+                              (max 0)
+                              (min (dec (count answers)))
+                              answers)]
+    (assoc-in world [:selected-answers question_id] answer_id)))
 
 (defn active-pane-body-height
   ""
@@ -103,16 +76,6 @@
     (presentation/zones world)
     ((case active-pane :questions :questions-body :answers :answers-body))
     :height))
-
-(defn line-offset
-  ""
-  [post
-   {:as world
-    :keys [line-offsets active-pane]}]
-  (->>
-    (case active-pane :questions "question_id" :answers "answer_id")
-    post
-    line-offsets))
 
 (defn clamp-line-offset
   ""
@@ -137,7 +100,7 @@
         post-id (post (case active-pane
                         :questions "question_id"
                         :answers "answer_id"))
-        previous (line-offset post world)
+        previous (presentation/line-offset post world)
         current (clamp-line-offset (scrollf previous world) post world)]
     (dev/log "scroll-delta[" post-id "]: " (- current previous))
     (dev/log " line-offset[" post-id "]: " current)
@@ -211,7 +174,18 @@
 (defn clear-marks
   ""
   [world]
-  (dissoc world :scroll-deltas :query? :quit? :search-term))
+  (dissoc world :scroll-deltas :query? :quit? :search-term :fetch-answers))
+
+(defn effect-answers-pane
+  ""
+  [world]
+  (let [{:as question :strs [question_id]} (selected-question world)
+        has-answers? (contains? question "answers")]
+    (dev/log "[effect-answers-pane] selected question: " question_id
+             " - has answers? " (if has-answers? "YES" "NO"))
+    (if has-answers?
+      (assoc world :active-pane :answers)
+      (assoc world :fetch-answers question_id))))
 
 (defn effect-command
   ""
@@ -225,7 +199,7 @@
     :one-screen-down (update-selected-post-line-offset one-screen-down world)
     :previous-question (decrement-selected-question-index world)
     :next-question (increment-selected-question-index world)
-    :answers-pane (assoc world :active-pane :answers)
+    :answers-pane (effect-answers-pane world)
     :questions-pane (assoc world :active-pane :questions)
     :previous-answer (cycle-selected-answer world :backwards)
     :next-answer (cycle-selected-answer world :forwards)
@@ -267,6 +241,19 @@
     (initialize-world width height)
     (assoc :switched-question? true)))
 
+(defn update-for-answers-response
+  ""
+  [{:as world
+    :keys [selected-question-index]}
+   response]
+  (let [{:strs [question_id]} (selected-question world)
+        answers (-> response api/parse-response (get "items"))]
+    (->
+      world
+      (clear-marks)
+      (assoc-in [:questions selected-question-index "answers"] answers)
+      (assoc :active-pane :answers :switched-pane? true))))
+
 (defn update-world
   ""
   [world
@@ -274,8 +261,15 @@
   (let [f (case function
             :read-key! update-for-keystroke
             :query! update-for-search-term
-            :fetch! update-for-query-response)]
+            :fetch-questions! update-for-query-response
+            :fetch-answers! update-for-answers-response)]
     (apply f world params)))
+
+(defn generated-output?
+  ""
+  [world-before world-after]
+  (= (clear-marks world-before)
+     (clear-marks world-after)))
 
 (def w (-> (initialize-world dev/response-body 118 37)
            (update-for-keystroke \J false)

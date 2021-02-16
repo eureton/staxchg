@@ -100,7 +100,8 @@
      :strs [question_id answers]}
     {:as world
      :keys [questions selected-question-index]}]
-   (let [answer-id (get-in world [:selected-answers question_id])]
+   (let [answer-id (or (get-in world [:selected-answers question_id])
+                       (-> answers (nth 0) (get "answer_id")))]
      (some
        #(when (= answer-id (% "answer_id")) %)
        answers)))
@@ -130,10 +131,10 @@
 
 (defn format-question-meta
   ""
-  [{:as question :strs [answers score view_count last_activity_date owner]}]
+  [{:as question :strs [answer_count score view_count last_activity_date owner]}]
   (format
     "(A: %d) | (S: %d) | (V: %d) | %s | %s"
-    (count answers)
+    answer_count
     score
     view_count
     (format-author owner)
@@ -178,7 +179,7 @@
 
 (defn format-answers-pane-separator
   ""
-  [{:as question :strs [question_id answers]}
+  [{:as question :strs [question_id answer_count answers]}
    {:as world :keys [width]}]
   (let [{:strs [answer_id]} (selected-answer question world)
         index (->>
@@ -191,7 +192,7 @@
                (format
                  "(%d of %d)"
                  (inc index)
-                 (count answers)))]
+                 answer_count))]
     (format
       "%s%s%s"
       (apply str (repeat (- width (count hint) 1) Symbols/SINGLE_LINE_HORIZONTAL))
