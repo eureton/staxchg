@@ -24,6 +24,7 @@
 {
   "items" [
     {
+      "answer_count" 42,
       "answers" [
         {
           "comments" [
@@ -853,6 +854,7 @@
         "python-module",
         "idioms"
       ],
+      "answer_count" 34,
       "answers" [
         {
           "comments" [
@@ -1687,6 +1689,7 @@
           "body_markdown" "@KaanE. and most of all being copy-paste of each other with different comments. So the value is in the comments... Anyway as of 2020 the comprehensive answer is in the [&#39;Ternary Operators&#39;](https://book.pythontips.com/en/latest/ternary_operators.html) documentation: &quot;*Ternary operators are more commonly known as conditional expressions [...] they became a part of Python in version 2.4.*&quot;",
         }
       ],
+      "answer_count" 28,
       "answers" [
         {
           "comments" [
@@ -2816,6 +2819,7 @@
         "metaclass",
         "python-datamodel"
       ],
+      "answer_count" 22,
       "answers" [
         {
           "owner" {
