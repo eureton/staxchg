@@ -129,6 +129,7 @@
   (dev/log "[fetch-questions] url: " url ", query-params: " query-params)
   {:function :fetch-questions!
    :params [(http/request {:url url
+                           :cookie-policy :standard
                            :method "get"
                            :query-params query-params})]})
 
@@ -137,6 +138,7 @@
   (dev/log "[fetch-answers] url: " url ", query-params: " query-params)
   {:function :fetch-answers!
    :params [(http/request {:url url
+                           :cookie-policy :standard
                            :method "get"
                            :query-params query-params})]})
 
