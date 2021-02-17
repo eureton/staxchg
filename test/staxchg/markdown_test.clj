@@ -256,5 +256,20 @@
     (testing "block quote: bottom margin"
       (is (= (xys "> 12\r\n\r\n34" {:width 100})
              [[0 0] [1 0] [2 0] [3 0]
-              [0 2] [1 2]])))))
+              [0 2] [1 2]])))
+    (testing "link ref"
+      (let [s "[abc]"
+            opts {:width 100}]
+        (is (and (= (cs s opts)
+                    [\[ \a \b \c \]])
+                 (= (xys s opts)
+                    [[0 0] [1 0] [2 0] [3 0] [4 0]])))))
+    (testing "link ref: treat as inline"
+      (let [s "[abc] xy"
+            opts {:width 100}]
+        (is (and (= (cs s opts)
+                    [\[ \a \b \c \] \space \x \y])
+                 (= (xys s opts)
+                    [[0 0] [1 0] [2 0] [3 0] [4 0] [5 0] [6 0] [7 0]])))))
+))
 

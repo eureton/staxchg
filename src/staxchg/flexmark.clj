@@ -42,21 +42,24 @@
 (defn attributes
   ""
   [node]
-  (cond-> {}
-    (= (tag node) :link) (assoc :url (-> node .getUrl .toString))))
+  (let [tag (tag node)]
+    (cond-> {}
+      (= tag :link) (assoc :url (-> node .getUrl .toString))
+      (= tag :link-ref) (assoc :ref (-> node .getReference .toString)))))
 
 (defn unpack
   ""
   [node zerof addf leaff]
-  (if (.hasChildren node)
-    (loop [iterator (.getChildIterator node)
-           result (apply zerof ((juxt tag attributes) node))]
-      (if (.hasNext iterator)
-        (recur
-          iterator
-          (addf result (unpack (.next iterator) zerof addf leaff)))
-        result))
-    (leaff (tag node) (-> node .getChars .unescape))))
+  (let [attrs (attributes node)]
+    (if (.hasChildren node)
+      (loop [iterator (.getChildIterator node)
+             result (zerof (tag node) attrs)]
+        (if (.hasNext iterator)
+          (recur
+            iterator
+            (addf result (unpack (.next iterator) zerof addf leaff)))
+          result))
+      (leaff (tag node) (-> node .getChars .unescape) attrs))))
 
 (defn parse
   ""

@@ -22,6 +22,13 @@
         url {:tag :url :content (node :url)}]
     (update node :children conj spacing url)))
 
+(defmethod annotate :link-ref
+  [node _]
+  (->
+    node
+    (assoc :content (str "[" (node :ref) "]"))
+    (dissoc :children)))
+
 (defmethod annotate :default
   [node _]
   node)

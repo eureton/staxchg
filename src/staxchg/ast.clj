@@ -14,9 +14,8 @@
 
 (defn leaf
   ""
-  [tag content]
-  {:tag tag
-   :content content})
+  [tag content attributes]
+  (merge {:tag tag :content content} attributes))
 
 (defn leaf?
   ""

@@ -225,6 +225,10 @@
   [node options]
   (-> node (assoc :tag :txt) (ast options) (decorate :code)))
 
+(defmethod ast :link-ref
+  [node options]
+  (-> node (assoc :tag :txt) (ast options) (decorate :code)))
+
 (defmethod ast :ref
   [node options]
   (-> node (assoc :tag :txt) (ast options) (decorate :code)))
