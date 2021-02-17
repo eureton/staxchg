@@ -1,5 +1,6 @@
 (ns staxchg.ui
   (:require [clojure.string :as string])
+  (:require [clojure.core.async :as async :refer [>!! <!!]])
   (:require [staxchg.markdown :as markdown])
   (:require [staxchg.state :as state])
   (:require [staxchg.presentation :as presentation])
@@ -23,6 +24,7 @@
   (:import com.googlecode.lanterna.gui2.SameTextGUIThread$Factory)
   (:import com.googlecode.lanterna.gui2.Window$Hint)
   (:import com.googlecode.lanterna.gui2.dialogs.TextInputDialogBuilder)
+  (:import com.googlecode.lanterna.gui2.dialogs.WaitingDialog)
   (:import com.googlecode.lanterna.screen.Screen$RefreshType)
   (:import com.googlecode.lanterna.screen.TerminalScreen)
   (:import com.googlecode.lanterna.terminal.DefaultTerminalFactory)
@@ -45,6 +47,36 @@
     (contains? traits :bullet) Symbols/BULLET
     (contains? traits :horz) Symbols/SINGLE_LINE_HORIZONTAL
     :else character))
+
+(defn themed-gui
+  ""
+  [screen]
+  (let [theme (LanternaThemes/getRegisteredTheme "staxchg")
+        size (.getTerminalSize screen)
+        gui (MultiWindowTextGUI.
+              (SameTextGUIThread$Factory.)
+              screen
+              (DefaultWindowManager. size))]
+    (.setTheme gui theme)
+    gui))
+
+(defmacro block-till-done!
+  [screen & body]
+  `(let [gui# (themed-gui ~screen)
+         dialog# (WaitingDialog/createDialog "" "Fetching...")
+         channel# (async/chan)]
+     (.setHints dialog# #{Window$Hint/CENTERED Window$Hint/MODAL})
+     (.showDialog dialog# gui# false)
+     (async/thread
+       (assert (= "hello" (<!! channel#)))
+       (>!! channel# (try
+                             (do ~@body)
+                             (finally (.close dialog#)))))
+     (>!! channel# "hello")
+     (.waitUntilClosed dialog#)
+     (try
+       (<!! channel#)
+       (finally (async/close! channel#)))))
 
 (defn put-markdown!
   [graphics plot _]
@@ -104,13 +136,8 @@
   ""
   [screen]
   (dev/log "[query]")
-  (let [theme (LanternaThemes/getRegisteredTheme "staxchg")
-        size (.getTerminalSize screen)
-        gui (MultiWindowTextGUI.
-              (SameTextGUIThread$Factory.)
-              screen
-              (DefaultWindowManager. size))
-        dialog-width (int (* (.getColumns size) 0.8))
+  (let [gui (themed-gui screen)
+        dialog-width (-> screen .getTerminalSize .getColumns (* 0.8) int)
         dialog (->
                  (TextInputDialogBuilder.)
                  (.setTitle "")
@@ -118,29 +145,28 @@
                  (.setTextBoxSize (TerminalSize. dialog-width 1))
                  (.setExtraWindowHints #{Window$Hint/CENTERED})
                  (.build))]
-    (.setTheme gui theme)
     (let [term (.showDialog dialog gui)]
       (dev/log "[query] " (if (some? term) (str "term: '" term "'") "<canceled>"))
       {:function :query!
        :params [term]})))
 
 (defn fetch-questions!
-  [url query-params]
+  [url query-params screen]
   (dev/log "[fetch-questions] url: " url ", query-params: " query-params)
-  {:function :fetch-questions!
-   :params [(http/request {:url url
-                           :cookie-policy :standard
-                           :method "get"
-                           :query-params query-params})]})
+  (block-till-done! screen {:function :fetch-questions!
+                            :params [(http/request {:url url
+                                                    :cookie-policy :standard
+                                                    :method "get"
+                                                    :query-params query-params})]}))
 
 (defn fetch-answers!
-  [url query-params]
+  [url query-params screen]
   (dev/log "[fetch-answers] url: " url ", query-params: " query-params)
-  {:function :fetch-answers!
-   :params [(http/request {:url url
-                           :cookie-policy :standard
-                           :method "get"
-                           :query-params query-params})]})
+  (block-till-done! screen {:function :fetch-answers!
+                            :params [(http/request {:url url
+                                                    :cookie-policy :standard
+                                                    :method "get"
+                                                    :query-params query-params})]}))
 
 (defn read-input
   ""
@@ -151,10 +177,12 @@
     query? (query! screen)
     search-term (fetch-questions!
                   (api/questions-url)
-                  (api/questions-query-params search-term))
+                  (api/questions-query-params search-term)
+                  screen)
     fetch-answers (fetch-answers!
                     (api/answers-url fetch-answers)
-                    (api/answers-query-params))
+                    (api/answers-query-params)
+                    screen)
     :else (read-key! screen)))
 
 (defn commit-recipe
