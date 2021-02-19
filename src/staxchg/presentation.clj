@@ -6,6 +6,7 @@
   (:require [staxchg.recipe :as recipe])
   (:import com.googlecode.lanterna.SGR)
   (:import com.googlecode.lanterna.Symbols)
+  (:import com.googlecode.lanterna.TerminalTextUtils)
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:gen-class))
 
@@ -322,6 +323,29 @@
     (answers-body-flow answer world)
     ((zones world) :answers-body)))
 
+(defn printable?
+  ""
+  [character]
+  (->>
+    character
+    ((juxt #(TerminalTextUtils/isControlCharacter %)
+           #(Character/isHighSurrogate %)))
+    (every? false?)))
+
+(defn groom-recipe-item
+  ""
+  [{:keys [function] :as item}]
+  (let [string-groomer (comp string/join (partial filter printable?))
+        markdown-groomer (partial filter (comp printable? first))]
+    (cond-> item
+      (= function :put-string!) (update-in [:params 1] string-groomer)
+      (= function :put-markdown!) (update-in [:params 1] markdown-groomer))))
+
+(defn groom-recipe
+  ""
+  [recipe]
+  (map groom-recipe-item recipe))
+
 (defn flows
   ""
   [{:as world
@@ -373,5 +397,6 @@
       consignments
       (filter (comp (partial = (world :active-pane)) :pane))
       (map #(hash-map :flow (flows (% :flow)) :zone (zones (% :zone))))
-      (map recipe/make))))
+      (map recipe/make)
+      (map groom-recipe))))
 

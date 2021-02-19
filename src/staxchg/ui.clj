@@ -85,21 +85,19 @@
     (->> (map second plot) (take 10) (apply str))
     " |>" (string/join (map first plot)) "<|")
   (doseq [[character [x y] {:keys [traits]}] plot]
-    (when-not (or (TerminalTextUtils/isControlCharacter character)
-                  (Character/isHighSurrogate character))
-      (.setCharacter
-        graphics
-        x
-        y
-        (markdown/decorate
-          (->
-            character
-            (rewrite-with-symbols traits)
-            (decorate-with-current graphics))
-          traits
-          :strong #(.withModifier % SGR/BOLD)
-          :em #(.withModifier % SGR/REVERSE)
-          :code #(.withForegroundColor % TextColor$ANSI/GREEN))))))
+    (.setCharacter
+      graphics
+      x
+      y
+      (markdown/decorate
+        (->
+          character
+          (rewrite-with-symbols traits)
+          (decorate-with-current graphics))
+        traits
+        :strong #(.withModifier % SGR/BOLD)
+        :em #(.withModifier % SGR/REVERSE)
+        :code #(.withForegroundColor % TextColor$ANSI/GREEN)))))
 
 (defn put-string!
   ""
