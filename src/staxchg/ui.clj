@@ -85,7 +85,8 @@
     (->> (map second plot) (take 10) (apply str))
     " |>" (string/join (map first plot)) "<|")
   (doseq [[character [x y] {:keys [traits]}] plot]
-    (when-not (TerminalTextUtils/isControlCharacter character)
+    (when-not (or (TerminalTextUtils/isControlCharacter character)
+                  (Character/isHighSurrogate character))
       (.setCharacter
         graphics
         x
