@@ -10,12 +10,7 @@
   (:require [staxchg.dev :as dev])
   (:require [staxchg.util :as util])
   (:require [clj-http.client :as http])
-  (:import com.googlecode.lanterna.SGR)
-  (:import com.googlecode.lanterna.Symbols)
-  (:import com.googlecode.lanterna.TerminalPosition)
   (:import com.googlecode.lanterna.TerminalSize)
-  (:import com.googlecode.lanterna.TerminalTextUtils)
-  (:import com.googlecode.lanterna.TextCharacter)
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:import com.googlecode.lanterna.bundle.LanternaThemes)
   (:import com.googlecode.lanterna.graphics.PropertyTheme)
@@ -33,20 +28,16 @@
 (defn decorate-with-current
   ""
   [character graphics]
-  (as->
-    character v
-    (TextCharacter. v)
-    (.withForegroundColor v (.getForegroundColor graphics))
-    (.withBackgroundColor v (.getBackgroundColor graphics))
-    (reduce #(.withModifier %1 %2) v (.getActiveModifiers graphics))))
-
-(defn rewrite-with-symbols
-  ""
-  [character traits]
-  (cond
-    (contains? traits :bullet) Symbols/BULLET
-    (contains? traits :horz) Symbols/SINGLE_LINE_HORIZONTAL
-    :else character))
+  (let [fg-color (.getForegroundColor character)
+        bg-color (.getBackgroundColor character)
+        default? #(= TextColor$ANSI/DEFAULT %)
+        modifiers (.getModifiers character)
+        current-modifiers (-> graphics .getActiveModifiers vec)]
+    (cond-> character
+      (default? fg-color) (.withForegroundColor (.getForegroundColor graphics))
+      (default? bg-color) (.withBackgroundColor (.getBackgroundColor graphics))
+      (and (empty? modifiers)
+           (not-empty current-modifiers)) (.withModifiers current-modifiers))))
 
 (defn themed-gui
   ""
@@ -83,21 +74,9 @@
   (dev/log
     "[put-markdown] "
     (->> (map second plot) (take 10) (apply str))
-    " |>" (string/join (map first plot)) "<|")
-  (doseq [[character [x y] {:keys [traits]}] plot]
-    (.setCharacter
-      graphics
-      x
-      y
-      (markdown/decorate
-        (->
-          character
-          (rewrite-with-symbols traits)
-          (decorate-with-current graphics))
-        traits
-        :strong #(.withModifier % SGR/BOLD)
-        :em #(.withModifier % SGR/REVERSE)
-        :code #(.withForegroundColor % TextColor$ANSI/GREEN)))))
+    " |>" (string/join (->> plot (map first) (map #(.getCharacter %)))) "<|")
+  (doseq [[character [x y]] plot]
+    (.setCharacter graphics x y (decorate-with-current character graphics))))
 
 (defn put-string!
   ""

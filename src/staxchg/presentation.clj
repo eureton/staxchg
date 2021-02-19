@@ -7,6 +7,7 @@
   (:import com.googlecode.lanterna.SGR)
   (:import com.googlecode.lanterna.Symbols)
   (:import com.googlecode.lanterna.TerminalTextUtils)
+  (:import com.googlecode.lanterna.TextCharacter)
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:gen-class))
 
@@ -332,11 +333,40 @@
            #(Character/isHighSurrogate %)))
     (every? false?)))
 
+(defn replace-with-symbols
+  ""
+  [[character xy {:keys [traits] :as extras}]]
+  (let [rewritten (cond
+                    (contains? traits :bullet) Symbols/BULLET
+                    (contains? traits :horz) Symbols/SINGLE_LINE_HORIZONTAL
+                    :else character)]
+    [rewritten xy extras]))
+
+(defn convert-to-lanterna
+  ""
+  [plot-item]
+  (update plot-item 0 #(TextCharacter. %)))
+
+(defn apply-markdown-traits
+  ""
+  [[character xy {:keys [traits] :as extras}]]
+  (let [decorated (markdown/decorate
+                    character
+                    traits
+                    :strong #(.withModifier % SGR/BOLD)
+                    :em #(.withModifier % SGR/REVERSE)
+                    :code #(.withForegroundColor % TextColor$ANSI/GREEN))]
+    [decorated xy extras]))
+
 (defn groom-recipe-item
   ""
   [{:keys [function] :as item}]
   (let [string-groomer (comp string/join (partial filter printable?))
-        markdown-groomer (partial filter (comp printable? first))]
+        markdown-groomer (partial eduction (comp
+                                             (filter (comp printable? first))
+                                             (map replace-with-symbols)
+                                             (map convert-to-lanterna)
+                                             (map apply-markdown-traits)))]
     (cond-> item
       (= function :put-string!) (update-in [:params 1] string-groomer)
       (= function :put-markdown!) (update-in [:params 1] markdown-groomer))))
