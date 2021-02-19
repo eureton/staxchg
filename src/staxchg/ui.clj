@@ -160,13 +160,14 @@
                                                     :query-params query-params})]}))
 
 (defn fetch-answers!
-  [url query-params screen]
+  [url query-params question-id screen]
   (dev/log "[fetch-answers] url: " url ", query-params: " query-params)
   (block-till-done! screen {:function :fetch-answers!
                             :params [(http/request {:url url
                                                     :cookie-policy :standard
                                                     :method "get"
-                                                    :query-params query-params})]}))
+                                                    :query-params query-params})
+                                     question-id]}))
 
 (defn read-input
   ""
@@ -180,8 +181,9 @@
                   (api/questions-query-params search-term)
                   screen)
     fetch-answers (fetch-answers!
-                    (api/answers-url fetch-answers)
-                    (api/answers-query-params)
+                    (api/answers-url (fetch-answers :question-id))
+                    (api/answers-query-params (fetch-answers :page))
+                    (fetch-answers :question-id)
                     screen)
     :else (read-key! screen)))
 

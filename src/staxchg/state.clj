@@ -4,6 +4,8 @@
   (:require [staxchg.dev :as dev])
   (:gen-class))
 
+(def mark-keys [:scroll-deltas :query? :quit? :search-term :fetch-answers])
+
 (defn initialize-world
   ""
   [response-body width height]
@@ -32,21 +34,50 @@
 (defn selected-question
   ""
   [{:as world
-    :keys [questions selected-question-index]}]
-  (questions selected-question-index))
+    :keys [selected-question-index]}]
+  (get-in world [:questions selected-question-index]))
+
+(defn question-id-to-index
+  ""
+  [question-id world]
+  (->>
+    (get world :questions)
+    (map-indexed vector)
+    (filter (fn [[_ x]] (= (x "question_id") question-id)))
+    first
+    first))
 
 (defn selected-answer-index
   ""
-  [{:as world
-    :keys [questions selected-question-index selected-answers]}]
-  (let [answers ((selected-question world) "answers")
-        selected-answer (presentation/selected-answer world)]
-    (->>
-      answers
-      (map-indexed vector)
-      (filter (fn [[_ answer]] (= answer selected-answer)))
-      first
-      first)))
+  ([{:strs [question_id answers]}
+    world]
+   (let [answer-id (get-in world [:selected-answers question_id])]
+     (->>
+       answers
+       (map-indexed vector)
+       (filter (fn [[_ x]] (= (x "answer_id") answer-id)))
+       first
+       first)))
+  ([world]
+   (selected-answer-index (selected-question world) world)))
+
+(defn fetch-answers?
+  ""
+  [{:strs [question_id answer_count answers]
+    :keys [more-answers-to-fetch?]
+    :as question}
+   world]
+  (let [fetched-answer-count (count answers)
+        index (selected-answer-index question world)]
+    (or (and (not (zero? (or answer_count 0)))
+             (not (contains? question "answers")))
+        (and more-answers-to-fetch?
+             (= index (dec fetched-answer-count))))))
+
+(defn next-answers-page
+  ""
+  [{:strs [answers]}]
+  (-> answers count (/ api/answers-page-size) int inc))
 
 (defn decrement-selected-question-index
   [{:as world
@@ -57,17 +88,34 @@
         (update :selected-question-index capped-dec)
         (update :question-list-offset (if visible? identity capped-dec)))))
 
-(defn cycle-selected-answer
+(defn decrement-selected-answer
   ""
-  [world direction]
-  (let [{:strs [question_id answers]} (selected-question world)
-        {:strs [answer_id]} (->>
-                              (selected-answer-index world)
-                              ((case direction :forwards inc :backwards dec))
-                              (max 0)
-                              (min (dec (count answers)))
-                              answers)]
-    (assoc-in world [:selected-answers question_id] answer_id)))
+  [world]
+  (let [{:strs [question_id answers]
+         :as question} (selected-question world)
+        index (selected-answer-index question world)]
+    (cond-> world
+      (some? index) (assoc-in
+                      [:selected-answers question_id]
+                      (-> index dec (max 0) answers (get "answer_id"))))))
+
+(defn increment-selected-answer
+  ""
+  [world]
+  (let [{:strs [question_id answers] :as question} (selected-question world)
+        index (selected-answer-index question world)
+        fetch? (fetch-answers? question world)
+        increment? (and (not fetch?) (some? index))
+        page (next-answers-page question)]
+    (cond-> world
+      fetch? (assoc :fetch-answers {:question-id question_id :page page})
+      increment? (assoc-in
+                   [:selected-answers question_id]
+                   (-> index
+                       inc
+                       (min (dec (count answers)))
+                       answers
+                       (get "answer_id"))))))
 
 (defn active-pane-body-height
   ""
@@ -174,18 +222,17 @@
 (defn clear-marks
   ""
   [world]
-  (dissoc world :scroll-deltas :query? :quit? :search-term :fetch-answers))
+  (apply dissoc world mark-keys))
 
 (defn effect-answers-pane
   ""
   [world]
   (let [{:as question :strs [question_id]} (selected-question world)
-        has-answers? (contains? question "answers")]
-    (dev/log "[effect-answers-pane] selected question: " question_id
-             " - has answers? " (if has-answers? "YES" "NO"))
-    (if has-answers?
-      (assoc world :active-pane :answers)
-      (assoc world :fetch-answers question_id))))
+        fetch? (fetch-answers? question world)
+        page (next-answers-page question)]
+    (if fetch?
+      (assoc world :fetch-answers {:question-id question_id :page page})
+      (assoc world :active-pane :answers))))
 
 (defn effect-command
   ""
@@ -201,8 +248,8 @@
     :next-question (increment-selected-question-index world)
     :answers-pane (effect-answers-pane world)
     :questions-pane (assoc world :active-pane :questions)
-    :previous-answer (cycle-selected-answer world :backwards)
-    :next-answer (cycle-selected-answer world :forwards)
+    :previous-answer (decrement-selected-answer world)
+    :next-answer (increment-selected-answer world)
     :query (assoc world :query? true)
     :quit (assoc world :quit? true)
     world))
@@ -218,7 +265,7 @@
 
 (defn update-for-keystroke [world keycode ctrl?]
   (let [command (parse-command keycode ctrl?)]
-    (dev/log "command: " (name command))
+    (dev/log "command: " (if (some? command) (name command) "UNKNOWN"))
     (->
       world
       (clear-marks)
@@ -243,19 +290,19 @@
 
 (defn update-for-answers-response
   ""
-  [{:as world
-    :keys [selected-question-index]}
-   response]
-  (let [{:strs [question_id]} (selected-question world)
-        answers (as->
-                  response v
-                  (api/parse-response v)
-                  (v "items")
-                  (mapv api/scrub-answer v))]
+  [world response question-id]
+  (let [index (question-id-to-index question-id world)
+        {:strs [items has_more]} (api/parse-response response)
+        answers (map api/scrub-answer items)
+        ;answers (dev/answers-response-body "items")
+        ]
     (->
       world
       (clear-marks)
-      (assoc-in [:questions selected-question-index "answers"] answers)
+      (update-in [:questions index "answers"] (comp vec concat) answers)
+      ;(assoc-in [:questions index :more-answers-to-fetch?] true)
+      (assoc-in [:questions index :more-answers-to-fetch?] has_more)
+      (assoc-in [:selected-answers question-id] (-> answers first (get "answer_id")))
       (assoc :active-pane :answers :switched-pane? true))))
 
 (defn update-world

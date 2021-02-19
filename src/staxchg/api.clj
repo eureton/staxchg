@@ -5,6 +5,8 @@
   (:require [staxchg.util :as util])
   (:gen-class))
 
+(def answers-page-size 5)
+
 (defn questions-url
   ""
   []
@@ -84,13 +86,13 @@
 
 (defn answers-query-params
   ""
-  []
+  [page]
   (let [conf (util/properties-hash (util/config-pathname))]
     {:client_id (conf "CLIENT_ID")
      :key (conf "API_KEY")
      :access_token (conf "ACCESS_TOKEN")
-     :page 1
-     :pagesize 10
+     :page page
+     :pagesize answers-page-size
      :order "desc"
      :sort "votes"
      :site "stackoverflow"
