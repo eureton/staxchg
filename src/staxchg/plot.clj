@@ -24,6 +24,7 @@
                 (derive :url :inline)
                 (derive :html-inline :inline)
                 (derive :link-ref :inline)
+                (derive :html-entity :inline)
                 atom))
 
 (defn straight
@@ -240,6 +241,10 @@
 (defmethod ast :html-block
   [node options]
   (-> node (assoc :tag :txt) (ast options) (decorate :code)))
+
+(defmethod ast :html-entity
+  [node options]
+  (-> node (assoc :tag :txt) (ast options)))
 
 (defmethod ast :code
   [node options]
