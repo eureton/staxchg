@@ -103,7 +103,7 @@
     {:as world
      :keys [questions selected-question-index]}]
    (let [answer-id (or (get-in world [:selected-answers question_id])
-                       (-> answers (nth 0) (get "answer_id")))]
+                       (-> answers (get 0) (get "answer_id")))]
      (some
        #(when (= answer-id (% "answer_id")) %)
        answers)))
@@ -383,31 +383,31 @@
   (let [question (questions selected-question-index)
         {:as answer :strs [answer_id]} (selected-answer world)
         question-meta-text (format-question-meta question)]
-    {:questions-separator (flow/make {:type :string
-                                      :raw (format-questions-pane-separator world)})
-     :questions-list (reduce
-                       flow/add
-                       flow/zero
-                       (map-indexed
-                         #(question-list-item-flow %2 %1 world)
-                         (visible-questions world)))
-     :question-body (flow/scroll-y
-                      (questions-body-flow question world)
-                      (- (line-offset question world)))
-     :question-meta (flow/make {:type :string
-                                :raw question-meta-text
-                                :x (- width (count question-meta-text))
-                                :foreground-color TextColor$ANSI/YELLOW})
-     :answer (flow/scroll-y
-               (answers-body-flow answer world)
-               (- (line-offset answer world)))
-     :answer-meta (answer-meta-flow answer world)
-     :answer-acceptance (answer-acceptance-flow answer world)
-     :answers-header (flow/make {:type :string
-                                 :raw (question "title")
-                                 :modifiers [SGR/REVERSE]})
-     :answers-separator (flow/make {:type :string
-                                    :raw (format-answers-pane-separator question world)})}))
+    (cond-> {:questions-separator (flow/make {:type :string
+                                              :raw (format-questions-pane-separator world)})
+             :questions-list (reduce
+                               flow/add
+                               flow/zero
+                               (map-indexed
+                                 #(question-list-item-flow %2 %1 world)
+                                 (visible-questions world)))
+             :question-body (flow/scroll-y
+                              (questions-body-flow question world)
+                              (- (line-offset question world)))
+             :question-meta (flow/make {:type :string
+                                        :raw question-meta-text
+                                        :x (- width (count question-meta-text))
+                                        :foreground-color TextColor$ANSI/YELLOW})
+             :answers-header (flow/make {:type :string
+                                         :raw (question "title")
+                                         :modifiers [SGR/REVERSE]})
+             :answers-separator (flow/make {:type :string
+                                            :raw (format-answers-pane-separator question world)})}
+      (some? answer) (merge {:answer (flow/scroll-y
+                                       (answers-body-flow answer world)
+                                       (- (line-offset answer world)))
+                             :answer-meta (answer-meta-flow answer world)
+                             :answer-acceptance (answer-acceptance-flow answer world)}))))
 
 (def consignments
   [{:pane :questions :flow :questions-separator :zone :questions-separator}
@@ -427,6 +427,7 @@
       consignments
       (filter (comp (partial = (world :active-pane)) :pane))
       (map #(hash-map :flow (flows (% :flow)) :zone (zones (% :zone))))
+      (remove (comp nil? :flow))
       (map recipe/make)
       (map groom-recipe))))
 
