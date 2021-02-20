@@ -270,5 +270,19 @@
       (is (and (= (cs s opts)
                   [\[ \a \b \c \] \space \x \y])
                (= (xys s opts)
-                  [[0 0] [1 0] [2 0] [3 0] [4 0] [5 0] [6 0] [7 0]]))))))
+                  [[0 0] [1 0] [2 0] [3 0] [4 0] [5 0] [6 0] [7 0]])))))
+  (testing "heading"
+    (are [s] (let [opts {:width 100}]
+               (= (cs s opts)
+                  [\a \b \c]))
+         "abc\r\n---"
+         "# abc"))
+  (testing "heading: bottom margin"
+    (let [s "abc\r\n---\r\n\r\nxyz"
+          opts {:width 100}]
+      (is (and (= (cs s opts)
+                  [\a \b \c \x \y \z])
+               (= (xys s opts)
+                  [[0 0] [1 0] [2 0] [0 2] [1 2] [2 2]])))))
+)
 

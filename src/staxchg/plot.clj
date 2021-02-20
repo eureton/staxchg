@@ -13,6 +13,7 @@
                 (derive :html-block :block)
                 (derive :ref :block)
                 (derive :block-quot :block)
+                (derive :h :block)
                 (derive :blitem :list-item)
                 (derive :olitem :list-item)
                 (derive :txt :inline)

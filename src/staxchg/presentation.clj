@@ -355,7 +355,10 @@
                     traits
                     :strong #(.withModifier % SGR/BOLD)
                     :em #(.withModifier % SGR/REVERSE)
-                    :code #(.withForegroundColor % TextColor$ANSI/GREEN))]
+                    :code #(.withForegroundColor % TextColor$ANSI/GREEN)
+                    :h #(-> %
+                            (.withForegroundColor TextColor$ANSI/BLACK)
+                            (.withBackgroundColor TextColor$ANSI/GREEN)))]
     [decorated xy extras]))
 
 (defn groom-recipe-item
