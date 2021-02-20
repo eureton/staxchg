@@ -272,9 +272,8 @@
                (= (xys s opts)
                   [[0 0] [1 0] [2 0] [3 0] [4 0] [5 0] [6 0] [7 0]])))))
   (testing "heading"
-    (are [s] (let [opts {:width 100}]
-               (= (cs s opts)
-                  [\a \b \c]))
+    (are [s] (= (cs s {:width 100})
+                [\a \b \c])
          "abc\r\n---"
          "# abc"))
   (testing "heading: bottom margin"
