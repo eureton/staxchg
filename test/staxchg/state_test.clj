@@ -170,3 +170,149 @@
          (repeat 15 :x) 4
          (repeat 16 :x) 4)))
 
+(deftest update-for-answers-response-test
+  (defn to-response [body]
+    {:body (cheshire.core/encode body)})
+  (defn to-answer [id]
+    {"answer_id" id
+     "body_markdown" ""
+     "comments" []})
+
+  (testing "clears irrelevant marks"
+    (are [mark] (let [result (update-for-answers-response
+                               {mark "any"}
+                               (to-response {"items" []})
+                               nil)]
+                  (not (contains? result mark)))
+         :scroll-deltas
+         :query?
+         :quit?
+         :search-term
+         :fetch-answers))
+  (testing "answers set"
+    (are [previous-answers current-answers]
+      (let [question-id "1234"
+            question {"question_id" question-id
+                      "answer_count" (count previous-answers)
+                      "answers" previous-answers}
+            world {:questions [question]
+                   :selected-question-index 0}
+            result (update-for-answers-response
+                     world
+                     (to-response {"items" current-answers})
+                     question-id)]
+        (= (get-in result [:questions 0 "answers"])
+           (concat previous-answers current-answers)))
+      nil                  [(to-answer "1357") (to-answer "7531")]
+      []                   [(to-answer "1357") (to-answer "7531")]
+      [(to-answer "abcd")] [(to-answer "1357") (to-answer "7531")]))
+  (testing "more-answers-to-fetch? set"
+    (are [value]
+      (let [question-id "1234"
+            question {"question_id" question-id}
+            world {:questions [question]
+                   :selected-question-index 0}
+            result (update-for-answers-response
+                     world
+                     (to-response {"items" [(to-answer "1357")] "has_more" value})
+                     question-id)]
+        (= (get-in result [:questions 0 :more-answers-to-fetch?])
+           value))
+      nil
+      false
+      true))
+  (testing "selected-answers set"
+    (are [answers selected-id]
+      (let [question-id "1234"
+            question {"question_id" question-id}
+            world {:questions [question]
+                   :selected-question-index 0}
+            result (update-for-answers-response
+                     world
+                     (to-response {"items" answers})
+                     question-id)]
+        (= (get-in result [:selected-answers question-id])
+           selected-id))
+      nil                                     nil
+      []                                      nil
+      [(to-answer "1357")]                    "1357"
+      [(to-answer "1357") (to-answer "7531")] "1357"))
+  (testing "no answers => set :no-answers"
+    (let [result (update-for-answers-response
+                   {}
+                   (to-response {"items" []})
+                   nil)]
+      (is (true? (result :no-answers)))))
+  (testing "error => set :fetch-failed"
+    (are [value] (let [result (update-for-answers-response
+                                {}
+                                (to-response {"error" value})
+                                nil)]
+                   (true? (result :fetch-failed)))
+         0
+         1
+         true
+         "")))
+
+(deftest increment-selected-answer-test
+  (defn question
+    ([{:keys [answer-count answers more-answers-to-fetch?]}]
+     (cond-> {"question_id" "1234"
+              "answer_count" answer-count}
+       (some? answers) (assoc "answers" answers)
+       (some? more-answers-to-fetch?) (assoc :more-answers-to-fetch? more-answers-to-fetch?)))
+    ([]
+     (question {:answer-count 0})))
+
+  (defn world
+    ([{:keys [question selected-answers]}]
+     {:questions [question]
+      :selected-question-index 0
+      :selected-answers selected-answers})
+    ([]
+     (world {:question (question) :selected-answers {}})))
+
+  (testing "pun nil"
+    (is (nil? (increment-selected-answer nil))))
+  (testing "no previous answers, no clamp, no fetch => NOP"
+    (is (= (increment-selected-answer (world))
+           (world))))
+  (testing "previous answers, no clamp => increment"
+    (let [question (question {:answer-count 2
+                              :answers [{"answer_id" "1357"}
+                                        {"answer_id" "7531"}]})
+          world (world {:question question
+                        :selected-answers {"1234" "1357"}})
+          result (increment-selected-answer world)]
+      (is (= (get-in result [:selected-answers "1234"])
+             "7531"))))
+  (testing "previous answers, clamp => no increment"
+    (let [question (question {:answer-count 2
+                              :answers [{"answer_id" "1357"}
+                                        {"answer_id" "7531"}]})
+          world (world {:question question
+                        :selected-answers {"1234" "7531"}})
+          result (increment-selected-answer world)]
+      (is (= (get-in result [:selected-answers "1234"])
+             "7531"))))
+  (testing "no previous answers, fetch => mark"
+    (let [question (question {:answer-count 2})
+          world (world {:question question})
+          result (increment-selected-answer world)]
+      (is (and (= (result :fetch-answers)
+                  {:question-id "1234" :page 1})
+               (= (dissoc result :fetch-answers)
+                  world)))))
+  (testing "previous answers, fetch => mark"
+    (let [question (question {:answer-count 2
+                              :answers [{"answer_id" "1357"}
+                                        {"answer_id" "7531"}]
+                              :more-answers-to-fetch? true})
+          world (world {:question question
+                        :selected-answers {"1234" "7531"}})
+          result (increment-selected-answer world)]
+      (is (and (= (result :fetch-answers)
+                  {:question-id "1234" :page 1})
+               (= (dissoc result :fetch-answers)
+                  world))))))
+

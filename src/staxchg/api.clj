@@ -7,6 +7,12 @@
 
 (def answers-page-size 5)
 
+(def error-wrapper-object {"items" []
+                           "has_more" false
+                           "error" true})
+
+(def error-response {:body (cheshire.core/encode error-wrapper-object)})
+
 (defn questions-url
   ""
   []

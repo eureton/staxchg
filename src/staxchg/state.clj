@@ -4,7 +4,8 @@
   (:require [staxchg.dev :as dev])
   (:gen-class))
 
-(def mark-keys [:scroll-deltas :query? :quit? :search-term :fetch-answers])
+(def mark-keys #{:scroll-deltas :query? :quit? :search-term :fetch-answers
+                 :no-answers :fetch-failed})
 
 (defn initialize-world
   ""
@@ -288,32 +289,50 @@
     (initialize-world width height)
     (assoc :switched-question? true)))
 
+(defn update-for-new-answers
+  ""
+  [world answers more? question-id]
+  (let [index (question-id-to-index question-id world)]
+    (->
+      world
+      (update-in [:questions index "answers"] (comp vec concat) answers)
+      (assoc-in [:questions index :more-answers-to-fetch?] more?)
+      (assoc-in [:selected-answers question-id] (-> answers first (get "answer_id")))
+      (assoc :active-pane :answers :switched-pane? true))))
+
 (defn update-for-answers-response
   ""
   [world response question-id]
   (let [index (question-id-to-index question-id world)
-        {:strs [items has_more]} (api/parse-response response)
-        answers (map api/scrub-answer items)
-        ;answers (dev/answers-response-body "items")
-        ]
-    (->
+        {:strs [items has_more error]} (api/parse-response response)
+        answers (map api/scrub-answer items)]
+    (cond->
       world
-      (clear-marks)
-      (update-in [:questions index "answers"] (comp vec concat) answers)
-      ;(assoc-in [:questions index :more-answers-to-fetch?] true)
-      (assoc-in [:questions index :more-answers-to-fetch?] has_more)
-      (assoc-in [:selected-answers question-id] (-> answers first (get "answer_id")))
-      (assoc :active-pane :answers :switched-pane? true))))
+      true (clear-marks)
+      error (assoc :fetch-failed true)
+      (and (nil? error) (empty? answers)) (assoc :no-answers true)
+      (not-empty answers) (update-for-new-answers answers has_more question-id))))
+
+(defn update-for-no-answers
+  ""
+  [world]
+  (->
+    world
+    (clear-marks)
+    (assoc :switched-pane? true)))
 
 (defn update-world
   ""
   [world
    {:as input :keys [function params]}]
+  (dev/log "[update-world] '" function "'")
   (let [f (case function
             :read-key! update-for-keystroke
             :query! update-for-search-term
             :fetch-questions! update-for-query-response
-            :fetch-answers! update-for-answers-response)]
+            :fetch-answers! update-for-answers-response
+            :no-answers! update-for-no-answers
+            :fetch-failed! update-for-no-answers)]
     (apply f world params)))
 
 (defn generated-output?

@@ -18,6 +18,8 @@
   (:import com.googlecode.lanterna.gui2.MultiWindowTextGUI)
   (:import com.googlecode.lanterna.gui2.SameTextGUIThread$Factory)
   (:import com.googlecode.lanterna.gui2.Window$Hint)
+  (:import com.googlecode.lanterna.gui2.dialogs.MessageDialogBuilder)
+  (:import com.googlecode.lanterna.gui2.dialogs.MessageDialogButton)
   (:import com.googlecode.lanterna.gui2.dialogs.TextInputDialogBuilder)
   (:import com.googlecode.lanterna.gui2.dialogs.WaitingDialog)
   (:import com.googlecode.lanterna.screen.Screen$RefreshType)
@@ -61,13 +63,29 @@
      (async/thread
        (assert (= "hello" (<!! channel#)))
        (>!! channel# (try
-                             (do ~@body)
-                             (finally (.close dialog#)))))
+                       (do ~@body)
+                       (finally (.close dialog#)))))
      (>!! channel# "hello")
      (.waitUntilClosed dialog#)
      (try
        (<!! channel#)
        (finally (async/close! channel#)))))
+
+(defmacro show-message!
+  ""
+  [screen
+   {:keys [title text] :or {title ""}}
+   & body]
+  `(let [gui# (themed-gui ~screen)]
+     (->
+       (MessageDialogBuilder.)
+       (.setTitle ~title)
+       (.setText ~text)
+       (.setExtraWindowHints [Window$Hint/MODAL Window$Hint/CENTERED])
+       (.addButton MessageDialogButton/OK)
+       (.build)
+       (.showDialog gui#))
+     (do ~@body)))
 
 (defn put-markdown!
   [graphics plot _]
@@ -128,30 +146,40 @@
       {:function :query!
        :params [term]})))
 
+(defn try-request!
+  ""
+  [url method query-params]
+  (try
+    (http/request {:url url
+                   :cookie-policy :standard
+                   :method method
+                   :query-params query-params})
+    (catch Exception _ api/error-response)))
+
+(defn blocking-fetch!
+  ""
+  [url query-params screen]
+  (->>
+    (try-request! url "get" query-params)
+    (block-till-done! screen)))
+
 (defn fetch-questions!
   [url query-params screen]
   (dev/log "[fetch-questions] url: " url ", query-params: " query-params)
-  (block-till-done! screen {:function :fetch-questions!
-                            :params [(http/request {:url url
-                                                    :cookie-policy :standard
-                                                    :method "get"
-                                                    :query-params query-params})]}))
+  {:function :fetch-questions!
+   :params [(blocking-fetch! url query-params screen)]})
 
 (defn fetch-answers!
   [url query-params question-id screen]
   (dev/log "[fetch-answers] url: " url ", query-params: " query-params)
-  (block-till-done! screen {:function :fetch-answers!
-                            :params [(http/request {:url url
-                                                    :cookie-policy :standard
-                                                    :method "get"
-                                                    :query-params query-params})
-                                     question-id]}))
+  {:function :fetch-answers!
+   :params [(blocking-fetch! url query-params screen) question-id]})
 
 (defn read-input
   ""
   [screen
    {:as world
-    :keys [query? search-term fetch-answers]}]
+    :keys [query? search-term fetch-answers no-answers fetch-failed]}]
   (cond
     query? (query! screen)
     search-term (fetch-questions!
@@ -163,6 +191,14 @@
                     (api/answers-query-params (fetch-answers :page))
                     (fetch-answers :question-id)
                     screen)
+    no-answers (show-message!
+                 screen
+                 {:text "Question has no answers"}
+                 {:function :no-answers! :params []})
+    fetch-failed (show-message!
+                   screen
+                   {:title "Error" :text "Could not fetch data"}
+                   {:function :fetch-failed! :params []})
     :else (read-key! screen)))
 
 (defn commit-recipe
