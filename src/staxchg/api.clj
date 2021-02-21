@@ -107,29 +107,27 @@
 (defn unescape-html [string]
   (org.jsoup.parser.Parser/unescapeEntities string true))
 
-(defn scrub-body
+(defn scrub-post
   ""
   [post]
   (update post "body_markdown" unescape-html))
 
 (defn scrub-answer
   ""
-  [{:as answer
-    :strs [body_markdown comments]}]
-  (assoc
+  [answer]
+  (->
     answer
-    "body_markdown" (unescape-html body_markdown)
-    "comments" (mapv scrub-body (vec comments))))
+    (update "body_markdown" unescape-html)
+    (update "comments" (partial mapv scrub-post))))
 
 (defn scrub-question
   ""
-  [{:as question
-    :strs [title body_markdown answers comments]}]
-  (assoc
+  [question]
+  (->
     question
-    "title" (unescape-html title)
-    "body_markdown" (unescape-html body_markdown)
-    "comments" (mapv scrub-body (vec comments))))
+    (update "title" unescape-html)
+    (update "body_markdown" unescape-html)
+    (update "comments" (partial mapv scrub-post))))
 
 (defn parse-response
   ""
