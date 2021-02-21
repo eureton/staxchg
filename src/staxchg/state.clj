@@ -9,9 +9,8 @@
 
 (defn initialize-world
   ""
-  [response-body width height]
-  (let [questions (mapv api/scrub-question (response-body "items"))
-        question-ids (map #(% "question_id") questions)]
+  [questions width height]
+  (let [question-ids (map #(% "question_id") questions)]
     {:line-offsets (zipmap question-ids (repeat 0))
      :selected-question-index 0
      :question-list-size 2
@@ -271,15 +270,26 @@
     true (clear-marks)
     (not (clojure.string/blank? term)) (assoc :search-term term)))
 
-(defn update-for-query-response
+(defn update-for-new-questions
   ""
   [{:as world :keys [width height]}
-   response]
+   questions]
   (->
-    response
-    api/parse-response
+    questions
     (initialize-world width height)
     (assoc :switched-question? true)))
+
+(defn update-for-questions-response
+  ""
+  [world response]
+  (let [{:strs [items has_more error]} (api/parse-response response)
+        questions (mapv api/scrub-question items)]
+    (cond->
+      world
+      true (clear-marks)
+      error (assoc :fetch-failed true)
+      (and (nil? error) (empty? questions)) (assoc :switched-pane? true)
+      (not-empty questions) (update-for-new-questions questions))))
 
 (defn update-for-new-answers
   ""
@@ -305,7 +315,7 @@
       (and (nil? error) (empty? answers)) (assoc :no-answers true)
       (not-empty answers) (update-for-new-answers answers has_more question-id))))
 
-(defn update-for-no-answers
+(defn update-for-no-posts
   ""
   [world]
   (->
@@ -321,10 +331,10 @@
   (let [f (case function
             :read-key! update-for-keystroke
             :query! update-for-search-term
-            :fetch-questions! update-for-query-response
+            :fetch-questions! update-for-questions-response
             :fetch-answers! update-for-answers-response
-            :no-answers! update-for-no-answers
-            :fetch-failed! update-for-no-answers)]
+            :no-answers! update-for-no-posts
+            :fetch-failed! update-for-no-posts)]
     (apply f world params)))
 
 (defn generated-output?
@@ -333,7 +343,11 @@
   (= (clear-marks world-before)
      (clear-marks world-after)))
 
-(def w (-> (initialize-world dev/response-body 118 37)
+(def w (-> dev/response-body
+           api/parse-response
+           (get "items")
+           ((partial mapv api/scrub-question))
+           (initialize-world 118 37)
            (update-for-keystroke \J false)
            (update-for-keystroke \J false)
            (update-for-keystroke \j false)
