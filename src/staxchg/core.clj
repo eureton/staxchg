@@ -14,7 +14,6 @@
   [& args]
   (initialize)
   (ui/run-input-loop (-> dev/response-body
-                         api/parse-response
                          (get "items")
-                         ((partial mapv api/scrub-question)))))
+                         ((partial mapv api/scrub)))))
 

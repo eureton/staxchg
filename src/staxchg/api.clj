@@ -107,33 +107,21 @@
 (defn unescape-html [string]
   (org.jsoup.parser.Parser/unescapeEntities string true))
 
-(defn scrub-post
+(defn scrub
   ""
-  [post]
-  (update post "body_markdown" unescape-html))
-
-(defn scrub-answer
-  ""
-  [answer]
-  (->
-    answer
-    (update "body_markdown" unescape-html)
-    (update "comments" (partial mapv scrub-post))))
-
-(defn scrub-question
-  ""
-  [question]
-  (->
-    question
-    (update "title" unescape-html)
-    (update "body_markdown" unescape-html)
-    (update "comments" (partial mapv scrub-post))))
+  [item]
+  (cond-> item
+    (contains? item "title") (update "title" unescape-html)
+    (contains? item "body_markdown") (update "body_markdown" unescape-html)
+    (contains? item "answers") (update "answers" (partial mapv scrub))
+    (contains? item "comments") (update "comments" (partial mapv scrub))))
 
 (defn parse-response
   ""
   [response]
-  (->>
+  (->
     response
     :body
-    cheshire.core/parse-string))
+    cheshire.core/parse-string
+    (update "items" (partial mapv scrub))))
 

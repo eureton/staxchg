@@ -282,14 +282,13 @@
 (defn update-for-questions-response
   ""
   [world response]
-  (let [{:strs [items has_more error]} (api/parse-response response)
-        questions (mapv api/scrub-question items)]
+  (let [{:strs [items has_more error]} (api/parse-response response)]
     (cond->
       world
       true (clear-marks)
       error (assoc :fetch-failed true)
-      (and (nil? error) (empty? questions)) (assoc :switched-pane? true)
-      (not-empty questions) (update-for-new-questions questions))))
+      (and (nil? error) (empty? items)) (assoc :switched-pane? true)
+      (not-empty items) (update-for-new-questions items))))
 
 (defn update-for-new-answers
   ""
@@ -306,14 +305,13 @@
   ""
   [world response question-id]
   (let [index (question-id-to-index question-id world)
-        {:strs [items has_more error]} (api/parse-response response)
-        answers (map api/scrub-answer items)]
+        {:strs [items has_more error]} (api/parse-response response)]
     (cond->
       world
       true (clear-marks)
       error (assoc :fetch-failed true)
-      (and (nil? error) (empty? answers)) (assoc :no-answers true)
-      (not-empty answers) (update-for-new-answers answers has_more question-id))))
+      (and (nil? error) (empty? items)) (assoc :no-answers true)
+      (not-empty items) (update-for-new-answers items has_more question-id))))
 
 (defn update-for-no-posts
   ""
@@ -344,9 +342,8 @@
      (clear-marks world-after)))
 
 (def w (-> dev/response-body
-           api/parse-response
            (get "items")
-           ((partial mapv api/scrub-question))
+           ((partial mapv api/scrub))
            (initialize-world 118 37)
            (update-for-keystroke \J false)
            (update-for-keystroke \J false)
