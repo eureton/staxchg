@@ -32,12 +32,6 @@
                                         identity
                                         #(min (- question-count question-list-size) (inc %)))))))
 
-(defn selected-question
-  ""
-  [{:as world
-    :keys [selected-question-index]}]
-  (get-in world [:questions selected-question-index]))
-
 (defn question-id-to-index
   ""
   [question-id world]
@@ -60,7 +54,7 @@
        first
        first)))
   ([world]
-   (selected-answer-index (selected-question world) world)))
+   (selected-answer-index (presentation/selected-question world) world)))
 
 (defn fetch-answers?
   ""
@@ -93,7 +87,7 @@
   ""
   [world]
   (let [{:strs [question_id answers]
-         :as question} (selected-question world)
+         :as question} (presentation/selected-question world)
         index (selected-answer-index question world)]
     (cond-> world
       (some? index) (assoc-in
@@ -103,7 +97,8 @@
 (defn increment-selected-answer
   ""
   [world]
-  (let [{:strs [question_id answers] :as question} (selected-question world)
+  (let [{:strs [question_id answers]
+         :as question} (presentation/selected-question world)
         index (selected-answer-index question world)
         fetch? (fetch-answers? question world)
         increment? (and (not fetch?) (some? index))
@@ -129,26 +124,22 @@
 (defn clamp-line-offset
   ""
   [line-offset post world]
-  (let [countf (if (contains? post "answer_id")
-                 presentation/answer-line-count
-                 presentation/question-line-count)
-        line-count (countf post world)]
+  (let [post-height (presentation/post-line-count post world)
+        container-height (active-pane-body-height world)]
     (min
-      (max 0 (- line-count (active-pane-body-height world)))
+      (max 0 (- post-height container-height))
       (max 0 line-offset))))
 
 (defn update-selected-post-line-offset
   ""
   [scrollf
    {:as world :keys [active-pane]}]
-  (let [[countf post] (case active-pane
-                        :questions [presentation/question-line-count
-                                    (selected-question world)]
-                        :answers [presentation/answer-line-count
-                                  (presentation/selected-answer world)])
-        post-id (post (case active-pane
-                        :questions "question_id"
-                        :answers "answer_id"))
+  (let [post (case active-pane
+               :questions (presentation/selected-question world)
+               :answers (presentation/selected-answer world))
+        post-id (get post (case active-pane
+                            :questions "question_id"
+                            :answers "answer_id"))
         previous (presentation/line-offset post world)
         current (clamp-line-offset (scrollf previous world) post world)]
     (dev/log "scroll-delta[" post-id "]: " (- current previous))
@@ -228,7 +219,8 @@
 (defn effect-answers-pane
   ""
   [world]
-  (let [{:as question :strs [question_id]} (selected-question world)
+  (let [{:as question
+         :strs [question_id]} (presentation/selected-question world)
         fetch? (fetch-answers? question world)
         page (next-answers-page question)]
     (if fetch?

@@ -97,19 +97,22 @@
    (or (get-in world [:line-offsets post-id])
        0)))
 
+(defn selected-question
+  ""
+  [{:as world
+    :keys [selected-question-index]}]
+  (get-in world [:questions selected-question-index]))
+
 (defn selected-answer
-  ([{:as question
-     :strs [question_id answers]}
-    {:as world
-     :keys [questions selected-question-index]}]
+  ([{:as question :strs [question_id answers]}
+    world]
    (let [answer-id (or (get-in world [:selected-answers question_id])
                        (-> answers (get 0) (get "answer_id")))]
      (some
        #(when (= answer-id (% "answer_id")) %)
        answers)))
-  ([{:as world
-     :keys [questions selected-question-index]}]
-   (selected-answer (questions selected-question-index) world)))
+  ([world]
+   (selected-answer (selected-question world) world)))
 
 (defn format-date
   ""
@@ -133,7 +136,7 @@
 
 (defn format-question-meta
   ""
-  [{:as question :strs [answer_count score view_count last_activity_date owner]}]
+  [{:strs [answer_count score view_count last_activity_date owner]}]
   (format
     "(A: %d) | (S: %d) | (V: %d) | %s | %s"
     answer_count
@@ -324,6 +327,14 @@
     (answers-body-flow answer world)
     ((zones world) :answers-body)))
 
+(defn post-line-count
+  ""
+  [post world]
+  ((cond
+     (contains? post "answer_id") answer-line-count
+     (contains? post "question_id") question-line-count
+     :else (constantly 0)) post world))
+
 (defn printable?
   ""
   [character]
@@ -382,8 +393,8 @@
 (defn flows
   ""
   [{:as world
-    :keys [width height question-list-size questions selected-question-index]}]
-  (let [question (questions selected-question-index)
+    :keys [width]}]
+  (let [question (selected-question world)
         {:as answer :strs [answer_id]} (selected-answer world)
         question-meta-text (format-question-meta question)]
     (cond-> {:questions-separator (flow/make {:type :string
@@ -394,23 +405,23 @@
                                (map-indexed
                                  #(question-list-item-flow %2 %1 world)
                                  (visible-questions world)))
-             :question-body (flow/scroll-y
-                              (questions-body-flow question world)
-                              (- (line-offset question world)))
-             :question-meta (flow/make {:type :string
-                                        :raw question-meta-text
-                                        :x (- width (count question-meta-text))
-                                        :foreground-color TextColor$ANSI/YELLOW})
              :answers-header (flow/make {:type :string
-                                         :raw (question "title")
+                                         :raw (get question "title")
                                          :modifiers [SGR/REVERSE]})
              :answers-separator (flow/make {:type :string
                                             :raw (format-answers-pane-separator question world)})}
-      (some? answer) (merge {:answer (flow/scroll-y
-                                       (answers-body-flow answer world)
-                                       (- (line-offset answer world)))
-                             :answer-meta (answer-meta-flow answer world)
-                             :answer-acceptance (answer-acceptance-flow answer world)}))))
+      (some? question) (assoc :question-body (flow/scroll-y
+                                               (questions-body-flow question world)
+                                               (- (line-offset question world)))
+                              :question-meta (flow/make {:type :string
+                                                         :raw question-meta-text
+                                                         :x (- width (count question-meta-text))
+                                                         :foreground-color TextColor$ANSI/YELLOW}))
+      (some? answer) (assoc :answer (flow/scroll-y
+                                      (answers-body-flow answer world)
+                                      (- (line-offset answer world)))
+                            :answer-meta (answer-meta-flow answer world)
+                            :answer-acceptance (answer-acceptance-flow answer world)))))
 
 (def consignments
   [{:pane :questions :flow :questions-separator :zone :questions-separator}
