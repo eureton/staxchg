@@ -34,6 +34,9 @@
     (is (=
          ((questions-query-params "[clojure] lorem [repl] driven [development]") :tagged)
          "clojure;repl;development")))
+  (testing "tag: + symbol"
+    (is (= ((questions-query-params "abc [c++] xyz") :tagged)
+           "c++")))
   (testing "tag: # symbol"
     (is (= ((questions-query-params "abc [c#] klm [f#] xyz") :tagged)
            "c#;f#")))
