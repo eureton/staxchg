@@ -187,10 +187,12 @@
 
 (defn write-output
   ""
-  [screen world]
-  (recipe/route screen nil
-    (presentation/recipes world)
-    (.refresh screen))) ; TODO provide refresh type according to outgoing recipes
+  [screen channel]
+  (loop []
+    (recipe/route screen nil
+      (<!! channel)
+      (.refresh screen)) ; TODO provide refresh type according to outgoing recipes
+    (recur)))
 
 (defn register-theme!
   ""
@@ -205,18 +207,21 @@
   (let [terminal (.createTerminal (DefaultTerminalFactory.))
         screen (TerminalScreen. terminal)
         size (.getTerminalSize screen)
-        input-channel (async/chan)]
+        input-channel (async/chan)
+        output-channel (async/chan)]
     (.startScreen screen)
     (async/thread
       (read-input screen input-channel))
+    (async/thread
+      (write-output screen output-channel))
     (let [init-world (state/initialize-world questions (.getColumns size) (.getRows size))]
-      (write-output screen init-world)
+      (->> init-world presentation/recipes (>!! output-channel))
       (loop [world-before init-world]
         (->> world-before state/input-recipes (>!! input-channel))
         (let [input (<!! input-channel)
               world-after (state/update-world world-before input)]
           (when-not (state/generated-output? world-before world-after)
-            (write-output screen world-after))
+            (->> world-after presentation/recipes (>!! output-channel)))
           (when-not (world-after :quit?)
             (recur world-after)))))
     (.stopScreen screen)))
