@@ -33,7 +33,7 @@
         answers-separator-height 1
         answer-body-left 1
         answer-body-top (+ answers-header-height answers-separator-height)
-        answers-footer-left-width (/ width 3)]
+        answers-footer-left-width (quot width 3)]
     {:questions-header {:id :questions-header
                         :left question-list-left
                         :top 0
