@@ -103,14 +103,14 @@
   (cond->> (apply function params)
     (some? channel) (>!! channel)))
 
-(defmacro route
+(defn route
   [{:keys [from to screen]
     :or {to nil}}]
-  `(->>
-     (<!! ~from)
-     (map (partial recipe/inflate ~screen))
-     (flatten)
-     (map bind-symbol)
-     (map vector (repeat ~to))
-     (run! commit)))
+  (->>
+    (<!! from)
+    (map (partial inflate screen))
+    (flatten)
+    (map bind-symbol)
+    (map vector (repeat to))
+    (run! commit)))
 
