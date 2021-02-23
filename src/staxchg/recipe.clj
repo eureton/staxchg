@@ -99,7 +99,6 @@
 
 (defn commit
   [[channel {:keys [function params]}]]
-  (dev/log "[commit] '" function "'")
   (cond->> (apply function params)
     (some? channel) (>!! channel)))
 
