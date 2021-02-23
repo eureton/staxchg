@@ -99,8 +99,13 @@
 
 (defn commit
   [[channel {:keys [function params]}]]
-  (cond->> (apply function params)
-    (some? channel) (>!! channel)))
+  (->>
+    (cond->> (apply function params)
+      (some? channel) (>!! channel))
+    time
+    with-out-str
+    clojure.string/trim-newline
+    (dev/log "[commit] ")))
 
 (defn route
   [{:keys [from to screen]
