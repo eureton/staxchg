@@ -382,8 +382,8 @@
                                              (map convert-to-lanterna)
                                              (map apply-markdown-traits)))]
     (cond-> item
-      (= function :put-string!) (update-in [:params 1] string-groomer)
-      (= function :put-markdown!) (update-in [:params 1] markdown-groomer))))
+      (= function :staxchg.ui/put-string!) (update-in [:params 1] string-groomer)
+      (= function :staxchg.ui/put-markdown!) (update-in [:params 1] markdown-groomer))))
 
 (defn groom-recipe
   ""

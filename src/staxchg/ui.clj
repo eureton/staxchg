@@ -164,61 +164,33 @@
     (block-till-done! screen)))
 
 (defn fetch-questions!
-  [url query-params screen]
+  [screen url query-params]
   (dev/log "[fetch-questions] url: " url ", query-params: " query-params)
   {:function :fetch-questions!
    :params [(blocking-fetch! url query-params screen)]})
 
 (defn fetch-answers!
-  [url query-params question-id screen]
+  [screen url query-params question-id]
   (dev/log "[fetch-answers] url: " url ", query-params: " query-params)
   {:function :fetch-answers!
    :params [(blocking-fetch! url query-params screen) question-id]})
 
 (defn read-input
   ""
-  [screen
-   {:as world
-    :keys [query? search-term fetch-answers no-answers fetch-failed]}]
-  (cond
-    query? (query! screen)
-    search-term (fetch-questions!
-                  (api/questions-url)
-                  (api/questions-query-params search-term)
-                  screen)
-    fetch-answers (fetch-answers!
-                    (api/answers-url (fetch-answers :question-id))
-                    (api/answers-query-params (fetch-answers :page))
-                    (fetch-answers :question-id)
-                    screen)
-    no-answers (show-message!
-                 screen
-                 {:text "Question has no answers"}
-                 {:function :no-answers! :params []})
-    fetch-failed (show-message!
-                   screen
-                   {:title "Error" :text "Could not fetch data"}
-                   {:function :fetch-failed! :params []})
-    :else (read-key! screen)))
-
-(defn commit-recipe
-  [recipe]
-  (doseq [{:keys [function params]} recipe]
-    (let [f (case function
-              :scroll! scroll!
-              :clear! clear!
-              :put-markdown! put-markdown!
-              :put-string! put-string!)]
-      (apply f params))))
+  [screen channel]
+  (loop []
+    (recipe/route
+      screen
+      channel
+      (<!! channel))
+    (recur)))
 
 (defn write-output
   ""
   [screen world]
-  (->>
+  (recipe/route screen nil
     (presentation/recipes world)
-    (map (partial recipe/inflate screen))
-    (run! commit-recipe))
-  (.refresh screen)) ; TODO provide refresh type according to outgoing recipes
+    (.refresh screen))) ; TODO provide refresh type according to outgoing recipes
 
 (defn register-theme!
   ""
@@ -232,12 +204,16 @@
   [questions]
   (let [terminal (.createTerminal (DefaultTerminalFactory.))
         screen (TerminalScreen. terminal)
-        size (.getTerminalSize screen)]
+        size (.getTerminalSize screen)
+        input-channel (async/chan)]
     (.startScreen screen)
+    (async/thread
+      (read-input screen input-channel))
     (let [init-world (state/initialize-world questions (.getColumns size) (.getRows size))]
       (write-output screen init-world)
       (loop [world-before init-world]
-        (let [input (read-input screen world-before)
+        (->> world-before state/input-recipes (>!! input-channel))
+        (let [input (<!! input-channel)
               world-after (state/update-world world-before input)]
           (when-not (state/generated-output? world-before world-after)
             (write-output screen world-after))

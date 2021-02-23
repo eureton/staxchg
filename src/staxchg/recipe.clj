@@ -1,4 +1,5 @@
 (ns staxchg.recipe
+  (:require [clojure.core.async :as async :refer [>!!]])
   (:require [staxchg.flow :as flow])
   (:require [staxchg.dev :as dev])
   (:import com.googlecode.lanterna.SGR)
@@ -30,7 +31,7 @@
   ""
   [flow zone]
   (when (zone :clear?)
-    {:function :clear!
+    {:function :staxchg.ui/clear!
      :params [(sub-graphics zone)]}))
 
 (defn scroll
@@ -39,7 +40,7 @@
    {:as zone
     :keys [top height]}]
   (when (flow/scrolled? flow)
-    {:function :scroll!
+    {:function :staxchg.ui/scroll!
      :params [:screen
               top
               (+ top (dec height))
@@ -49,15 +50,15 @@
   ""
   [flow zone]
   (when (flow/scrolled? flow)
-    {:function :clear!
+    {:function :staxchg.ui/clear!
      :params [(sub-graphics (flow/scroll-gap-rect flow zone))]}))
 
 (defn put-payload
   ""
   [flow zone item]
   {:function (case (item :type)
-               :markdown :put-markdown!
-               :string :put-string!)
+               :markdown :staxchg.ui/put-markdown!
+               :string :staxchg.ui/put-string!)
    :params [(fx-graphics (flow/scroll-gap-rect flow zone) item)
             (flow/payload item)
             (select-keys item [:x :y])]})
@@ -86,4 +87,31 @@
                        (map param-mapper)
                        (assoc % :params))]
     (map step-mapper recipe)))
+
+(defn resolve-function
+  ""
+  [fn-key]
+  (->> fn-key symbol find-var var-get))
+
+(defn bind-symbol
+  [step]
+  (update step :function resolve-function))
+
+(defn commit
+  [[channel {:keys [function params]}]]
+  (dev/log "[commit] '" function "'")
+  (cond->> (apply function params)
+    (some? channel) (>!! channel)))
+
+(defmacro route
+  [screen channel recipes & body]
+  `(do
+     (->>
+       ~recipes
+       (map (partial recipe/inflate ~screen))
+       (flatten)
+       (map bind-symbol)
+       (map vector (repeat ~channel))
+       (run! commit))
+     ~@body))
 

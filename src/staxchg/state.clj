@@ -335,6 +335,36 @@
             :fetch-failed! update-for-no-posts)]
     (apply f world params)))
 
+(defn input-recipes
+  ""
+  [{:as world
+    :keys [query? search-term fetch-answers no-answers fetch-failed]}]
+  (->>
+    (cond
+      query? {:function :staxchg.ui/query!
+              :params [:screen]}
+      search-term {:function :staxchg.ui/fetch-questions!
+                   :params [:screen
+                            (api/questions-url)
+                            (api/questions-query-params search-term)]}
+      fetch-answers {:function :staxchg.ui/fetch-answers!
+                     :params [:screen
+                              (api/answers-url (fetch-answers :question-id))
+                              (api/answers-query-params (fetch-answers :page))
+                              (fetch-answers :question-id)]}
+      no-answers {:function :staxchg.ui/show-message!
+                  :params [:screen
+                           {:text "Question has no answers"}
+                           {:function :no-answers! :params []}]}
+      fetch-failed {:function :staxchg.ui/show-message!
+                    :params [:screen
+                             {:title "Error" :text "Could not fetch data"}
+                             {:function :fetch-failed! :params []}]}
+      :else {:function :staxchg.ui/read-key!
+             :params [:screen]})
+    vector
+    vector))
+
 (defn generated-output?
   ""
   [world-before world-after]
