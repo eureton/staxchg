@@ -71,21 +71,21 @@
        (<!! channel#)
        (finally (async/close! channel#)))))
 
-(defmacro show-message!
+(defn show-message!
   ""
   [screen
    {:keys [title text] :or {title ""}}
-   & body]
-  `(let [gui# (themed-gui ~screen)]
-     (->
-       (MessageDialogBuilder.)
-       (.setTitle ~title)
-       (.setText ~text)
-       (.setExtraWindowHints [Window$Hint/MODAL Window$Hint/CENTERED])
-       (.addButton MessageDialogButton/OK)
-       (.build)
-       (.showDialog gui#))
-     (do ~@body)))
+   return]
+  (let [gui (themed-gui screen)]
+    (->
+      (MessageDialogBuilder.)
+      (.setTitle title)
+      (.setText text)
+      (.setExtraWindowHints [Window$Hint/MODAL Window$Hint/CENTERED])
+      (.addButton MessageDialogButton/OK)
+      (.build)
+      (.showDialog gui))
+    return))
 
 (defn put-markdown!
   [graphics plot _]
@@ -216,7 +216,7 @@
         (->> world-before state/input-recipes (>!! input-channel))
         (let [input (<!! input-channel)
               world-after (state/update-world world-before input)]
-          (when-not (state/generated-output? world-before world-after)
+          (when (state/write-output? world-before world-after)
             (->> world-after presentation/recipes (>!! output-channel)))
           (when-not (world-after :quit?)
             (recur world-after)))))

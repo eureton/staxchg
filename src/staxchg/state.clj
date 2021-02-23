@@ -5,7 +5,8 @@
   (:gen-class))
 
 (def mark-keys #{:scroll-deltas :query? :quit? :search-term :fetch-answers
-                 :no-answers :fetch-failed})
+                 :no-questions :no-answers :fetch-failed :switched-pane?
+                 :switched-question? :switched-answer?})
 
 (defn initialize-world
   ""
@@ -265,10 +266,10 @@
       (set-marks command))))
 
 (defn update-for-search-term [world term]
-  (cond->
-    world
-    true (clear-marks)
-    (not (clojure.string/blank? term)) (assoc :search-term term)))
+  (let [blank? (clojure.string/blank? term)]
+    (cond-> (clear-marks world)
+      (not blank?) (assoc :search-term term)
+      blank? (assoc :switched-pane? true))))
 
 (defn update-for-new-questions
   ""
@@ -287,7 +288,7 @@
       world
       true (clear-marks)
       error (assoc :fetch-failed true)
-      (and (nil? error) (empty? items)) (assoc :switched-pane? true)
+      (and (nil? error) (empty? items)) (assoc :no-questions true)
       (not-empty items) (update-for-new-questions items))))
 
 (defn update-for-new-answers
@@ -331,6 +332,7 @@
             :query! update-for-search-term
             :fetch-questions! update-for-questions-response
             :fetch-answers! update-for-answers-response
+            :no-questions! update-for-no-posts
             :no-answers! update-for-no-posts
             :fetch-failed! update-for-no-posts)]
     (apply f world params)))
@@ -338,7 +340,7 @@
 (defn input-recipes
   ""
   [{:as world
-    :keys [query? search-term fetch-answers no-answers fetch-failed]}]
+    :keys [query? search-term fetch-answers no-questions no-answers fetch-failed]}]
   (->>
     (cond
       query? {:function :staxchg.ui/query!
@@ -352,6 +354,10 @@
                               (api/answers-url (fetch-answers :question-id))
                               (api/answers-query-params (fetch-answers :page))
                               (fetch-answers :question-id)]}
+      no-questions {:function :staxchg.ui/show-message!
+                    :params [:screen
+                             {:text "No matches found"}
+                             {:function :no-questions! :params []}]}
       no-answers {:function :staxchg.ui/show-message!
                   :params [:screen
                            {:text "Question has no answers"}
@@ -368,8 +374,18 @@
 (defn generated-output?
   ""
   [world-before world-after]
-  (= (clear-marks world-before)
-     (clear-marks world-after)))
+  (not= (clear-marks world-before)
+        (clear-marks world-after)))
+
+(defn write-output?
+  ""
+  [world-before
+   {:as world-after
+    :keys [active-pane switched-question? switched-answer? switched-pane?]}]
+  (or switched-pane?
+      (and (= active-pane :questions) switched-question?)
+      (and (= active-pane :answers) switched-answer?)
+      (generated-output? world-before world-after)))
 
 (def w (-> dev/response-body
            (get "items")
