@@ -179,19 +179,15 @@
   ""
   [screen channel]
   (loop []
-    (recipe/route
-      screen
-      channel
-      (<!! channel))
+    (recipe/route {:from channel :to channel :screen screen})
     (recur)))
 
 (defn write-output
   ""
   [screen channel]
   (loop []
-    (recipe/route screen nil
-      (<!! channel)
-      (.refresh screen)) ; TODO provide refresh type according to outgoing recipes
+    (recipe/route {:from channel :screen screen})
+    (.refresh screen) ; TODO provide refresh type according to outgoing recipes
     (recur)))
 
 (defn register-theme!

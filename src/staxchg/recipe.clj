@@ -1,5 +1,5 @@
 (ns staxchg.recipe
-  (:require [clojure.core.async :as async :refer [>!!]])
+  (:require [clojure.core.async :as async :refer [<!! >!!]])
   (:require [staxchg.flow :as flow])
   (:require [staxchg.dev :as dev])
   (:import com.googlecode.lanterna.SGR)
@@ -104,14 +104,13 @@
     (some? channel) (>!! channel)))
 
 (defmacro route
-  [screen channel recipes & body]
-  `(do
-     (->>
-       ~recipes
-       (map (partial recipe/inflate ~screen))
-       (flatten)
-       (map bind-symbol)
-       (map vector (repeat ~channel))
-       (run! commit))
-     ~@body))
+  [{:keys [from to screen]
+    :or {to nil}}]
+  `(->>
+     (<!! ~from)
+     (map (partial recipe/inflate ~screen))
+     (flatten)
+     (map bind-symbol)
+     (map vector (repeat ~to))
+     (run! commit)))
 
