@@ -67,7 +67,7 @@
   [zone
    {:as item
     :keys [sub-zone raw]}]
-  (let [width (if sub-zone (sub-zone :width) (zone :width))] ; TODO fix this duplication
+  (let [width ((or sub-zone zone) :width)]
     (markdown/line-count raw width)))
 
 (defn scroll-y
