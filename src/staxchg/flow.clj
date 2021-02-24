@@ -57,15 +57,18 @@
     :string raw
     :markdown plot))
 
-(defn payload-line-count
-  ""
+(defmulti payload-line-count (fn [_ item] (item :type)))
+
+(defmethod payload-line-count :string
+  [_ _]
+  1)
+
+(defmethod payload-line-count :markdown
   [zone
    {:as item
     :keys [sub-zone raw]}]
-  (let [width (if sub-zone (sub-zone :width) (zone :width))]
-    (case (item :type)
-      :markdown (markdown/line-count raw width)
-      :string 1)))
+  (let [width (if sub-zone (sub-zone :width) (zone :width))] ; TODO fix this duplication
+    (markdown/line-count raw width)))
 
 (defn scroll-y
   ""
@@ -104,15 +107,16 @@
 
 (defn layout-y
   ""
-  [{:as flow :keys [scroll-offset] :or {scroll-offset 0}}
+  [{:as flow
+    :keys [scroll-offset items]
+    :or {scroll-offset 0}}
    zone]
-  (let [line-counts (map (partial payload-line-count zone) (flow :items))
+  (let [plotted-items (map #(assoc % :plot (plot-markdown zone %)) items)
+        line-counts (map (partial payload-line-count zone) plotted-items)
         arith-prog-reducer (fn [acc x] (conj acc (+ x (last acc))))
         ys (reduce arith-prog-reducer [0] line-counts)]
     (->>
-      flow
-      :items
-      (map #(assoc % :plot (plot-markdown zone %)))
+      plotted-items
       (map #(update %2 :y + %1 (- scroll-offset)) ys)
       (assoc flow :items))))
 
@@ -139,6 +143,7 @@
 (defn clip-to-screen-markdown-item
   ""
   [item rect]
+  ; TODO clean this up
   (assoc item :plot (filter
                       (fn [[_ [x y] _]] (within? (+ x (item :x)) (+ y (item :y)) rect))
                       (item :plot))))
