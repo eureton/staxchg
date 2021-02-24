@@ -232,11 +232,11 @@
 
 (defn comment-flow
   ""
-  [c rect]
+  [{:as c :strs [body_markdown]} rect]
   (let [meta-text (format-comment-meta c)]
     (flow/add
       (flow/make {:type :markdown
-                  :raw (c "body_markdown")
+                  :raw body_markdown
                   :sub-zone (->
                               rect
                               (assoc :left comments-left-margin)
@@ -264,10 +264,10 @@
 
 (defn question-flow
   ""
-  [question world]
+  [{:as question :strs [body_markdown question_id]} world]
   (flow/make {:type :markdown
-              :raw (question "body_markdown")
-              :scroll-delta (get-in world [:scroll-deltas (question "question_id")])}))
+              :raw body_markdown
+              :scroll-delta (get-in world [:scroll-deltas question_id])}))
 
 (defn answer-flow
   ""
@@ -434,13 +434,17 @@
    {:pane   :answers :flow :answer-acceptance   :zone :answers-footer-left}
    {:pane   :answers :flow :answers-header      :zone :answers-header}])
 
-(defn recipes [world]
+(defn recipes
+  ""
+  [{:as world
+    :keys [active-pane]}]
   (let [flows (flows world)
         zones (zones world)]
     (->>
       consignments
-      (filter (comp (partial = (world :active-pane)) :pane))
-      (map #(hash-map :flow (flows (% :flow)) :zone (zones (% :zone))))
+      (filter (comp (partial = active-pane) :pane))
+      (map #(hash-map :flow (flows (% :flow))
+                      :zone (zones (% :zone))))
       (remove (comp nil? :flow))
       (map recipe/make)
       (map groom-recipe))))
