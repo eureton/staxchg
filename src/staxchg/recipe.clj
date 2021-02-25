@@ -1,6 +1,7 @@
 (ns staxchg.recipe
   (:require [clojure.core.async :as async :refer [<!! >!!]])
   (:require [staxchg.flow :as flow])
+  (:require [staxchg.flow.item :as flow.item])
   (:require [staxchg.dev :as dev])
   (:import com.googlecode.lanterna.SGR)
   (:import com.googlecode.lanterna.TerminalPosition)
@@ -60,7 +61,7 @@
                :markdown :staxchg.ui/put-markdown!
                :string :staxchg.ui/put-string!)
    :params [(fx-graphics (flow/scroll-gap-rect flow zone) item)
-            (flow/payload item)
+            (flow.item/payload item)
             (select-keys item [:x :y])]})
 
 (defn make

@@ -1,4 +1,5 @@
 (ns staxchg.flow
+  (:require [staxchg.flow.item :as item])
   (:require [staxchg.markdown :as markdown])
   (:require [staxchg.dev :as dev])
   (:import com.googlecode.lanterna.TextColor$ANSI)
@@ -7,17 +8,6 @@
 (def zero {:items []})
 
 (def y-rhythm 1)
-
-(defn plot-markdown
-  [zone
-   {:as item
-    :keys [x y sub-zone raw]}]
-  (when (= (item :type) :markdown)
-    (let [options {:x x
-                   :y y
-                   :left (if sub-zone (sub-zone :left) 0)
-                   :width (if sub-zone (sub-zone :width) (zone :width))}]
-      (markdown/plot raw options))))
 
 (defn make
   ""
@@ -50,26 +40,6 @@
       (some? scroll-delta)
       ((complement zero?) scroll-delta))))
 
-(defn payload
-  ""
-  [{:as item :keys [raw plot]}]
-  (case (item :type)
-    :string raw
-    :markdown plot))
-
-(defmulti payload-line-count (fn [_ item] (item :type)))
-
-(defmethod payload-line-count :string
-  [_ _]
-  1)
-
-(defmethod payload-line-count :markdown
-  [zone
-   {:as item
-    :keys [sub-zone raw]}]
-  (let [width ((or sub-zone zone) :width)]
-    (markdown/line-count raw width)))
-
 (defn scroll-y
   ""
   [flow delta]
@@ -78,7 +48,7 @@
 (defn line-count
   ""
   [flow zone]
-  (reduce + (map (partial payload-line-count zone) (flow :items))))
+  (reduce + (map (partial item/line-count zone) (flow :items))))
 
 (defn add
   ""
@@ -94,25 +64,14 @@
   ([flow1 flow2 & more]
    (reduce add (add flow1 flow2) more)))
 
-(defn within?
-  ""
-  [x y {:as rect :keys [left top width height]}]
-  (let [right (+ left width)
-        bottom (+ top height)]
-    (and
-      (>= x left)
-      (< x right)
-      (>= y top)
-      (< y bottom))))
-
 (defn layout-y
   ""
   [{:as flow
     :keys [scroll-offset items]
     :or {scroll-offset 0}}
    zone]
-  (let [plotted-items (map #(assoc % :plot (plot-markdown zone %)) items)
-        line-counts (map (partial payload-line-count zone) plotted-items)
+  (let [plotted-items (map #(assoc % :plot (item/plot-markdown zone %)) items)
+        line-counts (map (partial item/line-count zone) plotted-items)
         arith-prog-reducer (fn [acc x] (conj acc (+ x (last acc))))
         ys (reduce arith-prog-reducer [0] line-counts)]
     (->>
@@ -134,34 +93,14 @@
       (map item-mapper)
       (assoc flow :items))))
 
-(defmulti clip-to-screen-item (fn [item _] (item :type)))
-
-(defmethod clip-to-screen-item :string
-  [{:as item :keys [x y raw]}
-   rect]
-  (assoc item :raw (if (within? x y rect) raw "")))
-
-(defmethod clip-to-screen-item :markdown
-  [item rect]
-  (let [clipper (fn [[_ [x y] _]]
-                  (within? (+ x (item :x)) (+ y (item :y)) rect))]
-    (update item :plot (partial filter clipper))))
-
 (defn clip-to-screen
   ""
   [flow rect]
   (->>
     flow
     :items
-    (map #(clip-to-screen-item % rect))
+    (map #(item/clip % rect))
     (assoc flow :items)))
-
-(defn invisible?
-  ""
-  [item]
-  (case (item :type)
-    :string (empty? (item :raw))
-    :markdown (empty? (item :plot))))
 
 (defn cull
   ""
@@ -169,28 +108,8 @@
   (->>
     flow
     :items
-    (remove invisible?)
+    (remove item/invisible?)
     (assoc flow :items)))
-
-(defn translate-to-viewport-string-item
-  ""
-  [item rect]
-  (-> item
-      (update :x - (rect :left))
-      (update :y - (rect :top))))
-
-(defn translate-to-viewport-markdown-item
-  ""
-  [item rect]
-  (let [translator (fn [[c [x y] cs]] [c [x (- (+ y (item :y)) (rect :top))] cs])]
-    (update item :plot #(map translator %))))
-
-(defn translate-to-viewport-item
-  ""
-  [item rect]
-  ((case (item :type)
-     :string translate-to-viewport-string-item
-     :markdown translate-to-viewport-markdown-item) item rect))
 
 (defn translate-to-viewport
   ""
@@ -198,7 +117,7 @@
   (->>
     flow
     :items
-    (map #(translate-to-viewport-item % rect))
+    (map #(item/translate % rect))
     (assoc flow :items)))
 
 (defn scroll-gap-rect
