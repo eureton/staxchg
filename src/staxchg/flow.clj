@@ -134,26 +134,18 @@
       (map item-mapper)
       (assoc flow :items))))
 
-(defn clip-to-screen-string-item
-  ""
+(defmulti clip-to-screen-item (fn [item _] (item :type)))
+
+(defmethod clip-to-screen-item :string
   [{:as item :keys [x y raw]}
    rect]
   (assoc item :raw (if (within? x y rect) raw "")))
 
-(defn clip-to-screen-markdown-item
-  ""
+(defmethod clip-to-screen-item :markdown
   [item rect]
-  ; TODO clean this up
-  (assoc item :plot (filter
-                      (fn [[_ [x y] _]] (within? (+ x (item :x)) (+ y (item :y)) rect))
-                      (item :plot))))
-
-(defn clip-to-screen-item
-  ""
-  [item rect]
-  ((case (item :type)
-     :string clip-to-screen-string-item
-     :markdown clip-to-screen-markdown-item) item rect))
+  (let [clipper (fn [[_ [x y] _]]
+                  (within? (+ x (item :x)) (+ y (item :y)) rect))]
+    (update item :plot (partial filter clipper))))
 
 (defn clip-to-screen
   ""
