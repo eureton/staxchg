@@ -172,7 +172,8 @@
 
 (defn format-questions-pane-separator
   ""
-  [{:keys [width question-list-size question-list-offset questions]}]
+  [{:keys [question-list-size question-list-offset questions]}
+   {:keys [width]}]
   (let [from (inc question-list-offset)
         to (dec (+ from question-list-size))
         hint (format "(%d-%d of %d)" from to (count questions))]
@@ -185,7 +186,8 @@
 (defn format-answers-pane-separator
   ""
   [{:as question :strs [question_id answer_count answers]}
-   {:as world :keys [width]}]
+   world
+   {:as zone :keys [width]}]
   (let [{:strs [answer_id]} (selected-answer question world)
         index (->>
                 answers
@@ -209,9 +211,10 @@
   [question
    index
    {:as world
-    :keys [selected-question-index question-list-offset]}]
+    :keys [selected-question-index question-list-offset]}
+   {:as zone
+    :keys [width]}]
   (let [x-offset 1
-        {:keys [width]} ((zones world) :questions-header)
         text (format-question-list-item question (- width (* x-offset 2)))
         selected? (= index (- selected-question-index question-list-offset))]
     (flow/make {:type :string
@@ -232,35 +235,35 @@
 
 (defn comment-flow
   ""
-  [{:as c :strs [body_markdown]} rect]
+  [{:as c
+    :strs [body_markdown]}
+   {:as zone
+    :keys [width]}]
   (let [meta-text (format-comment-meta c)]
     (flow/add
       (flow/make {:type :markdown
                   :raw body_markdown
                   :sub-zone (->
-                              rect
+                              zone
                               (assoc :left comments-left-margin)
                               (update :width - comments-left-margin))
                   :foreground-color TextColor$ANSI/BLUE})
       (flow/make {:type :string
                   :raw meta-text
-                  :x (- (rect :width) (count meta-text))
+                  :x (- width (count meta-text))
                   :foreground-color TextColor$ANSI/BLUE
                   :modifiers [SGR/BOLD]}))))
 
 (defn comments-flow
   ""
-  [{:as post :strs [comments]} world]
+  [{:as post
+    :strs [comments]}
+   world
+   zone]
   (reduce
     #(flow/add %1 flow/y-separator %2)
     flow/zero
-    (map
-      #(comment-flow
-         %
-         ((if (contains? post "answer_id")
-            :questions-body
-            :answers-body) (zones world)))
-      comments)))
+    (map #(comment-flow % zone) comments)))
 
 (defn question-flow
   ""
@@ -278,18 +281,15 @@
 
 (defn questions-body-flow
   ""
-  [question world]
+  [question world zone]
   (flow/add
     (question-flow question world)
-    (comments-flow question world)))
+    (comments-flow question world zone)))
 
 (defn answer-meta-flow
   ""
-  [answer world]
-  (let [text (format-answer-meta answer)
-        zone ((zones world) :answers-footer-right)] ; TODO remove this and all others like it
-                                                    ;      flows must know nothing about which
-                                                    ;      zone they will be rendered in!
+  [answer world zone]
+  (let [text (format-answer-meta answer)]
     (flow/make {:type :string
                 :raw (format (str "%" (zone :width) "s") text)
                 :foreground-color TextColor$ANSI/YELLOW})))
@@ -306,34 +306,12 @@
                               :foreground-color TextColor$ANSI/DEFAULT
                               :background-color TextColor$ANSI/DEFAULT})))))
 
-(defn question-line-count
-  ""
-  [question world]
-  (flow/line-count
-    (questions-body-flow question world)
-    ((zones world) :questions-body)))
-
 (defn answers-body-flow
   ""
-  [answer world]
+  [answer world zone]
   (flow/add
     (answer-flow answer world)
-    (comments-flow answer world)))
-
-(defn answer-line-count
-  ""
-  [answer world]
-  (flow/line-count
-    (answers-body-flow answer world)
-    ((zones world) :answers-body)))
-
-(defn post-line-count
-  ""
-  [post world]
-  ((cond
-     (contains? post "answer_id") answer-line-count
-     (contains? post "question_id") question-line-count
-     :else (constantly 0)) post world))
+    (comments-flow answer world zone)))
 
 (defn printable?
   ""
@@ -392,59 +370,94 @@
 
 (defn flows
   ""
-  [{:as world
+  [world
+   {:as zone
     :keys [width]}]
   (let [question (selected-question world)
         {:as answer :strs [answer_id]} (selected-answer world)
         question-meta-text (format-question-meta question)]
     (cond-> {:questions-separator (flow/make {:type :string
-                                              :raw (format-questions-pane-separator world)})
+                                              :raw (format-questions-pane-separator world zone)})
              :questions-list (reduce
                                flow/add
                                flow/zero
                                (map-indexed
-                                 #(question-list-item-flow %2 %1 world)
+                                 #(question-list-item-flow %2 %1 world zone)
                                  (visible-questions world)))
              :answers-header (flow/make {:type :string
                                          :raw (get question "title")
                                          :modifiers [SGR/REVERSE]})
              :answers-separator (flow/make {:type :string
-                                            :raw (format-answers-pane-separator question world)})}
+                                            :raw (format-answers-pane-separator question world zone)})}
       (some? question) (assoc :question-body (flow/scroll-y
-                                               (questions-body-flow question world)
+                                               (questions-body-flow question world zone)
                                                (- (line-offset question world)))
                               :question-meta (flow/make {:type :string
                                                          :raw question-meta-text
                                                          :x (- width (count question-meta-text))
                                                          :foreground-color TextColor$ANSI/YELLOW}))
       (some? answer) (assoc :answer (flow/scroll-y
-                                      (answers-body-flow answer world)
+                                      (answers-body-flow answer world zone)
                                       (- (line-offset answer world)))
-                            :answer-meta (answer-meta-flow answer world)
+                            :answer-meta (answer-meta-flow answer world zone)
                             :answer-acceptance (answer-acceptance-flow answer world)))))
 
 (def consignments
-  [{:pane :questions :flow :questions-separator :zone :questions-separator}
-   {:pane :questions :flow :questions-list      :zone :questions-header}
-   {:pane :questions :flow :question-body       :zone :questions-body}
-   {:pane :questions :flow :question-meta       :zone :questions-footer}
-   {:pane   :answers :flow :answers-separator   :zone :answers-separator}
-   {:pane   :answers :flow :answer              :zone :answers-body}
-   {:pane   :answers :flow :answer-meta         :zone :answers-footer-right}
-   {:pane   :answers :flow :answer-acceptance   :zone :answers-footer-left}
-   {:pane   :answers :flow :answers-header      :zone :answers-header}])
+  [{:pane :questions :flow-id :questions-separator :zone-id :questions-separator}
+   {:pane :questions :flow-id :questions-list      :zone-id :questions-header}
+   {:pane :questions :flow-id :question-body       :zone-id :questions-body}
+   {:pane :questions :flow-id :question-meta       :zone-id :questions-footer}
+   {:pane   :answers :flow-id :answers-separator   :zone-id :answers-separator}
+   {:pane   :answers :flow-id :answer              :zone-id :answers-body}
+   {:pane   :answers :flow-id :answer-meta         :zone-id :answers-footer-right}
+   {:pane   :answers :flow-id :answer-acceptance   :zone-id :answers-footer-left}
+   {:pane   :answers :flow-id :answers-header      :zone-id :answers-header}])
+
+(defn zone-for-flow-id
+  ""
+  [id world]
+  (->> consignments
+       (filter (comp #(= id %) :flow-id))
+       first
+       :zone-id
+       ((zones world))))
+
+(defn question-line-count
+  ""
+  [question world]
+  (let [zone (zone-for-flow-id :question-body world)]
+    (flow/line-count
+      (questions-body-flow question world zone)
+      zone)))
+
+(defn answer-line-count
+  ""
+  [answer world]
+  (let [zone (zone-for-flow-id :answer world)]
+    (flow/line-count
+      (answers-body-flow answer world zone)
+      zone)))
+
+(defn post-line-count
+  ""
+  [post world]
+  ((cond
+     (contains? post "answer_id") answer-line-count
+     (contains? post "question_id") question-line-count
+     :else (constantly 0)) post world))
 
 (defn recipes
   ""
   [{:as world
     :keys [active-pane]}]
-  (let [flows (flows world)
-        zones (zones world)]
+  (let [zones (zones world)]
     (->>
       consignments
       (filter (comp (partial = active-pane) :pane))
-      (map #(hash-map :flow (flows (% :flow))
-                      :zone (zones (% :zone))))
+      (map (fn [{:keys [flow-id zone-id]}]
+             (let [zone (zones zone-id)]
+               {:flow ((flows world zone) flow-id)
+                :zone zone})))
       (remove (comp nil? :flow))
       (map recipe/make)
       (map groom-recipe))))
