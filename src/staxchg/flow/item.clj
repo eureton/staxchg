@@ -75,14 +75,16 @@
 (defmulti translate (fn [item _] (item :type)))
 
 (defmethod translate :string
-  [item rect]
+  [item
+   {:keys [left top]}]
   (-> item
-      (update :x - (rect :left))
-      (update :y - (rect :top))))
+      (update :x - left)
+      (update :y - top)))
 
 (defmethod translate :markdown
-  [item rect]
+  [item
+   {:keys [top]}]
   (let [translator (fn [[c [x y] cs]]
-                     [c [x (- (+ y (item :y)) (rect :top))] cs])]
+                     [c [x (- (+ y (item :y)) top)] cs])]
     (update item :plot #(map translator %))))
 
