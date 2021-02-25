@@ -26,7 +26,11 @@
                    :width (if sub-zone (sub-zone :width) (zone :width))}]
       (markdown/plot raw options))))
 
-(defmulti payload :type)
+(def dispatch-fn-1 :type)
+
+(def dispatch-fn-2 (fn [item _] (item :type)))
+
+(defmulti payload dispatch-fn-1)
 
 (defmethod payload :string
   [{:keys [raw]}]
@@ -36,20 +40,20 @@
   [{:keys [plot]}]
   plot)
 
-(defmulti line-count (fn [_ item] (item :type)))
+(defmulti line-count dispatch-fn-2)
 
 (defmethod line-count :string
   [_ _]
   1)
 
 (defmethod line-count :markdown
-  [zone
-   {:as item
-    :keys [sub-zone raw]}]
+  [{:as item
+    :keys [sub-zone raw]}
+   zone]
   (let [width ((or sub-zone zone) :width)]
     (markdown/line-count raw width)))
 
-(defmulti clip (fn [item _] (item :type)))
+(defmulti clip dispatch-fn-2)
 
 (defmethod clip :string
   [{:as item :keys [x y raw]}
@@ -62,7 +66,7 @@
                   (within? (+ x (item :x)) (+ y (item :y)) rect))]
     (update item :plot (partial filter clipper))))
 
-(defmulti invisible? :type)
+(defmulti invisible? dispatch-fn-1)
 
 (defmethod invisible? :string
   [{:keys [raw]}]
@@ -72,7 +76,7 @@
   [{:keys [plot]}]
   (empty? plot))
 
-(defmulti translate (fn [item _] (item :type)))
+(defmulti translate dispatch-fn-2)
 
 (defmethod translate :string
   [item

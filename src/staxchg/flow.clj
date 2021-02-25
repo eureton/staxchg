@@ -47,8 +47,12 @@
 
 (defn line-count
   ""
-  [flow zone]
-  (reduce + (map (partial item/line-count zone) (flow :items))))
+  [{:as flow
+    :keys [items]}
+   zone]
+  (reduce
+    +
+    (map #(item/line-count % zone) items)))
 
 (defn add
   ""
@@ -63,62 +67,6 @@
      (apply concat (map :items [flow1 flow2]))))
   ([flow1 flow2 & more]
    (reduce add (add flow1 flow2) more)))
-
-(defn layout-y
-  ""
-  [{:as flow
-    :keys [scroll-offset items]
-    :or {scroll-offset 0}}
-   zone]
-  (let [plotted-items (map #(assoc % :plot (item/plot-markdown zone %)) items)
-        line-counts (map (partial item/line-count zone) plotted-items)
-        arith-prog-reducer (fn [acc x] (conj acc (+ x (last acc))))
-        ys (reduce arith-prog-reducer [0] line-counts)]
-    (->>
-      plotted-items
-      (map #(update %2 :y + %1 (- scroll-offset)) ys)
-      (assoc flow :items))))
-
-(defn translate-to-screen
-  ""
-  [flow
-   {:as zone :keys [left top]}]
-  (let [item-mapper #(->
-                       %
-                       (update :x + left)
-                       (update :y + top))]
-    (->>
-      flow
-      :items
-      (map item-mapper)
-      (assoc flow :items))))
-
-(defn clip-to-screen
-  ""
-  [flow rect]
-  (->>
-    flow
-    :items
-    (map #(item/clip % rect))
-    (assoc flow :items)))
-
-(defn cull
-  ""
-  [flow]
-  (->>
-    flow
-    :items
-    (remove item/invisible?)
-    (assoc flow :items)))
-
-(defn translate-to-viewport
-  ""
-  [flow rect]
-  (->>
-    flow
-    :items
-    (map #(item/translate % rect))
-    (assoc flow :items)))
 
 (defn scroll-gap-rect
   ""
@@ -135,15 +83,36 @@
      :width width
      :height (if gap-filler? (Math/abs scroll-delta) height)}))
 
+(defn y-layout-transducer
+  ""
+  [{:as flow
+    :keys [scroll-offset]
+    :or {scroll-offset 0}}
+   zone]
+  (fn [rf]
+    (let [line-count (volatile! 0)]
+      (fn
+        ([] (rf))
+        ([acc] (rf acc))
+        ([acc x]
+         (let [previous (vswap! line-count identity)]
+           (vswap! line-count + (item/line-count x zone))
+           (rf acc (update x :y + previous (- scroll-offset)))))))))
+
 (defn clip
   ""
-  [flow zone]
-  (let [viewport (scroll-gap-rect flow zone)]
-    (->
-      flow
-      (layout-y zone)
-      (translate-to-screen zone)
-      (clip-to-screen viewport)
-      (cull)
-      (translate-to-viewport viewport))))
+  [flow
+   {:as zone
+    :keys [left top]}]
+  (let [viewport (scroll-gap-rect flow zone)
+        xform (comp
+                (map #(assoc % :plot (item/plot-markdown zone %)))
+                (y-layout-transducer flow zone)
+                (map #(-> %
+                          (update :x + left)
+                          (update :y + top)))
+                (map #(item/clip % viewport))
+                (remove item/invisible?)
+                (map #(item/translate % viewport)))]
+    (update flow :items #(eduction xform %))))
 
