@@ -346,8 +346,8 @@
                     :em #(.withModifier % SGR/REVERSE)
                     :code #(.withForegroundColor % TextColor$ANSI/GREEN)
                     :h #(-> %
-                            (.withForegroundColor TextColor$ANSI/BLACK)
-                            (.withBackgroundColor TextColor$ANSI/GREEN)))]
+                            (.withModifier SGR/BOLD)
+                            (.withForegroundColor TextColor$ANSI/MAGENTA)))]
     [decorated xy extras]))
 
 (defn groom-recipe-item
