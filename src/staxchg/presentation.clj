@@ -373,7 +373,7 @@
   [world
    {:as zone
     :keys [width]}]
-  (let [question (selected-question world)
+  (let [{:as question :strs [title]} (selected-question world)
         {:as answer :strs [answer_id]} (selected-answer world)
         question-meta-text (format-question-meta question)]
     (cond-> {:questions-separator (flow/make {:type :string
@@ -385,7 +385,7 @@
                                  #(question-list-item-flow %2 %1 world zone)
                                  (visible-questions world)))
              :answers-header (flow/make {:type :string
-                                         :raw (get question "title")
+                                         :raw title
                                          :modifiers [SGR/REVERSE]})
              :answers-separator (flow/make {:type :string
                                             :raw (format-answers-pane-separator question world zone)})}
