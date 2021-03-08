@@ -4,29 +4,21 @@ A Stack Exchange client for the terminal.
 
 ## Installation
 
-Download from https://github.com/eureton/staxchg
-
-## Usage
-
-FIXME: explanation
-
-    $ java -jar staxchg-0.1.0-standalone.jar [args]
-
-## Options
-
-FIXME: listing of options this app accepts.
-
-## Examples
-
-...
-
-### Bugs
-
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
+* Download from https://github.com/eureton/staxchg
+* create a `$HOME/.staxchg.conf` file with the following contents:
+  ```
+  CLIENT_ID=19510
+  API_KEY=pUdRXaEu0*w82Brq7xzlyw((
+  SITE=stackoverflow
+  ```
+* authorize the app:
+  * follow [this link](https://stackoverflow.com/oauth/dialog?client_id=19510&scope=no_expiry&redirect_uri=https://stackoverflow.com/oauth/login_success) in your browser
+  * authorize the app
+  * after authorization, you will be redirected and `access_token` will be placed in the url hash
+  * add the following line to your `$HOME/.staxchg.conf` file:
+    ```
+    ACCESS_TOKEN=<your-access-token>
+    ```
 
 ## License
 
