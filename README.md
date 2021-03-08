@@ -44,7 +44,7 @@ A Stack Exchange client for the terminal.
 
 ## Options
 
-By default, `staxchg` searches StackOverflow. To search in a different StackExchange site, update the `SITE` parameter in your `.conf` file. For example, `superuser` searches [superuser.com](https://superuser.com), `serverfault` searches [serverfault.com](https://serverfault.com) and `unix` searches [unix.stackexchange.com](https://unix.stackexchange.com).
+By default, `staxchg` searches StackOverflow. To search in a different StackExchange site, update the `SITE` parameter in your `.conf` file. For example, `SITE=superuser` searches [superuser.com](https://superuser.com), `SITE=serverfault` searches [serverfault.com](https://serverfault.com) and `SITE=unix` searches [unix.stackexchange.com](https://unix.stackexchange.com).
 
 There is no need to restart the app for a change to `SITE` to take effect. The next query will fetch from the specified site.
 
