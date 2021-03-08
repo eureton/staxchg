@@ -24,9 +24,29 @@ A Stack Exchange client for the terminal.
     ACCESS_TOKEN=<your-access-token>
     ```
 
+## Usage
+
+`staxchg` uses VI keybindings where possible.
+
+* there are two screens: `questions` and `answers`
+* the app starts in the `questions` screen
+* to search for questions, press `/`
+* to scroll the list of fetched questions, press `J` / `K`
+* to scroll the currently selected question
+  * by a single line, press `j`/ `k`
+  * by a half-screen, press `CTRL-d` / `CTRL-u`
+  * by a full screen, press `Space` / `b`
+* to view answers for the currently selected question, press `Enter`
+* when viewing answers:
+  * to move to the next answer, press `l`
+  * to move to the previous answer, press `h`
+  * to return to the questions screen, press `Backspace`
+
 ## Options
 
-By default, `staxchg` searches Stack Overflow. To search in a different community, update the `SITE` parameter in your `.conf` file. For example, `superuser` searches [superuser.com](https://superuser.com), `serverfault` searches [serverfault.com](https://serverfault.com) and `unix` searches [unix.stackexchange.com](https://unix.stackexchange.com).
+By default, `staxchg` searches StackOverflow. To search in a different StackExchange site, update the `SITE` parameter in your `.conf` file. For example, `superuser` searches [superuser.com](https://superuser.com), `serverfault` searches [serverfault.com](https://serverfault.com) and `unix` searches [unix.stackexchange.com](https://unix.stackexchange.com).
+
+There is no need to restart the app for a change to `SITE` to take effect. The next query will fetch from the specified site.
 
 ## License
 
