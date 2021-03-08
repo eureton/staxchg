@@ -65,7 +65,7 @@
         page 1
         page-size 4
         attrs "!*0OqKTs5Z3Ruz_pHoqBLWuuZMbuzO9VDaB-9T1wV("
-        site "stackoverflow"
+        site (conf "SITE")
         order "desc"
         sort-attr "relevance"
         [tags user accepted
@@ -101,7 +101,7 @@
      :pagesize answers-page-size
      :order "desc"
      :sort "votes"
-     :site "stackoverflow"
+     :site (conf "SITE")
      :filter "!*cCE1WB4Zi)NAFAJ)1MAjs8QNFjLAJ0x9tOP9"}))
 
 (defn unescape-html [string]
