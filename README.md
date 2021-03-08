@@ -5,6 +5,10 @@ A Stack Exchange client for the terminal.
 ## Installation
 
 * Download from https://github.com/eureton/staxchg
+
+
+## Configuration
+
 * create a `$HOME/.staxchg.conf` file with the following contents:
   ```
   CLIENT_ID=19510
@@ -19,6 +23,10 @@ A Stack Exchange client for the terminal.
     ```
     ACCESS_TOKEN=<your-access-token>
     ```
+
+## Options
+
+By default, `staxchg` searches Stack Overflow. To search in a different community, update the `SITE` parameter in your `.conf` file. For example, `superuser` searches [superuser.com](https://superuser.com), `serverfault` searches [serverfault.com](https://serverfault.com) and `unix` searches [unix.stackexchange.com](https://unix.stackexchange.com).
 
 ## License
 
