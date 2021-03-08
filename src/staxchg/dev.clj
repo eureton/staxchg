@@ -1,7 +1,6 @@
 (ns staxchg.dev
+  (:require [staxchg.util :as util])
   (:gen-class))
-
-(def pathname "./dev.log")
 
 (defn truncate
   [x]
@@ -16,8 +15,9 @@
 
 (defn log
   [& items]
-  (with-open [writer (clojure.java.io/writer pathname :append true)]
-    (.write writer (str (apply str (map truncate items)) "\n"))))
+  (when-let [pathname (util/config-hash "LOGFILE")]
+    (with-open [writer (clojure.java.io/writer pathname :append true)]
+      (.write writer (str (apply str (map truncate items)) "\n")))))
 
 ; sample response for testing purposes
 (def response-body

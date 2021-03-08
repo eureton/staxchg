@@ -61,7 +61,7 @@
 (defn questions-query-params
   ""
   [term]
-  (let [conf (util/properties-hash (util/config-pathname))
+  (let [conf (util/config-hash)
         page 1
         page-size 4
         attrs "!*0OqKTs5Z3Ruz_pHoqBLWuuZMbuzO9VDaB-9T1wV("
@@ -93,7 +93,7 @@
 (defn answers-query-params
   ""
   [page]
-  (let [conf (util/properties-hash (util/config-pathname))]
+  (let [conf (util/config-hash)]
     {:client_id (conf "CLIENT_ID")
      :key (conf "API_KEY")
      :access_token (conf "ACCESS_TOKEN")

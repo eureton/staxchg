@@ -22,3 +22,10 @@
   []
   (str (System/getenv "HOME") "/.staxchg.conf"))
 
+(defn config-hash
+  ""
+  ([]
+   (properties-hash (config-pathname)))
+  ([config-key]
+   (get (config-hash) config-key)))
+
