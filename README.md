@@ -4,8 +4,7 @@ A Stack Exchange client for the terminal.
 
 ## Installation
 
-* Download from https://github.com/eureton/staxchg
-
+* Download the Linux amd64 standalone JAR from [here](https://github.com/eureton/staxchg/releases/download/v0.1.0/staxchg-0.1.0-standalone.jar).
 
 ## Configuration
 
