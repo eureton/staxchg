@@ -24,7 +24,10 @@
   (:import com.googlecode.lanterna.gui2.dialogs.WaitingDialog)
   (:import com.googlecode.lanterna.screen.Screen$RefreshType)
   (:import com.googlecode.lanterna.screen.TerminalScreen)
-  (:import com.googlecode.lanterna.terminal.DefaultTerminalFactory)
+  ; TODO: restore this after it stops breaking native image builds
+  ; (:import com.googlecode.lanterna.terminal.DefaultTerminalFactory)
+  (:import com.googlecode.lanterna.terminal.ansi.UnixTerminal)
+  (:import com.googlecode.lanterna.terminal.ansi.UnixLikeTerminal$CtrlCBehaviour)
   (:gen-class))
 
 (defn decorate-with-current
@@ -200,7 +203,13 @@
 (defn run-input-loop
   ""
   [questions]
-  (let [terminal (.createTerminal (DefaultTerminalFactory.))
+  (let [terminal (UnixTerminal.
+                   System/in
+                   System/out
+                   (java.nio.charset.Charset/defaultCharset)
+                   UnixLikeTerminal$CtrlCBehaviour/CTRL_C_KILLS_APPLICATION)
+        ; TODO: restore this after it stops breaking native image builds
+        ; terminal (.createTerminal (DefaultTerminalFactory.))
         screen (TerminalScreen. terminal)
         size (.getTerminalSize screen)
         input-channel (async/chan)
