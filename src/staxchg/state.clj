@@ -340,11 +340,10 @@
 (defn input-recipes
   ""
   [{:as world
-    :keys [query? search-term fetch-answers no-questions no-answers fetch-failed]}]
+    :keys [query? questions search-term fetch-answers no-questions no-answers
+           fetch-failed]}]
   (->>
     (cond
-      query? {:function :staxchg.ui/query!
-              :params [:screen]}
       search-term {:function :staxchg.ui/fetch-questions!
                    :params [:screen
                             (api/questions-url)
@@ -366,6 +365,8 @@
                     :params [:screen
                              {:title "Error" :text "Could not fetch data"}
                              {:function :fetch-failed! :params []}]}
+      (or query? (empty? questions)) {:function :staxchg.ui/query!
+                                      :params [:screen]}
       :else {:function :staxchg.ui/read-key!
              :params [:screen]})
     vector
