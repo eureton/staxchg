@@ -1,0 +1,749 @@
+[
+	{
+		"name" : "java.awt.GraphicsEnvironment",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "org.apache.commons.logging.impl.LogFactoryImpl",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "org.jsoup.nodes.Element",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "java.lang.String",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "java.lang.Math",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "org.apache.commons.logging.LogFactory",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.Button",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.Borders$SingleLine",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.GUIBackdrop",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.DefaultWindowDecorationRenderer",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.Borders$DoubleLine",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.AbstractBorder",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.TextBox",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.screen.TerminalScreen",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.screen.AbstractScreen",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.screen.AbstractScreen$1",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.TerminalPosition",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.TerminalSize",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.TextCharacter",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.TextColor",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.TextColor$ANSI",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.graphics.TextGraphics",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.graphics.SubTextGraphics",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.input.KeyStroke",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.MultiWindowTextGUI",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.dialogs.WaitingDialog",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.dialogs.MessageDialogBuilder",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.dialogs.TextInputDialogBuilder",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.dialogs.TextInputDialog",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.Button$FlatButtonRenderer",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.parser.Parser",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.parser.Parser$Builder",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.TerminalTextUtils",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.Symbols",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.SGR",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.bundle.LanternaThemes",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.graphics.PropertyTheme",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.DefaultWindowManager",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.SameTextGUIThread$Factory",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.Window$Hint",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.dialogs.MessageDialog",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.gui2.dialogs.MessageDialogButton",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.screen.Screen$RefreshType",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.terminal.ansi.UnixTerminal",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.googlecode.lanterna.terminal.ansi.UnixLikeTerminal$CtrlCBehaviour",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.util.ast.Node",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.util.ast.Document",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.AutoLink",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.BlockQuote",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.BulletList",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.BulletListItem",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.Code",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.Emphasis",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.FencedCodeBlock",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.HardLineBreak",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.Heading",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.HtmlBlock",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.HtmlCommentBlock",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.HtmlEntity",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.HtmlInline",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.HtmlInlineComment",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.HtmlInnerBlockComment",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.Image",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.ImageRef",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.IndentedCodeBlock",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.Link",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.LinkRef",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.MailLink",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.OrderedList",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.OrderedListItem",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.Paragraph",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.Reference",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.ThematicBreak",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.SoftLineBreak",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.StrongEmphasis",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.ast.Text",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.util.sequence.SubSequence",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.util.sequence.SegmentedSequenceTree",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.util.ast.NodeIterator",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "java.time.LocalDateTime",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "java.time.Month",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "java.time.ZoneOffset",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "org.apache.commons.logging.impl.SimpleLog",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	}
+]
