@@ -32,5 +32,6 @@
                         "--enable-https"
                         "--enable-url-protocols=https"
                         "-H:+ReportExceptionStackTraces"
-                        "-H:ReflectionConfigurationFiles=resources/reflection-config.json"]})
+                        "-H:ReflectionConfigurationFiles=native-image/config/reflection-config.json"
+                        "-H:ResourceConfigurationFiles=native-image/config/resource-config.json"]})
 
