@@ -1,13 +1,19 @@
 (ns staxchg.util
+  (:require [clojure.java.io :as io])
   (:gen-class))
 
 (defn read-properties
   ""
-  [pathname]
+  [source]
   (let [properties (java.util.Properties.)]
-    (with-open [stream (clojure.java.io/reader pathname)]
+    (with-open [stream (io/reader source)]
       (.load properties stream))
     properties))
+
+(defn read-resource-properties
+  ""
+  [filename]
+  (->> filename io/resource read-properties))
 
 (defn properties-hash
   ""

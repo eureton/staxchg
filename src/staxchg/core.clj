@@ -7,7 +7,7 @@
 (defn initialize
   ""
   []
-  (ui/register-theme! "staxchg" "resources/lanterna-theme.properties"))
+  (ui/register-theme! "staxchg" "lanterna-theme.properties"))
 
 (defn -main
   "I don't do a whole lot ... yet."

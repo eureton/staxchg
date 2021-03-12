@@ -195,10 +195,10 @@
 
 (defn register-theme!
   ""
-  [theme-name pathname]
+  [theme-name filename]
   (LanternaThemes/registerTheme
     theme-name
-    (PropertyTheme. (util/read-properties pathname) false)))
+    (PropertyTheme. (util/read-resource-properties filename) false)))
 
 (defn run-input-loop
   ""
