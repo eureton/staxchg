@@ -20,9 +20,8 @@
 
 (defmethod annotate :link
   [node _]
-  (let [spacing {:tag :txt :content " "}
-        url {:tag :url :content (node :url)}]
-    (update node :children conj spacing url)))
+  (let [url {:tag :url :content (str " " (node :url))}]
+    (update node :children conj url)))
 
 (defmethod annotate :link-ref
   [node _]
