@@ -31,6 +31,12 @@
     (assoc :content (str "[" (node :ref) "]"))
     (dissoc :children)))
 
+(defmethod annotate :html-comment-block
+  [node _]
+  (update node :content #(->> %
+                              (re-find #"<!-- (.*) -->")
+                              second)))
+
 (defmethod annotate :default
   [node _]
   node)

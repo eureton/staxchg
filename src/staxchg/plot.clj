@@ -13,6 +13,7 @@
                 (derive :html-block :block)
                 (derive :ref :block)
                 (derive :block-quot :block)
+                (derive :html-comment-block :block)
                 (derive :h :block)
                 (derive :blitem :list-item)
                 (derive :olitem :list-item)
@@ -242,6 +243,10 @@
 (defmethod ast :html-block
   [node options]
   (-> node (assoc :tag :txt) (ast options) (decorate :code)))
+
+(defmethod ast :html-comment-block
+  [node options]
+  (-> node (assoc :tag :txt) (ast options) (decorate :comment)))
 
 (defmethod ast :html-entity
   [node options]

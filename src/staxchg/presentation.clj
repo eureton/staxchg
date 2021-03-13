@@ -345,6 +345,7 @@
                     :strong #(.withModifier % SGR/BOLD)
                     :em #(.withModifier % SGR/REVERSE)
                     :code #(.withForegroundColor % TextColor$ANSI/GREEN)
+                    :comment #(.withForegroundColor % TextColor$ANSI/CYAN)
                     :h #(-> %
                             (.withModifier SGR/BOLD)
                             (.withForegroundColor TextColor$ANSI/MAGENTA)))]
