@@ -6,8 +6,10 @@
   ""
   [source]
   (let [properties (java.util.Properties.)]
-    (with-open [stream (io/reader source)]
-      (.load properties stream))
+    (try
+      (with-open [stream (io/reader source)]
+        (.load properties stream))
+      (catch java.io.FileNotFoundException _ nil))
     properties))
 
 (defn read-resource-properties
