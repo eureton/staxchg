@@ -5,6 +5,10 @@
   (:require [staxchg.util :as util])
   (:gen-class))
 
+(def client-id "19510")
+
+(def api-key "pUdRXaEu0*w82Brq7xzlyw((")
+
 (def answers-page-size 5)
 
 (def error-wrapper-object {"items" []
@@ -73,8 +77,8 @@
                         (partial query-params-match term)
                         query-params-patterns)
         q (query-freeform term)
-        base {:client_id (conf "CLIENT_ID")
-              :key (conf "API_KEY")
+        base {:client_id client-id
+              :key api-key
               :access_token (conf "ACCESS_TOKEN")
               :page page
               :pagesize page-size
@@ -94,8 +98,8 @@
   ""
   [page]
   (let [conf (util/config-hash)]
-    {:client_id (conf "CLIENT_ID")
-     :key (conf "API_KEY")
+    {:client_id client-id
+     :key api-key
      :access_token (conf "ACCESS_TOKEN")
      :page page
      :pagesize answers-page-size
