@@ -319,11 +319,11 @@
 
 (defn update-for-no-posts
   ""
-  [world]
-  (->
-    world
-    (clear-marks)
-    (assoc :switched-pane? true)))
+  [{:as world
+    :keys [questions]}]
+  (cond-> world
+    true (clear-marks)
+    (not-empty questions) (assoc :switched-pane? true)))
 
 (defn update-world
   ""
