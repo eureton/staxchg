@@ -176,7 +176,8 @@
 (defn mark-pane-switch
   ""
   [world command]
-  (assoc world :switched-pane? (#{:questions-pane :answers-pane} command)))
+  (assoc world :switched-pane? (and (not-any? world [:search-term :fetch-answers])
+                                    (#{:questions-pane :answers-pane} command))))
 
 (defn mark-question-switch
   ""
