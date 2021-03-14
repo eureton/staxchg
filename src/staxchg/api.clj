@@ -11,6 +11,8 @@
 
 (def default-site "stackoverflow")
 
+(def questions-page-size 4)
+
 (def answers-page-size 5)
 
 (def error-wrapper-object {"items" []
@@ -64,31 +66,29 @@
       (string/replace #"\s+" " ")
       (string/trim))))
 
+(defn auth-query-params
+  ""
+  []
+  (let [token ((util/config-hash) "ACCESS_TOKEN")]
+    (cond-> {:client_id client-id
+             :key api-key}
+      token (assoc :access_token token))))
+
 (defn questions-query-params
   ""
   [term]
-  (let [conf (util/config-hash)
-        page 1
-        page-size 4
-        attrs "!*0OqKTs5Z3Ruz_pHoqBLWuuZMbuzO9VDaB-9T1wV("
-        site (conf "SITE" default-site)
-        order "desc"
-        sort-attr "relevance"
-        [tags user accepted
+  (let [[tags user accepted
          score title] (map
                         (partial query-params-match term)
                         query-params-patterns)
         q (query-freeform term)
-        base {:client_id client-id
-              :key api-key
-              :access_token (conf "ACCESS_TOKEN")
-              :page page
-              :pagesize page-size
-              :order order
-              :sort sort-attr
-              :site site
-              :filter attrs}]
-    (cond-> base
+        base {:page 1
+              :pagesize questions-page-size
+              :order "desc"
+              :sort "relevance"
+              :site ((util/config-hash) "SITE" default-site)
+              :filter "!*0OqKTs5Z3Ruz_pHoqBLWuuZMbuzO9VDaB-9T1wV("}]
+    (cond-> (merge (auth-query-params) base)
       (not-empty tags) (assoc :tagged (string/join \; tags))
       (some? user) (assoc :user user)
       (some? accepted) (assoc :accepted accepted)
@@ -99,16 +99,12 @@
 (defn answers-query-params
   ""
   [page]
-  (let [conf (util/config-hash)]
-    {:client_id client-id
-     :key api-key
-     :access_token (conf "ACCESS_TOKEN")
-     :page page
-     :pagesize answers-page-size
-     :order "desc"
-     :sort "votes"
-     :site (conf "SITE" default-site)
-     :filter "!*cCE1WB4Zi)NAFAJ)1MAjs8QNFjLAJ0x9tOP9"}))
+  (merge (auth-query-params) {:page page
+                              :pagesize answers-page-size
+                              :order "desc"
+                              :sort "votes"
+                              :site ((util/config-hash) "SITE" default-site)
+                              :filter "!*cCE1WB4Zi)NAFAJ)1MAjs8QNFjLAJ0x9tOP9"}))
 
 (defn unescape-html [string]
   (org.jsoup.parser.Parser/unescapeEntities string true))

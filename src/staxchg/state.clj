@@ -283,7 +283,8 @@
 (defn update-for-questions-response
   ""
   [world response]
-  (let [{:strs [items has_more error]} (api/parse-response response)]
+  (let [{:strs [items error quota_remaining]} (api/parse-response response)]
+    (dev/log "[update-for-questions-response] " quota_remaining " quota left")
     (cond->
       world
       true (clear-marks)
@@ -306,7 +307,9 @@
   ""
   [world response question-id]
   (let [index (question-id-to-index question-id world)
-        {:strs [items has_more error]} (api/parse-response response)]
+        {:strs [items has_more
+                error quota_remaining]} (api/parse-response response)]
+    (dev/log "[update-for-questions-response] " quota_remaining " quota left")
     (cond->
       world
       true (clear-marks)
