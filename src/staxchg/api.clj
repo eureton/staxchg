@@ -9,6 +9,8 @@
 
 (def api-key "pUdRXaEu0*w82Brq7xzlyw((")
 
+(def default-site "stackoverflow")
+
 (def answers-page-size 5)
 
 (def error-wrapper-object {"items" []
@@ -69,7 +71,7 @@
         page 1
         page-size 4
         attrs "!*0OqKTs5Z3Ruz_pHoqBLWuuZMbuzO9VDaB-9T1wV("
-        site (conf "SITE")
+        site (conf "SITE" default-site)
         order "desc"
         sort-attr "relevance"
         [tags user accepted
@@ -105,7 +107,7 @@
      :pagesize answers-page-size
      :order "desc"
      :sort "votes"
-     :site (conf "SITE")
+     :site (conf "SITE" default-site)
      :filter "!*cCE1WB4Zi)NAFAJ)1MAjs8QNFjLAJ0x9tOP9"}))
 
 (defn unescape-html [string]

@@ -33,5 +33,7 @@
   ([]
    (properties-hash (config-pathname)))
   ([config-key]
-   (get (config-hash) config-key)))
+   (config-hash config-key nil))
+  ([config-key not-found]
+   (get (config-hash) config-key not-found)))
 
