@@ -44,6 +44,7 @@
   [node]
   (let [tag (tag node)]
     (cond-> {}
+      (= tag :fenced-code-block) (assoc :info (-> node .getInfo .toString))
       (= tag :link) (assoc :url (-> node .getUrl .toString))
       (= tag :link-ref) (assoc :ref (-> node .getReference .toString)))))
 
