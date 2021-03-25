@@ -66,6 +66,19 @@
       :depth-first depth-first-walk
       :breadth-first breadth-first-walk) ast f)))
 
+(defn reduce-df
+  ""
+  [f init tree]
+  (if (leaf? tree)
+    (f init tree)
+    (loop [nodes (:children tree)
+           result init]
+      (if (empty? nodes)
+        (f result tree)
+        (recur
+          (rest nodes)
+          (reduce-df f result (first nodes)))))))
+
 (defn dump
   ""
   ([ast]
