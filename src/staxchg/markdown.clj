@@ -108,3 +108,18 @@
     (map second)
     (reduce -)
     inc))
+
+(defn code-snippets
+  ""
+  [string]
+  (let [tree (flexmark/parse string)
+        txt-content #(->> % (filter (comp #{:txt} :tag)) first :content)
+        f (fn [acc {:keys [tag content children info]}]
+            (let [txt-content (txt-content children)]
+              (cond-> acc
+                (= :indented-code-block tag) (conj {:string content})
+                (= :code tag) (conj {:string txt-content})
+                (= :fenced-code-block tag) (conj {:string txt-content
+                                                  :lang info}))))]
+    (ast/reduce-df f [] tree)))
+
