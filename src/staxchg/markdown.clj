@@ -113,13 +113,12 @@
   ""
   [string]
   (let [tree (flexmark/parse string)
-        txt-content #(->> % (filter (comp #{:txt} :tag)) first :content)
+        scrape-text #(->> % (filter (comp #{:txt} :tag)) first :content)
         f (fn [acc {:keys [tag content children info]}]
-            (let [txt-content (txt-content children)]
+            (let [text (scrape-text children)]
               (cond-> acc
                 (= :indented-code-block tag) (conj {:string content})
-                (= :code tag) (conj {:string txt-content})
-                (= :fenced-code-block tag) (conj {:string txt-content
-                                                  :lang info}))))]
+                (= :code tag) (conj {:string text})
+                (= :fenced-code-block tag) (conj {:string text :lang info}))))]
     (ast/reduce-df f [] tree)))
 
