@@ -1,7 +1,5 @@
 (ns staxchg.flow
   (:require [staxchg.flow.item :as item])
-  (:require [staxchg.markdown :as markdown])
-  (:require [staxchg.dev :as dev])
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:gen-class))
 
