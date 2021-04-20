@@ -76,20 +76,6 @@
           (.select "code.sourceCode")
           .html)))
 
-(defn code
-  ""
-  [plot]
-  (->> plot
-       (group-by (comp second second))
-       (into {})
-       (map (juxt key (comp #(map first %) val)))
-       (apply concat)
-       (apply sorted-map)
-       (map (juxt key (comp clojure.string/join val)))
-       (into {})
-       vals
-       (clojure.string/join "\r\n")))
-
 (defn annotate
   ""
   [plot html]
