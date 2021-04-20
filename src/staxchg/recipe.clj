@@ -94,28 +94,43 @@
   [fn-key]
   (->> fn-key symbol find-var var-get))
 
-(defn bind-symbol
-  [step]
-  (update step :function resolve-function))
+(defn bind-symbols
+  [recipe]
+  (map #(update % :function resolve-function) recipe))
+
+(defn commit-step
+  ""
+  [{:keys [function params]}]
+  (apply function params))
 
 (defn commit
-  [[channel {:keys [function params]}]]
+  [[results recipe]]
   (->>
-    (cond->> (apply function params)
-      (some? channel) (>!! channel))
+    (cond->> (doall (map commit-step recipe))
+      (some? results) (>!! results))
     time
     with-out-str
     clojure.string/trim-newline
     (dev/log "[commit] ")))
 
+(defn log
+  ""
+  [recipes]
+  (dev/log " /^^^ Routing " (count recipes) " recipe(s)")
+  (doseq [[i r] (map-indexed vector recipes)]
+    (apply dev/log "|----- recipe #" i ": " (interpose ", " (map :function r))))
+  (dev/log " \\___ Complete")
+  recipes)
+
 (defn route
   [{:keys [from to screen]
     :or {to nil}}]
-  (->>
-    (<!! from)
-    (map (partial inflate screen))
-    (flatten)
-    (map bind-symbol)
-    (map vector (repeat to))
-    (run! commit)))
+  (let [prepare (comp bind-symbols
+                      (partial inflate screen))]
+    (->>
+      (<!! from)
+      log
+      (map prepare)
+      (map vector (repeat to))
+      (run! commit))))
 
