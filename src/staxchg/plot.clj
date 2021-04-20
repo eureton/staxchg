@@ -226,23 +226,23 @@
 
 (defmethod ast :html-inline
   [node options]
-  (-> node (assoc :tag :txt) (ast options) (decorate :code)))
+  (-> node (assoc :tag :txt) (ast options) (decorate :standout)))
 
 (defmethod ast :link-ref
   [node options]
-  (-> node (assoc :tag :txt) (ast options) (decorate :code)))
+  (-> node (assoc :tag :txt) (ast options) (decorate :standout)))
 
 (defmethod ast :ref
   [node options]
-  (-> node (assoc :tag :txt) (ast options) (decorate :code)))
+  (-> node (assoc :tag :txt) (ast options) (decorate :standout)))
 
 (defmethod ast :url
   [node options]
-  (-> node (assoc :tag :txt) (ast options) (decorate :code)))
+  (-> node (assoc :tag :txt) (ast options) (decorate :standout)))
 
 (defmethod ast :html-block
   [node options]
-  (-> node (assoc :tag :txt) (ast options) (decorate :code)))
+  (-> node (assoc :tag :txt) (ast options) (decorate :standout)))
 
 (defmethod ast :html-comment-block
   [node options]
