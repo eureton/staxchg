@@ -1,5 +1,6 @@
 (ns staxchg.flow.item
   (:require [staxchg.markdown :as markdown])
+  (:require [staxchg.hilite :as hilite])
   (:require [staxchg.dev :as dev])
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:gen-class))
@@ -14,6 +15,37 @@
       (< x right)
       (>= y top)
       (< y bottom))))
+
+(defn cluster-code-plots-rf
+  ""
+  [agg [index plot-item]]
+  (let [previous (dec index)]
+    (-> agg
+        (update previous (comp vec conj) plot-item)
+        (clojure.set/rename-keys {previous index}))))
+
+(defn code-plots
+  ""
+  [plot]
+  (->> plot
+       (map-indexed vector)
+       (filter (fn [[_ [_ _ {:keys [traits]}]]] (contains? traits :code)))
+       (reduce cluster-code-plots-rf {})
+       (map (fn [[k v]] {:from (- k (dec (count v))) :to k :plot v}))))
+
+(defn highlight-code
+  ""
+  [{:keys [plot code-highlights]}]
+  (let [split #(split-at % plot)
+        before (comp first split :from)
+        after (comp second split inc :to)
+        highlight (comp #(apply hilite/annotate %) (juxt :plot :highlight))
+        splice (comp #(apply concat %) (juxt before highlight after))]
+    (loop [plots (map #(assoc %1 :highlight %2) (code-plots plot) code-highlights)
+           result plot]
+      (if (empty? plots)
+        result
+        (recur (rest plots) (splice (first plots)))))))
 
 (defn plot-markdown
   [zone
@@ -37,8 +69,8 @@
   raw)
 
 (defmethod payload :markdown
-  [{:keys [plot]}]
-  plot)
+  [item]
+  (highlight-code item))
 
 (defmulti line-count dispatch-fn-2)
 
