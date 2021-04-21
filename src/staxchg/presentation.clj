@@ -367,18 +367,27 @@
    xy
    extras])
 
-(defn groom-recipe-item
-  ""
-  [{:keys [function] :as item}]
-  (let [string-groomer (comp string/join (partial filter printable?))
-        markdown-groomer (partial eduction (comp
-                                             (filter (comp printable? first))
-                                             (map replace-with-symbols)
-                                             (map convert-to-lanterna)
-                                             (map apply-markdown-traits)))]
-    (cond-> item
-      (= function :staxchg.ui/put-string!) (update-in [:params 1] string-groomer)
-      (= function :staxchg.ui/put-markdown!) (update-in [:params 1] markdown-groomer))))
+(def string-groomer (comp string/join
+                          (partial filter printable?)))
+
+(def markdown-groomer (partial eduction (comp (filter (comp printable? first))
+                                              (map replace-with-symbols)
+                                              (map convert-to-lanterna)
+                                              (map apply-markdown-traits))))
+
+(defmulti groom-recipe-item :function)
+
+(defmethod groom-recipe-item :staxchg.ui/put-string!
+  [item]
+  (update-in item [:params 1] string-groomer))
+
+(defmethod groom-recipe-item :staxchg.ui/put-markdown!
+  [item]
+  (update-in item [:params 1] markdown-groomer))
+
+(defmethod groom-recipe-item :default
+  [item]
+  item)
 
 (defn groom-recipe
   ""
