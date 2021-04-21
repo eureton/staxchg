@@ -267,10 +267,13 @@
 
 (defn question-flow
   ""
-  [{:as question :strs [body_markdown question_id]} world]
+  [{:as question
+    :strs [body_markdown question_id]
+    :keys [code-highlights]} world]
   (flow/make {:type :markdown
               :raw body_markdown
-              :scroll-delta (get-in world [:scroll-deltas question_id])}))
+              :scroll-delta (get-in world [:scroll-deltas question_id])
+              :code-highlights code-highlights}))
 
 (defn answer-flow
   ""
@@ -336,20 +339,33 @@
   [plot-item]
   (update plot-item 0 #(TextCharacter. %)))
 
+; helper variables for composing lanterna characters
+(def bold-txt #(.withModifier % SGR/BOLD))
+(def reverse-txt #(.withModifier % SGR/REVERSE))
+(def green-txt #(.withForegroundColor % TextColor$ANSI/GREEN))
+(def cyan-txt #(.withForegroundColor % TextColor$ANSI/CYAN))
+(def red-txt #(.withForegroundColor % TextColor$ANSI/RED))
+(def white-txt #(.withForegroundColor % TextColor$ANSI/WHITE))
+(def magenta-txt #(.withForegroundColor % TextColor$ANSI/MAGENTA))
+(def yellow-txt #(.withForegroundColor % TextColor$ANSI/YELLOW))
+(def trait-clauses [:strong bold-txt
+                    :em reverse-txt
+                    ;:code green-txt
+                    :standout green-txt
+                    :hilite-comment cyan-txt
+                    :hilite-built-in red-txt
+                    :hilite-function (comp bold-txt white-txt)
+                    :hilite-documentation magenta-txt
+                    :hilite-keyword (comp bold-txt yellow-txt)
+                    :comment cyan-txt
+                    :h (comp bold-txt magenta-txt)])
+
 (defn apply-markdown-traits
   ""
   [[character xy {:keys [traits] :as extras}]]
-  (let [decorated (markdown/decorate
-                    character
-                    traits
-                    :strong #(.withModifier % SGR/BOLD)
-                    :em #(.withModifier % SGR/REVERSE)
-                    :code #(.withForegroundColor % TextColor$ANSI/GREEN)
-                    :comment #(.withForegroundColor % TextColor$ANSI/CYAN)
-                    :h #(-> %
-                            (.withModifier SGR/BOLD)
-                            (.withForegroundColor TextColor$ANSI/MAGENTA)))]
-    [decorated xy extras]))
+  [(apply markdown/decorate character traits trait-clauses)
+   xy
+   extras])
 
 (defn groom-recipe-item
   ""
