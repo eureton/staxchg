@@ -1,12 +1,14 @@
 (ns staxchg.state
   (:require [staxchg.presentation :as presentation])
   (:require [staxchg.api :as api])
+  (:require [staxchg.markdown :as markdown])
+  (:require [staxchg.hilite :as hilite])
   (:require [staxchg.dev :as dev])
   (:gen-class))
 
 (def mark-keys #{:scroll-deltas :query? :quit? :search-term :fetch-answers
                  :no-questions :no-answers :fetch-failed :switched-pane?
-                 :switched-question? :switched-answer?})
+                 :switched-question? :switched-answer? :snippets})
 
 (defn initialize-world
   ""
@@ -272,14 +274,23 @@
       (not blank?) (assoc :search-term term)
       blank? (assoc :switched-pane? true))))
 
+(def question-snippets
+  (let [annotator #(hash-map :question-id (% "question_id"))
+        extracter (comp staxchg.markdown/code-snippets
+                        #(% "body_markdown"))]
+    (comp (fn [[x y]] (map merge x y))
+          (fn [[x y]] [(repeat (count y) x) y])
+          (juxt annotator extracter))))
+
 (defn update-for-new-questions
   ""
   [{:as world :keys [width height]}
    questions]
-  (->
-    questions
-    (initialize-world width height)
-    (assoc :switched-question? true)))
+  (let [snippets (->> questions (map question-snippets) (keep not-empty) flatten)
+        world (initialize-world questions width height)]
+    (if (empty? snippets)
+      (assoc world :switched-question? true)
+      (assoc world :snippets snippets))))
 
 (defn update-for-questions-response
   ""
@@ -326,11 +337,24 @@
     true (clear-marks)
     (not-empty questions) (assoc :switched-pane? true)))
 
-(defn update-world
+(defn update-for-code-highlights
+  ""
+  [world sh-out question-id]
+  (let [html (hilite/parse sh-out)
+        index (question-id-to-index question-id world)]
+    (dev/log "[update-for-code-highlights] html: " html
+             ", qid: " question-id
+             ", index: " index)
+    (-> world
+        (clear-marks)
+        (assoc :switched-question? true)
+        (update-in [:questions index :code-highlights] (comp vec conj) html))))
+
+(defn update-world-rf
   ""
   [world
-   {:as input :keys [function params]}]
-  (dev/log "[update-world] '" function "'")
+   {:keys [function params]}]
+  (dev/log "[update-world-rf] '" function "'")
   (let [f (case function
             :read-key! update-for-keystroke
             :query! update-for-search-term
@@ -338,43 +362,57 @@
             :fetch-answers! update-for-answers-response
             :no-questions! update-for-no-posts
             :no-answers! update-for-no-posts
-            :fetch-failed! update-for-no-posts)]
+            :fetch-failed! update-for-no-posts
+            :highlight-code! update-for-code-highlights)]
     (apply f world params)))
+
+(defn update-world
+  ""
+  [world recipe]
+  (reduce update-world-rf world recipe))
+
+(defn highlight-code-command
+  ""
+  [{:keys [string lang question-id]
+    :or {lang "lisp"}}]
+  {:function :staxchg.ui/highlight-code!
+   :params [string lang question-id]})
 
 (defn input-recipes
   ""
   [{:as world
     :keys [query? questions search-term fetch-answers no-questions no-answers
-           fetch-failed]}]
-  (->>
-    (cond
-      search-term {:function :staxchg.ui/fetch-questions!
-                   :params [:screen
-                            (api/questions-url)
-                            (api/questions-query-params search-term)]}
-      fetch-answers {:function :staxchg.ui/fetch-answers!
-                     :params [:screen
-                              (api/answers-url (fetch-answers :question-id))
-                              (api/answers-query-params (fetch-answers :page))
-                              (fetch-answers :question-id)]}
-      no-questions {:function :staxchg.ui/show-message!
-                    :params [:screen
-                             {:text "No matches found"}
-                             {:function :no-questions! :params []}]}
-      no-answers {:function :staxchg.ui/show-message!
-                  :params [:screen
-                           {:text "Question has no answers"}
-                           {:function :no-answers! :params []}]}
-      fetch-failed {:function :staxchg.ui/show-message!
-                    :params [:screen
-                             {:title "Error" :text "Could not fetch data"}
-                             {:function :fetch-failed! :params []}]}
-      (or query? (empty? questions)) {:function :staxchg.ui/query!
-                                      :params [:screen]}
-      :else {:function :staxchg.ui/read-key!
-             :params [:screen]})
-    vector
-    vector))
+           fetch-failed snippets]}]
+  (let [pending (cond
+                  snippets (mapv highlight-code-command snippets)
+                  search-term {:function :staxchg.ui/fetch-questions!
+                              :params [:screen
+                                        (api/questions-url)
+                                        (api/questions-query-params search-term)]}
+                  fetch-answers {:function :staxchg.ui/fetch-answers!
+                                :params [:screen
+                                          (api/answers-url (fetch-answers :question-id))
+                                          (api/answers-query-params (fetch-answers :page))
+                                          (fetch-answers :question-id)]}
+                  no-questions {:function :staxchg.ui/show-message!
+                                :params [:screen
+                                        {:text "No matches found"}
+                                        {:function :no-questions! :params []}]}
+                  no-answers {:function :staxchg.ui/show-message!
+                              :params [:screen
+                                      {:text "Question has no answers"}
+                                      {:function :no-answers! :params []}]}
+                  fetch-failed {:function :staxchg.ui/show-message!
+                                :params [:screen
+                                        {:title "Error" :text "Could not fetch data"}
+                                        {:function :fetch-failed! :params []}]}
+                  (or query? (empty? questions)) {:function :staxchg.ui/query!
+                                                  :params [:screen]}
+                  :else {:function :staxchg.ui/read-key!
+                        :params [:screen]})]
+    (cond->> pending
+      (not (vector? pending)) vector
+      true vector)))
 
 (defn generated-output?
   ""
@@ -392,12 +430,13 @@
       (and (= active-pane :answers) switched-answer?)
       (generated-output? world-before world-after)))
 
-(def w (-> dev/response-body
-           (get "items")
-           ((partial mapv api/scrub))
-           (initialize-world 118 37)
-           (update-for-keystroke \J false)
-           (update-for-keystroke \J false)
-           (update-for-keystroke \j false)
-           (update-for-keystroke \j false)))
+(comment
+  (def w (-> dev/response-body
+             (get "items")
+             ((partial mapv api/scrub))
+             (initialize-world 118 37)
+             (update-for-keystroke \J false)
+             (update-for-keystroke \J false)
+             (update-for-keystroke \j false)
+             (update-for-keystroke \j false))))
 
