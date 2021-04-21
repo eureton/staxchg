@@ -8,7 +8,7 @@
                  [clj-http "3.10.3"]
                  [cheshire "5.10.0"]
                  [com.googlecode.lanterna/lanterna "3.0.4"]
-                 [org.jsoup/jsoup "1.7.3"]
+                 [org.jsoup/jsoup "1.11.2"]
                  [com.vladsch.flexmark/flexmark-all "0.62.2"]]
   :java-source-paths ["./java"]
   :repositories {"releases" {:url "https://clojars.org/repo"
