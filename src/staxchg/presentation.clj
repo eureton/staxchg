@@ -348,6 +348,7 @@
 (def white-txt #(.withForegroundColor % TextColor$ANSI/WHITE))
 (def magenta-txt #(.withForegroundColor % TextColor$ANSI/MAGENTA))
 (def yellow-txt #(.withForegroundColor % TextColor$ANSI/YELLOW))
+(def blue-txt #(.withForegroundColor % TextColor$ANSI/BLUE))
 (def trait-clauses [:strong bold-txt
                     :em reverse-txt
                     ;:code green-txt
@@ -355,8 +356,33 @@
                     :hilite-comment cyan-txt
                     :hilite-built-in red-txt
                     :hilite-function (comp bold-txt white-txt)
-                    :hilite-documentation magenta-txt
-                    :hilite-keyword (comp bold-txt yellow-txt)
+                    :hilite-documentation cyan-txt
+                    :hilite-keyword (comp bold-txt green-txt)
+                    :hilite-data-type (comp bold-txt white-txt)
+                    :hilite-dec-val (comp bold-txt magenta-txt)
+                    :hilite-base-n (comp bold-txt magenta-txt)
+                    :hilite-float (comp bold-txt magenta-txt)
+                    :hilite-constant (comp bold-txt magenta-txt)
+                    :hilite-char (comp bold-txt yellow-txt)
+                    :hilite-special-char (comp bold-txt red-txt)
+                    :hilite-string (comp bold-txt green-txt)
+                    :hilite-verbatim-string (comp bold-txt green-txt)
+                    :hilite-special-string (comp bold-txt green-txt)
+                    :hilite-import red-txt
+                    :hilite-annotation yellow-txt
+                    :hilite-comment-var (comp bold-txt white-txt)
+                    :hilite-other blue-txt
+                    :hilite-variable white-txt
+                    :hilite-control-flow red-txt
+                    :hilite-operator yellow-txt
+                    :hilite-extension blue-txt
+                    :hilite-preprocessor red-txt
+                    :hilite-attribute
+                    :hilite-region-marker yellow-txt
+                    :hilite-information (comp bold-txt green-txt)
+                    :hilite-warning (comp bold-txt yellow-txt)
+                    :hilite-alert (comp bold-txt red-txt)
+                    :hilite-error (comp bold-txt red-txt)
                     :comment cyan-txt
                     :h (comp bold-txt magenta-txt)])
 
