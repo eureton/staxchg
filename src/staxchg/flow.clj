@@ -11,12 +11,13 @@
   ""
   [{:as args
     :keys [type x y raw foreground-color background-color modifiers scroll-delta
-           scroll-offset sub-zone]
+           scroll-offset sub-zone code-highlights]
     :or {type :string raw ""
          x 0 y 0 scroll-offset 0
          foreground-color TextColor$ANSI/DEFAULT
          background-color TextColor$ANSI/DEFAULT
-         modifiers []}}]
+         modifiers []
+         code-highlights []}}]
   {:scroll-delta scroll-delta
    :scroll-offset scroll-offset
    :items [{:type type
@@ -24,6 +25,7 @@
             :y y
             :sub-zone sub-zone
             :raw raw
+            :code-highlights code-highlights
             :foreground-color foreground-color
             :background-color background-color
             :modifiers modifiers}]})
