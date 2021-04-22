@@ -31,7 +31,9 @@
        (map-indexed vector)
        (filter (fn [[_ [_ _ {:keys [traits]}]]] (contains? traits :code)))
        (reduce cluster-code-plots-rf {})
-       (map (fn [[k v]] {:from (- k (dec (count v))) :to k :plot v}))))
+       (map (fn [[k v]] {:plot (map #(update-in % [2 :traits] disj :code) v)
+                         :from (- k (dec (count v)))
+                         :to k}))))
 
 (defn highlight-code
   ""

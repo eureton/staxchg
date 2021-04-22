@@ -351,7 +351,7 @@
 (def blue-txt #(.withForegroundColor % TextColor$ANSI/BLUE))
 (def trait-clauses [:strong bold-txt
                     :em reverse-txt
-                    ;:code green-txt
+                    :code green-txt
                     :standout green-txt
                     :hilite-comment cyan-txt
                     :hilite-built-in red-txt
