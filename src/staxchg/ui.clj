@@ -1,6 +1,7 @@
 (ns staxchg.ui
   (:require [clojure.string :as string])
   (:require [clojure.core.async :as async :refer [>!! <!!]])
+  (:require [clojure.java.shell])
   (:require [staxchg.markdown :as markdown])
   (:require [staxchg.state :as state])
   (:require [staxchg.presentation :as presentation])
@@ -177,6 +178,20 @@
   (dev/log "[fetch-answers] url: " url ", query-params: " query-params)
   {:function :fetch-answers!
    :params [(blocking-fetch! url query-params screen) question-id]})
+
+(defn highlight-code!
+  ""
+  [code syntax id]
+  (let [sh-out (try
+                 (clojure.java.shell/sh
+                   "skylighting"
+                   "--format=html"
+                   (str "--syntax=" syntax)
+                   :in code)
+                 (catch java.io.IOException _ nil))]
+    (dev/log "[highlight-code] code: " code ", syntax: " syntax ", id: " id)
+    {:function :highlight-code!
+     :params [sh-out id]}))
 
 (defn read-input
   ""
