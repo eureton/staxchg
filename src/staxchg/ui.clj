@@ -130,7 +130,7 @@
         ctrl? (.isCtrlDown keystroke)]
     (dev/log "[read-key] code: '" keycode "', ctrl? " ctrl?)
     {:function :read-key!
-     :params [keycode ctrl?]}))
+     :values [keycode ctrl?]}))
 
 (defn query!
   ""
@@ -148,7 +148,7 @@
     (let [term (.showDialog dialog gui)]
       (dev/log "[query] " (if (some? term) (str "term: '" term "'") "<canceled>"))
       {:function :query!
-       :params [term]})))
+       :values [term]})))
 
 (defn try-request!
   ""
@@ -171,13 +171,13 @@
   [screen url query-params]
   (dev/log "[fetch-questions] url: " url ", query-params: " query-params)
   {:function :fetch-questions!
-   :params [(blocking-fetch! url query-params screen)]})
+   :values [(blocking-fetch! url query-params screen)]})
 
 (defn fetch-answers!
   [screen url query-params question-id]
   (dev/log "[fetch-answers] url: " url ", query-params: " query-params)
   {:function :fetch-answers!
-   :params [(blocking-fetch! url query-params screen) question-id]})
+   :values [(blocking-fetch! url query-params screen) question-id]})
 
 (defn highlight-code!
   ""
@@ -191,7 +191,7 @@
                  (catch java.io.IOException _ nil))]
     (dev/log "[highlight-code] code: " code ", syntax: " syntax ", id: " id)
     {:function :highlight-code!
-     :params [sh-out id]}))
+     :values [sh-out id]}))
 
 (defn read-input
   ""

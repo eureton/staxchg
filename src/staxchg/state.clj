@@ -353,8 +353,8 @@
 (defn update-world-rf
   ""
   [world
-   {:keys [function params]}]
-  (dev/log "[update-world-rf] '" function "'")
+   {:keys [function values]}]
+  (dev/log "[update-world-rf] " function)
   (let [f (case function
             :read-key! update-for-keystroke
             :query! update-for-search-term
@@ -364,7 +364,7 @@
             :no-answers! update-for-no-posts
             :fetch-failed! update-for-no-posts
             :highlight-code! update-for-code-highlights)]
-    (apply f world params)))
+    (apply f world values)))
 
 (defn update-world
   ""
