@@ -32,7 +32,7 @@
   ""
   [flow zone]
   (when (zone :clear?)
-    {:function :staxchg.ui/clear!
+    {:function :staxchg.io/clear!
      :params [(sub-graphics zone)]}))
 
 (defn scroll
@@ -41,7 +41,7 @@
    {:as zone
     :keys [top height]}]
   (when (flow/scrolled? flow)
-    {:function :staxchg.ui/scroll!
+    {:function :staxchg.io/scroll!
      :params [:screen
               top
               (+ top (dec height))
@@ -51,15 +51,15 @@
   ""
   [flow zone]
   (when (flow/scrolled? flow)
-    {:function :staxchg.ui/clear!
+    {:function :staxchg.io/clear!
      :params [(sub-graphics (flow/scroll-gap-rect flow zone))]}))
 
 (defn put-payload
   ""
   [flow zone item]
   {:function (case (item :type)
-               :markdown :staxchg.ui/put-markdown!
-               :string :staxchg.ui/put-string!)
+               :markdown :staxchg.io/put-markdown!
+               :string :staxchg.io/put-string!)
    :params [(fx-graphics (flow/scroll-gap-rect flow zone) item)
             (flow.item/payload item)
             (select-keys item [:x :y])]})

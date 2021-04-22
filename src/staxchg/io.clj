@@ -1,4 +1,4 @@
-(ns staxchg.ui
+(ns staxchg.io
   (:require [clojure.string :as string])
   (:require [clojure.core.async :as async :refer [>!! <!!]])
   (:require [clojure.java.shell])
@@ -235,7 +235,9 @@
       (read-input screen input-channel))
     (async/thread
       (write-output screen output-channel))
-    (let [init-world (state/initialize-world questions (.getColumns size) (.getRows size))]
+    (let [init-world2 (state/initialize-world questions (.getColumns size) (.getRows size))
+          init-world (state/update-for-new-questions init-world2 questions)
+          ]
       (->> init-world presentation/recipes (>!! output-channel))
       (loop [world-before init-world]
         (->> world-before state.recipe/input-recipes (>!! input-channel))

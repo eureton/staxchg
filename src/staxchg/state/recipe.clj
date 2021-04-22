@@ -6,7 +6,7 @@
   ""
   [{:keys [string lang question-id]
     :or {lang "lisp"}}]
-  {:function :staxchg.ui/highlight-code!
+  {:function :staxchg.io/highlight-code!
    :params [string lang question-id]})
 
 (defn input-recipes-df
@@ -32,14 +32,14 @@
 
 (defmethod input-recipes :search-term
   [{:keys [search-term]}]
-  [[{:function :staxchg.ui/fetch-questions!
+  [[{:function :staxchg.io/fetch-questions!
      :params [:screen
               (api/questions-url)
               (api/questions-query-params search-term)]}]])
 
 (defmethod input-recipes :fetch-answers
   [{:keys [fetch-answers]}]
-  [[{:function :staxchg.ui/fetch-answers!
+  [[{:function :staxchg.io/fetch-answers!
      :params [:screen
               (api/answers-url (fetch-answers :question-id))
               (api/answers-query-params (fetch-answers :page))
@@ -47,32 +47,32 @@
 
 (defmethod input-recipes :no-questions
   [_]
-  [[{:function :staxchg.ui/show-message!
+  [[{:function :staxchg.io/show-message!
      :params [:screen
               {:text "No matches found"}
               {:function :no-questions! :values []}]}]])
 
 (defmethod input-recipes :no-answers
   [_]
-  [[{:function :staxchg.ui/show-message!
+  [[{:function :staxchg.io/show-message!
      :params [:screen
               {:text "Question has no answers"}
               {:function :no-answers! :values []}]}]])
 
 (defmethod input-recipes :fetch-failed
   [_]
-  [[{:function :staxchg.ui/show-message!
+  [[{:function :staxchg.io/show-message!
      :params [:screen
               {:title "Error" :text "Could not fetch data"}
               {:function :fetch-failed! :values []}]}]])
 
 (defmethod input-recipes :query
   [_]
-  [[{:function :staxchg.ui/query!
+  [[{:function :staxchg.io/query!
      :params [:screen]}]])
 
 (defmethod input-recipes :read-key
   [{:keys [snippets]}]
-  [[{:function :staxchg.ui/read-key!
+  [[{:function :staxchg.io/read-key!
      :params [:screen]}]])
 

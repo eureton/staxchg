@@ -403,11 +403,11 @@
 
 (defmulti groom-recipe-item :function)
 
-(defmethod groom-recipe-item :staxchg.ui/put-string!
+(defmethod groom-recipe-item :staxchg.io/put-string!
   [item]
   (update-in item [:params 1] string-groomer))
 
-(defmethod groom-recipe-item :staxchg.ui/put-markdown!
+(defmethod groom-recipe-item :staxchg.io/put-markdown!
   [item]
   (update-in item [:params 1] markdown-groomer))
 
