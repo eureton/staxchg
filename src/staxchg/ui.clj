@@ -4,6 +4,7 @@
   (:require [clojure.java.shell])
   (:require [staxchg.markdown :as markdown])
   (:require [staxchg.state :as state])
+  (:require [staxchg.state.recipe :as state.recipe])
   (:require [staxchg.presentation :as presentation])
   (:require [staxchg.flow :as flow])
   (:require [staxchg.recipe :as recipe])
@@ -237,7 +238,7 @@
     (let [init-world (state/initialize-world questions (.getColumns size) (.getRows size))]
       (->> init-world presentation/recipes (>!! output-channel))
       (loop [world-before init-world]
-        (->> world-before state/input-recipes (>!! input-channel))
+        (->> world-before state.recipe/input-recipes (>!! input-channel))
         (let [input (<!! input-channel)
               world-after (state/update-world world-before input)]
           (when (state/write-output? world-before world-after)

@@ -371,49 +371,6 @@
   [world recipe]
   (reduce update-world-rf world recipe))
 
-(defn highlight-code-command
-  ""
-  [{:keys [string lang question-id]
-    :or {lang "lisp"}}]
-  {:function :staxchg.ui/highlight-code!
-   :params [string lang question-id]})
-
-(defn input-recipes
-  ""
-  [{:as world
-    :keys [query? questions search-term fetch-answers no-questions no-answers
-           fetch-failed snippets]}]
-  (let [pending (cond
-                  snippets (mapv highlight-code-command snippets)
-                  search-term {:function :staxchg.ui/fetch-questions!
-                              :params [:screen
-                                        (api/questions-url)
-                                        (api/questions-query-params search-term)]}
-                  fetch-answers {:function :staxchg.ui/fetch-answers!
-                                :params [:screen
-                                          (api/answers-url (fetch-answers :question-id))
-                                          (api/answers-query-params (fetch-answers :page))
-                                          (fetch-answers :question-id)]}
-                  no-questions {:function :staxchg.ui/show-message!
-                                :params [:screen
-                                        {:text "No matches found"}
-                                        {:function :no-questions! :params []}]}
-                  no-answers {:function :staxchg.ui/show-message!
-                              :params [:screen
-                                      {:text "Question has no answers"}
-                                      {:function :no-answers! :params []}]}
-                  fetch-failed {:function :staxchg.ui/show-message!
-                                :params [:screen
-                                        {:title "Error" :text "Could not fetch data"}
-                                        {:function :fetch-failed! :params []}]}
-                  (or query? (empty? questions)) {:function :staxchg.ui/query!
-                                                  :params [:screen]}
-                  :else {:function :staxchg.ui/read-key!
-                        :params [:screen]})]
-    (cond->> pending
-      (not (vector? pending)) vector
-      true vector)))
-
 (defn generated-output?
   ""
   [world-before world-after]
