@@ -256,3 +256,34 @@
   [node options]
   (-> node (assoc :tag :default) (ast options) (decorate :code)))
 
+(defn cluster-rf
+  ""
+  [agg [index plot-item]]
+  (let [previous (dec index)]
+    (-> agg
+        (update previous (comp vec conj) plot-item)
+        (clojure.set/rename-keys {previous index}))))
+
+(defn strip-traits
+  ""
+  [plot & traits]
+  (map #(update-in % [2 :traits] (partial apply disj) traits) plot))
+
+(defn cluster-by-trait
+  ""
+  ([plot
+    trait
+    {:as options
+     :keys [remove-trait?]
+     :or {remove-trait? false}}]
+   (->> plot
+        (map-indexed vector)
+        (filter (fn [[_ [_ _ {:keys [traits]}]]] (contains? traits trait)))
+        (reduce cluster-rf {})
+        (map (fn [[k v]] {:plot (cond-> v
+                                  remove-trait? (strip-traits trait))
+                          :from (- k (dec (count v)))
+                          :to k}))))
+  ([plot trait]
+   (cluster-by-trait plot trait {})))
+
