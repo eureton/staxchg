@@ -122,6 +122,12 @@
   (dev/log "[clear] [" (-> graphics .getSize .getColumns) " " (-> graphics .getSize .getRows) "]")
   (.fill graphics \space))
 
+(defn refresh!
+  ""
+  [screen]
+  (dev/log "[refresh]")
+  (.refresh screen)) ; TODO provide refresh type according to outgoing recipes
+
 (defn read-key!
   ""
   [screen]

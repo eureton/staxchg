@@ -498,19 +498,23 @@
      (contains? post "question_id") question-line-count
      :else (constantly 0)) post world))
 
+(def refresh-recipe [{:function :staxchg.io/refresh!
+                      :params [:screen]}])
+
 (defn recipes
   ""
   [{:as world
     :keys [active-pane]}]
-  (let [zones (zones world)]
-    (->>
-      consignments
-      (filter (comp (partial = active-pane) :pane))
-      (map (fn [{:keys [flow-id zone-id]}]
-             (let [zone (zones zone-id)]
-               {:flow ((flows world zone) flow-id)
-                :zone zone})))
-      (remove (comp nil? :flow))
-      (map recipe/make)
-      (map groom-recipe))))
+  (let [zones (zones world)
+        inflate-input (fn [{:keys [flow-id zone-id]}]
+                        (let [zone (zones zone-id)]
+                          {:flow ((flows world zone) flow-id)
+                           :zone zone}))
+        backbuffer-recipes (->> consignments
+                                (filter (comp (partial = active-pane) :pane))
+                                (map inflate-input)
+                                (remove (comp nil? :flow))
+                                (map recipe/make)
+                                (map groom-recipe))]
+    (concat backbuffer-recipes [refresh-recipe])))
 
