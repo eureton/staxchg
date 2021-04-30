@@ -127,10 +127,10 @@
                        bind-symbols
                        (partial inflate screen))
         results (->> (<!! from)
-                  log
-                  (map pipeline)
-                  flatten
-                  doall)]
+                     log
+                     (map pipeline)
+                     flatten
+                     doall)]
     (cond->> results
       (some? to) (>!! to))))
 
