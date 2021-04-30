@@ -1,6 +1,6 @@
 (ns staxchg.io
   (:require [clojure.string :as string])
-  (:require [clojure.core.async :as async :refer [>!! <!! thread]])
+  (:require [clojure.core.async :as async :refer [>!! <!! thread close!]])
   (:require [clojure.java.shell])
   (:require [staxchg.markdown :as markdown])
   (:require [staxchg.state :as state])
@@ -204,6 +204,14 @@
 
 (def response-channel (async/chan))
 
+(defn quit!
+  ""
+  [screen]
+  (dev/log "[quit]")
+  (close! request-channel)
+  (close! response-channel)
+  (.stopScreen screen))
+
 (defn run-request-loop
   ""
   [screen in-channel out-channel]
@@ -235,12 +243,8 @@
     (let [init-world2 (state/initialize-world questions (.getColumns size) (.getRows size))
           init-world (state/update-for-new-questions init-world2 questions)
           ]
-      (loop [world-before init-world]
-        (->> world-before state.recipe/all (>!! request-channel))
-        (let [input (<!! response-channel)
-              world-after (state/update-world world-before input)
-              ]
-          (when-not (world-after :quit?)
-            (recur world-after)))))
-    (.stopScreen screen)))
+      (loop [world init-world]
+        (->> world state.recipe/all (>!! request-channel))
+        (when-let [input (<!! response-channel)]
+          (recur (state/update-world world input)))))))
 

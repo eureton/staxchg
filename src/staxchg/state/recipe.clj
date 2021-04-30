@@ -15,7 +15,7 @@
   ""
   [{:as world
     :keys [query? questions search-term fetch-answers no-questions no-answers
-           fetch-failed snippets]}]
+           fetch-failed snippets quit?]}]
   (cond
     snippets :snippets
     search-term :search-term
@@ -24,6 +24,7 @@
     no-answers :no-answers
     fetch-failed :fetch-failed
     (or query? (empty? questions)) :query
+    quit? :quit
     :else :read-key))
 
 (defmulti input-recipes input-recipes-df)
@@ -71,6 +72,11 @@
 (defmethod input-recipes :query
   [_]
   [[{:function :staxchg.io/query!
+     :params [:screen]}]])
+
+(defmethod input-recipes :quit
+  [_]
+  [[{:function :staxchg.io/quit!
      :params [:screen]}]])
 
 (defmethod input-recipes :read-key
