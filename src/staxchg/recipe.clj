@@ -121,8 +121,7 @@
   recipes)
 
 (defn route
-  [{:keys [from to screen]
-    :or {to nil}}]
+  [{:keys [from to screen]}]
   (let [pipeline (comp commit
                        bind-symbols
                        (partial inflate screen))
