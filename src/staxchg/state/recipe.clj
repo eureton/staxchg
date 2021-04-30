@@ -11,7 +11,7 @@
   {:function :staxchg.io/highlight-code!
    :params [string lang question-id]})
 
-(defn input-recipes-df
+(defn input-df
   ""
   [{:as world
     :keys [query? questions search-term fetch-answers no-questions no-answers
@@ -27,20 +27,20 @@
     quit? :quit
     :else :read-key))
 
-(defmulti input-recipes input-recipes-df)
+(defmulti input input-df)
 
-(defmethod input-recipes :snippets
+(defmethod input :snippets
   [{:keys [snippets]}]
   (list (map highlight-code-step snippets)))
 
-(defmethod input-recipes :search-term
+(defmethod input :search-term
   [{:keys [search-term]}]
   [[{:function :staxchg.io/fetch-questions!
      :params [:screen
               (api/questions-url)
               (api/questions-query-params search-term)]}]])
 
-(defmethod input-recipes :fetch-answers
+(defmethod input :fetch-answers
   [{:keys [fetch-answers]}]
   [[{:function :staxchg.io/fetch-answers!
      :params [:screen
@@ -48,38 +48,38 @@
               (api/answers-query-params (fetch-answers :page))
               (fetch-answers :question-id)]}]])
 
-(defmethod input-recipes :no-questions
+(defmethod input :no-questions
   [_]
   [[{:function :staxchg.io/show-message!
      :params [:screen
               {:text "No matches found"}
               {:function :no-questions! :values []}]}]])
 
-(defmethod input-recipes :no-answers
+(defmethod input :no-answers
   [_]
   [[{:function :staxchg.io/show-message!
      :params [:screen
               {:text "Question has no answers"}
               {:function :no-answers! :values []}]}]])
 
-(defmethod input-recipes :fetch-failed
+(defmethod input :fetch-failed
   [_]
   [[{:function :staxchg.io/show-message!
      :params [:screen
               {:title "Error" :text "Could not fetch data"}
               {:function :fetch-failed! :values []}]}]])
 
-(defmethod input-recipes :query
+(defmethod input :query
   [_]
   [[{:function :staxchg.io/query!
      :params [:screen]}]])
 
-(defmethod input-recipes :quit
+(defmethod input :quit
   [_]
   [[{:function :staxchg.io/quit!
      :params [:screen]}]])
 
-(defmethod input-recipes :read-key
+(defmethod input :read-key
   [{:keys [snippets]}]
   [[{:function :staxchg.io/read-key!
      :params [:screen]}]])
@@ -92,5 +92,5 @@
     []))
 
 (def all (comp (partial apply concat)
-               (juxt output input-recipes)))
+               (juxt output input)))
 
