@@ -1,6 +1,6 @@
 (ns staxchg.io
   (:require [clojure.string :as string])
-  (:require [clojure.core.async :as async :refer [>!! <!!]])
+  (:require [clojure.core.async :as async :refer [>!! <!! thread]])
   (:require [clojure.java.shell])
   (:require [staxchg.markdown :as markdown])
   (:require [staxchg.state :as state])
@@ -65,7 +65,7 @@
          channel# (async/chan)]
      (.setHints dialog# #{Window$Hint/CENTERED Window$Hint/MODAL})
      (.showDialog dialog# gui# false)
-     (async/thread
+     (thread
        (assert (= "hello" (<!! channel#)))
        (>!! channel# (try
                        (do ~@body)
@@ -200,19 +200,15 @@
     {:function :highlight-code!
      :values [sh-out id]}))
 
-(defn read-input
-  ""
-  [screen channel]
-  (loop []
-    (recipe/route {:from channel :to channel :screen screen})
-    (recur)))
+(def request-channel (async/chan))
 
-(defn write-output
+(def response-channel (async/chan))
+
+(defn run-request-loop
   ""
-  [screen channel]
+  [screen in-channel out-channel]
   (loop []
-    (recipe/route {:from channel :screen screen})
-    (.refresh screen) ; TODO provide refresh type according to outgoing recipes
+    (recipe/route {:from in-channel :to out-channel :screen screen})
     (recur)))
 
 (defn register-theme!
@@ -233,24 +229,17 @@
         ; TODO: restore this after it stops breaking native image builds
         ; terminal (.createTerminal (DefaultTerminalFactory.))
         screen (TerminalScreen. terminal)
-        size (.getTerminalSize screen)
-        input-channel (async/chan)
-        output-channel (async/chan)]
+        size (.getTerminalSize screen)]
     (.startScreen screen)
-    (async/thread
-      (read-input screen input-channel))
-    (async/thread
-      (write-output screen output-channel))
+    (thread (run-request-loop screen request-channel response-channel))
     (let [init-world2 (state/initialize-world questions (.getColumns size) (.getRows size))
           init-world (state/update-for-new-questions init-world2 questions)
           ]
-      (->> init-world presentation/recipes (>!! output-channel))
       (loop [world-before init-world]
-        (->> world-before state.recipe/input-recipes (>!! input-channel))
-        (let [input (<!! input-channel)
-              world-after (state/update-world world-before input)]
-          (when (state/write-output? world-before world-after)
-            (->> world-after presentation/recipes (>!! output-channel)))
+        (->> world-before state.recipe/all (>!! request-channel))
+        (let [input (<!! response-channel)
+              world-after (state/update-world world-before input)
+              ]
           (when-not (world-after :quit?)
             (recur world-after)))))
     (.stopScreen screen)))

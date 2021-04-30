@@ -354,22 +354,25 @@
   ""
   [world
    {:keys [function values]}]
-  (dev/log "[update-world-rf] " function)
-  (let [f (case function
-            :read-key! update-for-keystroke
-            :query! update-for-search-term
-            :fetch-questions! update-for-questions-response
-            :fetch-answers! update-for-answers-response
-            :no-questions! update-for-no-posts
-            :no-answers! update-for-no-posts
-            :fetch-failed! update-for-no-posts
-            :highlight-code! update-for-code-highlights)]
-    (apply f world values)))
+  (if-some [f (case function
+                :read-key! update-for-keystroke
+                :query! update-for-search-term
+                :fetch-questions! update-for-questions-response
+                :fetch-answers! update-for-answers-response
+                :no-questions! update-for-no-posts
+                :no-answers! update-for-no-posts
+                :fetch-failed! update-for-no-posts
+                :highlight-code! update-for-code-highlights
+                nil)]
+    (do (dev/log "[update-world-rf] " function)
+        (apply f world values))
+    world))
 
 (defn update-world
   ""
   [world recipe]
-  (reduce update-world-rf world recipe))
+  (-> (reduce update-world-rf world recipe)
+      (assoc :previous world)))
 
 (defn generated-output?
   ""

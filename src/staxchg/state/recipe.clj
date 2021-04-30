@@ -1,5 +1,7 @@
 (ns staxchg.state.recipe
   (:require [staxchg.api :as api])
+  (:require [staxchg.state :as state])
+  (:require [staxchg.presentation :as presentation])
   (:gen-class))
 
 (defn highlight-code-step
@@ -28,7 +30,7 @@
 
 (defmethod input-recipes :snippets
   [{:keys [snippets]}]
-  [(mapv highlight-code-step snippets)])
+  (list (map highlight-code-step snippets)))
 
 (defmethod input-recipes :search-term
   [{:keys [search-term]}]
@@ -75,4 +77,14 @@
   [{:keys [snippets]}]
   [[{:function :staxchg.io/read-key!
      :params [:screen]}]])
+
+(defn output
+  ""
+  [world]
+  (if (state/write-output? (:previous world) world)
+    (presentation/recipes world)
+    []))
+
+(def all (comp (partial apply concat)
+               (juxt output input-recipes)))
 
