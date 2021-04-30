@@ -1,5 +1,6 @@
 (ns staxchg.util
   (:require [clojure.java.io :as io])
+  (:require [clojure.core.async :as async :refer [<!! >!!]])
   (:gen-class))
 
 (defn read-properties
@@ -38,4 +39,11 @@
    (config-hash config-key nil))
   ([config-key not-found]
    (get (config-hash) config-key not-found)))
+
+(defmacro timed-eval
+  [body]
+  `(let [channel# (async/chan 1)
+         timing# (with-out-str (>!! channel# (time (~@body))))]
+     {:value (<!! channel#)
+      :timing timing#}))
 

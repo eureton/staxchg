@@ -3,6 +3,7 @@
   (:require [staxchg.flow :as flow])
   (:require [staxchg.flow.item :as flow.item])
   (:require [staxchg.dev :as dev])
+  (:require [staxchg.util :as util])
   (:import com.googlecode.lanterna.SGR)
   (:import com.googlecode.lanterna.TerminalPosition)
   (:import com.googlecode.lanterna.TerminalSize)
@@ -104,14 +105,11 @@
   (apply function params))
 
 (defn commit
-  [[results recipe]]
-  (->>
-    (cond->> (doall (map commit-step recipe))
-      (some? results) (>!! results))
-    time
-    with-out-str
-    clojure.string/trim-newline
-    (dev/log "[commit] ")))
+  [recipe]
+  (let [{:keys [value timing]} (util/timed-eval
+                                 (doall (map commit-step recipe)))]
+    (dev/log "[commit] " (clojure.string/trim-newline timing))
+    value))
 
 (defn log
   ""
@@ -125,12 +123,14 @@
 (defn route
   [{:keys [from to screen]
     :or {to nil}}]
-  (let [prepare (comp bind-symbols
-                      (partial inflate screen))]
-    (->>
-      (<!! from)
-      log
-      (map prepare)
-      (map vector (repeat to))
-      (run! commit))))
+  (let [pipeline (comp commit
+                       bind-symbols
+                       (partial inflate screen))
+        results (->> (<!! from)
+                  log
+                  (map pipeline)
+                  flatten
+                  doall)]
+    (cond->> results
+      (some? to) (>!! to))))
 
