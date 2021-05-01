@@ -18,7 +18,7 @@
            fetch-failed snippets quit? width]
     {:keys [screen]} :io/context}]
   (cond
-    (nil? screen) :acquire-screen
+    (nil? screen) :initialize
     (nil? width) :enable-screen
     snippets :snippets
     search-term :search-term
@@ -32,9 +32,11 @@
 
 (defmulti input input-df)
 
-(defmethod input :acquire-screen
+(defmethod input :initialize
   [_]
-  [[{:function :staxchg.io/acquire-screen!
+  [[{:function :staxchg.io/register-theme!
+     :params ["staxchg" "lanterna-theme.properties"]}
+    {:function :staxchg.io/acquire-screen!
      :params []}]])
 
 (defmethod input :enable-screen

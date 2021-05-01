@@ -223,6 +223,7 @@
 (defn register-theme!
   ""
   [theme-name filename]
+  (dev/log "[register-theme] name: " theme-name ", filename: " filename)
   (LanternaThemes/registerTheme
     theme-name
     (PropertyTheme. (util/read-resource-properties filename) false)))
@@ -230,6 +231,7 @@
 (defn acquire-screen!
   ""
   []
+  (dev/log "[acquire-screen]")
   (let [terminal (UnixTerminal.
                    System/in
                    System/out
@@ -243,6 +245,7 @@
 (defn enable-screen!
   ""
   [screen]
+  (dev/log "[enable-screen]")
   (.startScreen screen)
   {:function :enable-screen!
    :values []})
