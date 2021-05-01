@@ -284,10 +284,11 @@
 
 (defn update-for-new-questions
   ""
-  [{:as world :keys [width height]}
+  [{:as world :keys [width height io/context]}
    questions]
   (let [snippets (->> questions (map question-snippets) (keep not-empty) flatten)
-        world (initialize-world questions width height)]
+        world (-> (initialize-world questions width height)
+                  (assoc :io/context context))]
     (if (empty? snippets)
       (assoc world :switched-question? true)
       (assoc world :snippets snippets))))

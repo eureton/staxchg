@@ -8,6 +8,7 @@
   (:require [staxchg.presentation :as presentation])
   (:require [staxchg.flow :as flow])
   (:require [staxchg.recipe :as recipe])
+  (:require [staxchg.request :as request])
   (:require [staxchg.api :as api])
   (:require [staxchg.dev :as dev])
   (:require [staxchg.util :as util])
@@ -214,9 +215,9 @@
 
 (defn run-request-loop
   ""
-  [screen in-channel out-channel]
+  [in-channel out-channel]
   (loop []
-    (recipe/route {:from in-channel :to out-channel :screen screen})
+    (request/route {:from in-channel :to out-channel})
     (recur)))
 
 (defn register-theme!
@@ -239,12 +240,13 @@
         screen (TerminalScreen. terminal)
         size (.getTerminalSize screen)]
     (.startScreen screen)
-    (thread (run-request-loop screen request-channel response-channel))
-    (let [init-world2 (state/initialize-world questions (.getColumns size) (.getRows size))
+    (thread (run-request-loop request-channel response-channel))
+    (let [init-world3 (state/initialize-world questions (.getColumns size) (.getRows size))
+          init-world2 (assoc init-world3 :io/context {:screen screen})
           init-world (state/update-for-new-questions init-world2 questions)
           ]
       (loop [world init-world]
-        (->> world state.recipe/all (>!! request-channel))
+        (->> world request/make (>!! request-channel))
         (when-let [input (<!! response-channel)]
           (recur (state/update-world world input)))))))
 

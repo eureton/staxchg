@@ -1,5 +1,4 @@
 (ns staxchg.recipe
-  (:require [clojure.core.async :as async :refer [<!! >!!]])
   (:require [staxchg.flow :as flow])
   (:require [staxchg.flow.item :as flow.item])
   (:require [staxchg.dev :as dev])
@@ -78,10 +77,10 @@
 
 (defn inflate
   ""
-  [screen recipe]
+  [recipe context]
   (let [param-mapper #(cond
-                        (= :screen %) screen
-                        (fn? %) (% screen)
+                        (keyword? %) (% context)
+                        (fn? %) (% (context :screen))
                         :else %)
         step-mapper #(->>
                        %
@@ -110,26 +109,4 @@
                                  (doall (map commit-step recipe)))]
     (dev/log "[commit] " (clojure.string/trim-newline timing))
     value))
-
-(defn log
-  ""
-  [recipes]
-  (dev/log " /^^^ Routing " (count recipes) " recipe(s)")
-  (doseq [[i r] (map-indexed vector recipes)]
-    (apply dev/log "|----- recipe #" i ": " (interpose ", " (map :function r))))
-  (dev/log " \\___ Complete")
-  recipes)
-
-(defn route
-  [{:keys [from to screen]}]
-  (let [pipeline (comp commit
-                       bind-symbols
-                       (partial inflate screen))
-        results (->> (<!! from)
-                     log
-                     (map pipeline)
-                     flatten
-                     doall)]
-    (cond->> results
-      (some? to) (>!! to))))
 
