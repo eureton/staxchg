@@ -227,26 +227,36 @@
     theme-name
     (PropertyTheme. (util/read-resource-properties filename) false)))
 
-(defn run-input-loop
+(defn acquire-screen!
   ""
-  [questions]
+  []
   (let [terminal (UnixTerminal.
                    System/in
                    System/out
                    (java.nio.charset.Charset/defaultCharset)
-                   UnixLikeTerminal$CtrlCBehaviour/CTRL_C_KILLS_APPLICATION)
+                   UnixLikeTerminal$CtrlCBehaviour/CTRL_C_KILLS_APPLICATION)]
         ; TODO: restore this after it stops breaking native image builds
         ; terminal (.createTerminal (DefaultTerminalFactory.))
-        screen (TerminalScreen. terminal)
-        size (.getTerminalSize screen)]
-    (.startScreen screen)
-    (thread (run-request-loop request-channel response-channel))
-    (let [init-world3 (state/initialize-world questions (.getColumns size) (.getRows size))
-          init-world2 (assoc init-world3 :io/context {:screen screen})
-          init-world (state/update-for-new-questions init-world2 questions)
-          ]
-      (loop [world init-world]
-        (->> world request/make (>!! request-channel))
-        (when-let [input (<!! response-channel)]
-          (recur (state/update-world world input)))))))
+    {:function :acquire-screen!
+     :values [(TerminalScreen. terminal)]}))
+
+(defn enable-screen!
+  ""
+  [screen]
+  (.startScreen screen)
+  {:function :enable-screen!
+   :values []})
+
+(defn run-input-loop
+  ""
+  [questions]
+  (thread (run-request-loop request-channel response-channel))
+  (let [init-world2 (state/initialize-world questions)
+        ;init-world2 (assoc init-world3 :io/context {:screen screen})
+        init-world (state/update-for-new-questions init-world2 questions)
+        ]
+    (loop [world init-world]
+      (->> world request/make (>!! request-channel))
+      (when-let [input (<!! response-channel)]
+        (recur (state/update-world world input))))))
 

@@ -12,15 +12,13 @@
 
 (defn initialize-world
   ""
-  [questions width height]
+  [questions]
   (let [question-ids (map #(% "question_id") questions)]
     {:line-offsets (zipmap question-ids (repeat 0))
      :selected-question-index 0
      :question-list-size 2
      :question-list-offset 0
      :questions questions
-     :width width
-     :height height
      :active-pane :questions}))
 
 (defn increment-selected-question-index
@@ -259,6 +257,17 @@
     (mark-question-switch command)
     (mark-answer-switch command)))
 
+(defn update-for-screen
+  ""
+  [world screen]
+  (update world :io/context assoc :screen screen))
+
+(defn update-for-dimensions
+  ""
+  [world]
+  (let [size (-> world :io/context :screen .getTerminalSize)]
+    (assoc world :width (.getColumns size) :height (.getRows size))))
+
 (defn update-for-keystroke [world keycode ctrl?]
   (let [command (parse-command keycode ctrl?)]
     (dev/log "command: " (if (some? command) (name command) "UNKNOWN"))
@@ -287,8 +296,8 @@
   [{:as world :keys [width height io/context]}
    questions]
   (let [snippets (->> questions (map question-snippets) (keep not-empty) flatten)
-        world (-> (initialize-world questions width height)
-                  (assoc :io/context context))]
+        world (-> (initialize-world questions)
+                  (assoc :io/context context :width width :height height))]
     (if (empty? snippets)
       (assoc world :switched-question? true)
       (assoc world :snippets snippets))))
@@ -356,6 +365,8 @@
   [world
    {:keys [function values]}]
   (if-some [f (case function
+                :acquire-screen! update-for-screen
+                :enable-screen! update-for-dimensions
                 :read-key! update-for-keystroke
                 :query! update-for-search-term
                 :fetch-questions! update-for-questions-response
@@ -385,17 +396,20 @@
   ""
   [world-before
    {:as world-after
-    :keys [active-pane switched-question? switched-answer? switched-pane?]}]
-  (or switched-pane?
-      (and (= active-pane :questions) switched-question?)
-      (and (= active-pane :answers) switched-answer?)
-      (generated-output? world-before world-after)))
+    :keys [active-pane switched-question? switched-answer? switched-pane?
+           width height]}]
+  (and (some? width)
+       (some? height)
+       (or switched-pane?
+           (and (= active-pane :questions) switched-question?)
+           (and (= active-pane :answers) switched-answer?)
+           (generated-output? world-before world-after))))
 
 (comment
   (def w (-> dev/response-body
              (get "items")
              ((partial mapv api/scrub))
-             (initialize-world 118 37)
+             (initialize-world)
              (update-for-keystroke \J false)
              (update-for-keystroke \J false)
              (update-for-keystroke \j false)

@@ -15,8 +15,11 @@
   ""
   [{:as world
     :keys [query? questions search-term fetch-answers no-questions no-answers
-           fetch-failed snippets quit?]}]
+           fetch-failed snippets quit? width]
+    {:keys [screen]} :io/context}]
   (cond
+    (nil? screen) :acquire-screen
+    (nil? width) :enable-screen
     snippets :snippets
     search-term :search-term
     fetch-answers :fetch-answers
@@ -28,6 +31,16 @@
     :else :read-key))
 
 (defmulti input input-df)
+
+(defmethod input :acquire-screen
+  [_]
+  [[{:function :staxchg.io/acquire-screen!
+     :params []}]])
+
+(defmethod input :enable-screen
+  [_]
+  [[{:function :staxchg.io/enable-screen!
+     :params [:screen]}]])
 
 (defmethod input :snippets
   [{:keys [snippets]}]
