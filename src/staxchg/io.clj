@@ -1,5 +1,4 @@
 (ns staxchg.io
-  (:require [clojure.string :as string])
   (:require [clojure.core.async :as async :refer [>!! <!! thread close!]])
   (:require [clojure.java.shell])
   (:require [staxchg.markdown :as markdown])
@@ -95,10 +94,6 @@
 
 (defn put-markdown!
   [graphics plot _]
-  (dev/log
-    "[put-markdown] "
-    (->> (map second plot) (take 10) (apply str))
-    " |>" (string/join (->> plot (map first) (map #(.getCharacter %)))) "<|")
   (doseq [[character [x y]] plot]
     (.setCharacter graphics x y (decorate-with-current character graphics))))
 
@@ -108,42 +103,32 @@
    string
    {:keys [x y]
     :or {x 0 y 0}}]
-  (dev/log "[put-string] " [x y] " |>"  string "<|")
   (.putString graphics x y string))
 
 (defn scroll!
   ""
   [screen top bottom distance]
-  (dev/log "[scroll] [" top " " bottom "] @ " distance)
   (.scrollLines screen top bottom distance))
 
 (defn clear!
   ""
   [graphics]
-  (dev/log "[clear] [" (-> graphics .getSize .getColumns) " " (-> graphics .getSize .getRows) "]")
   (.fill graphics \space))
 
 (defn refresh!
   ""
   [screen]
-  (dev/log "[refresh]")
   (.refresh screen)) ; TODO provide refresh type according to outgoing recipes
 
 (defn read-key!
   ""
   [screen]
-  (dev/log "[read-key]")
-  (let [keystroke (.readInput screen)
-        keycode (.getCharacter keystroke)
-        ctrl? (.isCtrlDown keystroke)]
-    (dev/log "[read-key] code: '" keycode "', ctrl? " ctrl?)
-    {:function :read-key!
-     :values [keycode ctrl?]}))
+  {:function :read-key!
+   :values [(.readInput screen)]})
 
 (defn query!
   ""
   [screen]
-  (dev/log "[query]")
   (let [gui (themed-gui screen)
         dialog-width (-> screen .getTerminalSize .getColumns (* 0.8) int)
         dialog (->
@@ -153,10 +138,8 @@
                  (.setTextBoxSize (TerminalSize. dialog-width 1))
                  (.setExtraWindowHints #{Window$Hint/CENTERED})
                  (.build))]
-    (let [term (.showDialog dialog gui)]
-      (dev/log "[query] " (if (some? term) (str "term: '" term "'") "<canceled>"))
-      {:function :query!
-       :values [term]})))
+    {:function :query!
+     :values [(.showDialog dialog gui)]}))
 
 (defn try-request!
   ""
@@ -177,13 +160,11 @@
 
 (defn fetch-questions!
   [screen url query-params]
-  (dev/log "[fetch-questions] url: " url ", query-params: " query-params)
   {:function :fetch-questions!
    :values [(blocking-fetch! url query-params screen)]})
 
 (defn fetch-answers!
   [screen url query-params question-id]
-  (dev/log "[fetch-answers] url: " url ", query-params: " query-params)
   {:function :fetch-answers!
    :values [(blocking-fetch! url query-params screen) question-id]})
 
@@ -197,7 +178,6 @@
                    (str "--syntax=" syntax)
                    :in code)
                  (catch java.io.IOException _ nil))]
-    (dev/log "[highlight-code] code: " code ", syntax: " syntax ", id: " id)
     {:function :highlight-code!
      :values [sh-out id]}))
 
@@ -208,7 +188,6 @@
 (defn quit!
   ""
   [screen]
-  (dev/log "[quit]")
   (close! request-channel)
   (close! response-channel)
   (.stopScreen screen))
@@ -223,7 +202,6 @@
 (defn register-theme!
   ""
   [theme-name filename]
-  (dev/log "[register-theme] name: " theme-name ", filename: " filename)
   (LanternaThemes/registerTheme
     theme-name
     (PropertyTheme. (util/read-resource-properties filename) false)))
@@ -231,7 +209,6 @@
 (defn acquire-screen!
   ""
   []
-  (dev/log "[acquire-screen]")
   (let [terminal (UnixTerminal.
                    System/in
                    System/out
@@ -245,7 +222,6 @@
 (defn enable-screen!
   ""
   [screen]
-  (dev/log "[enable-screen]")
   (.startScreen screen)
   {:function :enable-screen!
    :values []})

@@ -268,9 +268,13 @@
   (let [size (-> world :io/context :screen .getTerminalSize)]
     (assoc world :width (.getColumns size) :height (.getRows size))))
 
-(defn update-for-keystroke [world keycode ctrl?]
-  (let [command (parse-command keycode ctrl?)]
-    (dev/log "command: " (if (some? command) (name command) "UNKNOWN"))
+(defn update-for-keystroke [world keystroke]
+  (let [keycode (.getCharacter keystroke)
+        ctrl? (.isCtrlDown keystroke)
+        command (parse-command keycode ctrl?)]
+    (dev/log "[update-for-keystroke] code: '" keycode "', "
+             "ctrl? " ctrl? ", "
+             "command: " (if (some? command) (name command) "UNKNOWN"))
     (->
       world
       (clear-marks)
@@ -278,6 +282,7 @@
       (set-marks command))))
 
 (defn update-for-search-term [world term]
+  (dev/log "[update-for-search-term] term: " (if (nil? term) "<canceled>" term))
   (let [blank? (clojure.string/blank? term)]
     (cond-> (clear-marks world)
       (not blank?) (assoc :search-term term)
