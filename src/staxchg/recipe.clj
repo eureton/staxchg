@@ -1,6 +1,7 @@
 (ns staxchg.recipe
   (:require [staxchg.flow :as flow])
   (:require [staxchg.flow.item :as flow.item])
+  (:require [staxchg.recipe.step :as step])
   (:require [staxchg.dev :as dev])
   (:require [staxchg.util :as util])
   (:import com.googlecode.lanterna.SGR)
@@ -78,35 +79,16 @@
 (defn inflate
   ""
   [recipe context]
-  (let [param-mapper #(cond
-                        (keyword? %) (% context)
-                        (fn? %) (% (context :screen))
-                        :else %)
-        step-mapper #(->>
-                       %
-                       :params
-                       (map param-mapper)
-                       (assoc % :params))]
-    (map step-mapper recipe)))
-
-(defn resolve-function
-  ""
-  [fn-key]
-  (->> fn-key symbol find-var var-get))
+  (map step/inflate recipe (repeat context)))
 
 (defn bind-symbols
   [recipe]
-  (map #(update % :function resolve-function) recipe))
-
-(defn commit-step
-  ""
-  [{:keys [function params]}]
-  (apply function params))
+  (map step/bind-symbol recipe))
 
 (defn commit
   [recipe]
   (let [{:keys [value timing]} (util/timed-eval
-                                 (doall (map commit-step recipe)))]
+                                 (doall (map step/commit recipe)))]
     (dev/log "[commit] " (clojure.string/trim-newline timing))
     value))
 
