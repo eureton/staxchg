@@ -387,9 +387,11 @@
 
 (defn update-world
   ""
-  [world recipe]
-  (-> (reduce update-world-rf world recipe)
-      (assoc :previous world)))
+  [world input]
+  (if (some? input)
+    (-> (reduce update-world-rf world input)
+        (assoc :previous world))
+    nil))
 
 (defn generated-output?
   ""

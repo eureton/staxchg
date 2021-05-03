@@ -192,13 +192,6 @@
   (close! response-channel)
   (.stopScreen screen))
 
-(defn run-request-loop
-  ""
-  [in-channel out-channel]
-  (loop []
-    (request/route {:from in-channel :to out-channel})
-    (recur)))
-
 (defn register-theme!
   ""
   [theme-name filename]
@@ -225,17 +218,4 @@
   (.startScreen screen)
   {:function :enable-screen!
    :values []})
-
-(defn run-input-loop
-  ""
-  [questions]
-  (thread (run-request-loop request-channel response-channel))
-  (let [init-world2 (state/make questions)
-        ;init-world2 (assoc init-world3 :io/context {:screen screen})
-        init-world (state/update-for-new-questions init-world2 questions)
-        ]
-    (loop [world init-world]
-      (->> world request/make (>!! request-channel))
-      (when-let [input (<!! response-channel)]
-        (recur (state/update-world world input))))))
 
