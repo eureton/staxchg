@@ -87,7 +87,7 @@
               :order "desc"
               :sort "relevance"
               :site ((util/config-hash) "SITE" default-site)
-              :filter "!*0OqKTs5Z3Ruz_pHoqBLWuuZMbuzO9VDaB-9T1wV("}]
+              :filter "!*0Ld)hQoB5KcGorrGBWAL9j(DXh.(bWg*(h)Jfo1h"}]
     (cond-> (merge (auth-query-params) base)
       (not-empty tags) (assoc :tagged (string/join \; tags))
       (some? user) (assoc :user user)
