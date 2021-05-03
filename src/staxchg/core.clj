@@ -4,6 +4,7 @@
   (:require [staxchg.api :as api])
   (:require [staxchg.io :as io])
   (:require [staxchg.state :as state])
+  (:require [staxchg.state.recipe :as state.recipe])
   (:require [staxchg.request :as request])
   (:require [staxchg.dev :as dev])
   (:gen-class))
@@ -12,7 +13,7 @@
   ""
   [in-channel out-channel]
   (loop []
-    (request/route {:from in-channel :to out-channel})
+    (request/route {:from in-channel :to out-channel :log-fn dev/log-request})
     (recur)))
 
 (defn -main
@@ -25,7 +26,7 @@
                              state/make)
                  :req-ch io/request-channel
                  :resp-ch io/response-channel
-                 :req-fn request/make
+                 :req-fn state.recipe/request
                  :trans-fn state/update-world
                  :term-fn nil?}))
 

@@ -112,7 +112,7 @@
 
 (defn clear!
   ""
-  [graphics]
+  [graphics _ _ _ _]
   (.fill graphics \space))
 
 (defn refresh!

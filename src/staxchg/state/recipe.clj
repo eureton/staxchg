@@ -1,7 +1,9 @@
 (ns staxchg.state.recipe
+  (:require [clojure.string :as string])
   (:require [staxchg.api :as api])
   (:require [staxchg.state :as state])
   (:require [staxchg.presentation :as presentation])
+  (:require [staxchg.recipe.step :as recipe.step])
   (:gen-class))
 
 (defn highlight-code-step
@@ -108,4 +110,10 @@
 
 (def all (comp (partial apply concat)
                (juxt output input)))
+
+(defn request
+  ""
+  [world]
+  {:recipes (all world)
+   :context (:io/context world)})
 

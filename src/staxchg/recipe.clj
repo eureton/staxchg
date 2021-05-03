@@ -31,10 +31,12 @@
 
 (defn clear-whole
   ""
-  [flow zone]
+  [flow
+   {:as zone
+    :keys [left top width height]}]
   (when (zone :clear?)
     {:function :staxchg.io/clear!
-     :params [(sub-graphics zone)]}))
+     :params [(sub-graphics zone) left top width height]}))
 
 (defn scroll
   ""
@@ -50,10 +52,16 @@
 
 (defn clear-scroll-gap
   ""
-  [flow zone]
+  [flow
+   {:as zone
+    :keys [left top width height]}]
   (when (flow/scrolled? flow)
     {:function :staxchg.io/clear!
-     :params [(sub-graphics (flow/scroll-gap-rect flow zone))]}))
+     :params [(sub-graphics (flow/scroll-gap-rect flow zone))
+              left
+              top
+              width
+              height]}))
 
 (defn put-payload
   ""

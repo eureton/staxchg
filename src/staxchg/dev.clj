@@ -1,4 +1,5 @@
 (ns staxchg.dev
+  (:require [clojure.string :as string])
   (:require [staxchg.util :as util])
   (:gen-class))
 
@@ -19,7 +20,81 @@
     (with-open [writer (clojure.java.io/writer pathname :append true)]
       (.write writer (str (apply str (map truncate items)) "\n")))))
 
-; sample response for testing purposes
+(defmulti log-recipe-step :function)
+
+(defmethod log-recipe-step :staxchg.io/put-markdown!
+  [{[_ plot _] :params}]
+  (log "[put-markdown] " (->> (map second plot) (take 10) (apply str))
+       " |>" (string/join (map (comp #(.getCharacter %) first) plot)) "<|"))
+
+(defmethod log-recipe-step :staxchg.io/put-string!
+  [{[_ string {:keys [x y]}] :params}]
+  (log "[put-string] " [x y] " |>"  string "<|"))
+
+(defmethod log-recipe-step :staxchg.io/scroll!
+  [{[_ top bottom distance] :params}]
+  (log "[scroll] at [" top " " bottom "] by " distance))
+
+(defmethod log-recipe-step :staxchg.io/clear!
+  [{[graphics left top width height] :params}]
+  (log "[clear] rect [" width "x" height "] at [" left "x" top "]"))
+
+(defmethod log-recipe-step :staxchg.io/refresh!
+  [_]
+  (log "[refresh]"))
+
+(defmethod log-recipe-step :staxchg.io/read-key!
+  [_]
+  (log "[read-key]"))
+
+(defmethod log-recipe-step :staxchg.io/query!
+  [_]
+  (log "[query]"))
+
+(defmethod log-recipe-step :staxchg.io/fetch-questions!
+  [{[_ url query-params] :params}]
+  (log "[fetch-questions] url: " url ", query-params: " query-params))
+
+(defmethod log-recipe-step :staxchg.io/fetch-answers!
+  [{[_ url query-params question-id] :params}]
+  (log "[fetch-answers] url: " url ", "
+       "query-params: " query-params ", "
+       "question-id: " question-id))
+
+(defmethod log-recipe-step :staxchg.io/highlight-code!
+  [{[code syntax question-id] :params}]
+  (log "[highlight-code] BEGIN syntax: " syntax ", "
+       "question-id: " question-id "\r\n" code
+       "[highlight-code] END"))
+
+(defmethod log-recipe-step :staxchg.io/quit!
+  [_]
+  (log "[quit]"))
+
+(defmethod log-recipe-step :staxchg.io/register-theme!
+  [{[theme-name filename] :params}]
+  (log "[register-theme] name: " theme-name ", filename: " filename))
+
+(defmethod log-recipe-step :staxchg.io/acquire-screen!
+  [_]
+  (log "[acquire-screen]"))
+
+(defmethod log-recipe-step :staxchg.io/enable-screen!
+  [_]
+  (log "[enable-screen]"))
+
+(defmethod log-recipe-step :default [_])
+
+(defn log-request
+  ""
+  [{:keys [recipes]}]
+  (log " /^^^ " (count recipes) " recipe(s)")
+  (run! log (map
+              (fn [r] (str "|----- " (string/join ", " (map :function r))))
+              recipes))
+  (log " \\___ Complete")
+  (run! log-recipe-step (flatten recipes)))
+
 (def response-body
 {
   "items" [] ,
