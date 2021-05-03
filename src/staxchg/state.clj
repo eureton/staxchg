@@ -10,7 +10,7 @@
                  :no-questions :no-answers :fetch-failed :switched-pane?
                  :switched-question? :switched-answer? :snippets})
 
-(defn initialize-world
+(defn make
   ""
   [questions]
   (let [question-ids (map #(% "question_id") questions)]
@@ -301,7 +301,7 @@
   [{:as world :keys [width height io/context]}
    questions]
   (let [snippets (->> questions (map question-snippets) (keep not-empty) flatten)
-        world (-> (initialize-world questions)
+        world (-> (make questions)
                   (assoc :io/context context :width width :height height))]
     (if (empty? snippets)
       (assoc world :switched-question? true)
@@ -414,7 +414,7 @@
   (def w (-> dev/response-body
              (get "items")
              ((partial mapv api/scrub))
-             (initialize-world)
+             (make)
              (update-for-keystroke \J false)
              (update-for-keystroke \J false)
              (update-for-keystroke \j false)

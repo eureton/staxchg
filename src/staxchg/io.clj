@@ -230,7 +230,7 @@
   ""
   [questions]
   (thread (run-request-loop request-channel response-channel))
-  (let [init-world2 (state/initialize-world questions)
+  (let [init-world2 (state/make questions)
         ;init-world2 (assoc init-world3 :io/context {:screen screen})
         init-world (state/update-for-new-questions init-world2 questions)
         ]
