@@ -6,12 +6,62 @@
   (:require [staxchg.recipe.step :as recipe.step])
   (:gen-class))
 
+(def skylight-syntax-ids #{"Abc" "asn1" "asp" "ats" "awk" "actionscript" "ada"
+                           "agda" "alert" "alertindent" "apache" "bash" "bibtex"
+                           "boo" "c" "cs" "cpp" "cmake" "css" "changelog"
+                           "clojure" "coffee" "coldfusion" "commonlisp" "curry"
+                           "d" "dtd" "diff" "djangotemplate" "dockerfile"
+                           "doxygen" "doxygenlua" "eiffel" "elixir" "email"
+                           "erlang" "fsharp" "fortran" "gcc" "glsl"
+                           "gnuassembler" "m4" "go" "html" "hamlet" "haskell"
+                           "haxe" "ini" "isocpp" "idris" "fasm" "nasm" "json"
+                           "jsp" "java" "javascript" "javadoc" "julia" "kotlin"
+                           "llvm" "latex" "lex" "lilypond" "literatecurry"
+                           "literatehaskell" "lua" "mips" "makefile" "markdown"
+                           "mathematica" "matlab" "maxima" "mediawiki"
+                           "metafont" "modelines" "modula2" "modula3"
+                           "monobasic" "ocaml" "objectivec" "objectivecpp"
+                           "octave" "opencl" "php" "pascal" "perl" "pike"
+                           "postscript" "prolog" "pure" "purebasic" "python" "r"
+                           "relaxng" "relaxngcompact" "roff" "ruby" "rhtml"
+                           "rust" "sgml" "sql" "sqlmysql" "sqlpostgresql"
+                           "scala" "scheme" "tcl" "tcsh" "texinfo" "mandoc"
+                           "vhdl" "verilog" "xml" "xul" "yaml" "yacc" "zsh"
+                           "dot" "noweb" "rest" "sci" "sed" "xorg" "xslt"})
+
+(def stackexchange-to-skylight {"abc" "Abc"
+                                "asn.1" "asn1"
+                                "c#" "cs"
+                                "c++" "cpp"
+                                "common-lisp" "commonlisp"
+                                "django-templates" "djangotemplate"
+                                "f#" "fsharp"
+                                "gnu-assembler" "gnuassembler"
+                                "modeline" "modelines"
+                                "modula-2" "modula2"
+                                "modula-3" "modula3"
+                                "objective-c" "objectivec"
+                                "objective-c++" "objectivecpp"
+                                "relaxng-compact" "relaxngcompact"})
+
+(defn snippet-syntax
+  ""
+  [lang tags]
+  (if (some? lang)
+    lang
+    (->> tags
+         ((juxt identity identity))
+         (apply map stackexchange-to-skylight)
+         set
+         (clojure.set/intersection skylight-syntax-ids)
+         first)))
+
 (defn highlight-code-step
   ""
-  [{:keys [string lang question-id]
-    :or {lang "lisp"}}]
+  [{:keys [string question-id]}
+   syntax]
   {:function :staxchg.io/highlight-code!
-   :params [string lang question-id]})
+   :params [string syntax question-id]})
 
 (defn input-df
   ""
@@ -47,8 +97,16 @@
      :params [:screen]}]])
 
 (defmethod input :snippets
-  [{:keys [snippets]}]
-  (list (map highlight-code-step snippets)))
+  [{:keys [questions snippets]
+    :as world}]
+  (let [snippet-to-tags (comp #(% "tags")
+                              questions
+                              #(state/question-id-to-index % world)
+                              :question-id)
+        snippet-to-syntax (comp (partial apply snippet-syntax)
+                                (juxt :lang snippet-to-tags))
+        syntaxes (map snippet-to-syntax snippets)]
+    (list (map highlight-code-step snippets syntaxes))))
 
 (defmethod input :search-term
   [{:keys [search-term]}]
