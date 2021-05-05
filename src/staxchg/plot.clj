@@ -271,21 +271,14 @@
 
 (defn cluster-by-trait
   ""
-  ([plot
-    trait
-    {:as options
-     :keys [remove-trait?]
-     :or {remove-trait? false}}]
-   (->> plot
-        (map-indexed vector)
-        (filter (fn [[_ [_ _ {:keys [traits]}]]] (contains? traits trait)))
-        (reduce cluster-rf {})
-        (map (fn [[k v]] {:plot (cond-> v
-                                  remove-trait? (strip-traits trait))
-                          :from (- k (dec (count v)))
-                          :to k}))))
-  ([plot trait]
-   (cluster-by-trait plot trait {})))
+  [plot trait]
+  (->> plot
+       (map-indexed vector)
+       (filter (fn [[_ [_ _ {:keys [traits]}]]] (contains? traits trait)))
+       (reduce cluster-rf {})
+       (map (fn [[k v]] {:plot v
+                         :from (- k (dec (count v)))
+                         :to k}))))
 
 (defn map-sub
   ""

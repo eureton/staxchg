@@ -20,7 +20,7 @@
 (defn highlight-code
   ""
   [{:keys [plot code-highlights]}]
-  (let [code-clusters (plot/cluster-by-trait plot :code {:remove-trait? true})
+  (let [code-clusters (plot/cluster-by-trait plot :code)
         clusters (map #(assoc %1 :highlight %2) code-clusters code-highlights)
         hilite-fn (comp #(plot/strip-traits % :code) hilite/annotate)]
     (reduce (fn [agg {:keys [from to highlight]}]
