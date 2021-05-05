@@ -109,16 +109,35 @@
     (reduce -)
     inc))
 
+(defmulti code-content :tag)
+
+(defmethod code-content :indented-code-block
+  [node]
+  (->> (:content node)
+       clojure.string/split-lines
+       (map-indexed #(subs %2 (if (zero? %1) 0 4)))
+       clojure.string/join))
+
+(defmethod code-content :fenced-code-block
+  [node]
+  (->> (:children node)
+       (filter (comp #{:txt} :tag))
+       first
+       :content))
+
+(defmethod code-content :default
+  [_]
+  nil)
+
 (defn code-snippets
   ""
   [string]
   (let [tree (flexmark/parse string)
         scrape-text #(->> % (filter (comp #{:txt} :tag)) first :content)
-        f (fn [acc {:keys [tag content children info]}]
-            (let [text (scrape-text children)]
+        f (fn [acc {:keys [tag content children info] :as node}]
+            (let [text (code-content node)]
               (cond-> acc
-                (= :indented-code-block tag) (conj {:string content})
-                (= :code tag) (conj {:string text})
-                (= :fenced-code-block tag) (conj {:string text :lang info}))))]
+                (= :indented-code-block tag) (conj {:string text})
+                (= :fenced-code-block tag)   (conj {:string text :lang info}))))]
     (ast/reduce-df f [] tree)))
 
