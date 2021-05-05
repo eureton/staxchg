@@ -20,17 +20,13 @@
 (defn highlight-code
   ""
   [{:keys [plot code-highlights]}]
-  (let [code-plots (plot/cluster-by-trait plot :code {:remove-trait? true})
-        split #(split-at % plot)
-        before (comp first split :from)
-        after (comp second split inc :to)
-        highlight (comp #(apply hilite/annotate %) (juxt :plot :highlight))
-        splice (comp #(apply concat %) (juxt before highlight after))]
-    (loop [plots (map #(assoc %1 :highlight %2) code-plots code-highlights)
-           result plot]
-      (if (empty? plots)
-        result
-        (recur (rest plots) (splice (first plots)))))))
+  (let [code-clusters (plot/cluster-by-trait plot :code {:remove-trait? true})
+        clusters (map #(assoc %1 :highlight %2) code-clusters code-highlights)
+        hilite-fn (comp #(plot/strip-traits % :code) hilite/annotate)]
+    (reduce (fn [agg {:keys [from to highlight]}]
+              (plot/map-sub agg from (inc to) hilite-fn highlight))
+            plot
+            clusters)))
 
 (defn plot-markdown
   [zone
