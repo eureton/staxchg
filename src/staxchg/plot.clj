@@ -270,7 +270,13 @@
   (map #(update-in % [2 :traits] (partial apply disj) traits) plot))
 
 (defn cluster-by-trait
-  ""
+  "Clusters adjunct plot items which share the given trait.
+
+   For each such cluster, a hash is returned. This hash contains :from, :to and
+   :plot keys which hold the start index (inclusive), end index (exclusive) and
+   corresponding plot, respectively.
+
+   The hashes are returned in a sequence."
   [plot trait]
   (->> plot
        (map-indexed vector)
@@ -278,7 +284,7 @@
        (reduce cluster-rf {})
        (map (fn [[k v]] {:plot v
                          :from (- k (dec (count v)))
-                         :to k}))))
+                         :to (inc k)}))))
 
 (defn map-sub
   ""

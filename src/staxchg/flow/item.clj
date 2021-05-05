@@ -24,7 +24,7 @@
         clusters (map #(assoc %1 :highlight %2) code-clusters code-highlights)
         hilite-fn (comp #(plot/strip-traits % :code) hilite/annotate)]
     (reduce (fn [agg {:keys [from to highlight]}]
-              (plot/map-sub agg from (inc to) hilite-fn highlight))
+              (plot/map-sub agg from to hilite-fn highlight))
             plot
             clusters)))
 
