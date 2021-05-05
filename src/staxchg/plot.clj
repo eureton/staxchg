@@ -287,3 +287,12 @@
   ([plot trait]
    (cluster-by-trait plot trait {})))
 
+(defn map-sub
+  ""
+  [plot from to f & args]
+  (let [at-start #(split-at from %)
+        at-end #(split-at to %)]
+    (apply concat ((juxt (comp first at-start)
+                         (comp #(apply f % args) second at-start first at-end)
+                         (comp second at-end)) plot))))
+
