@@ -3,6 +3,7 @@
   (:require [staxchg.api :as api])
   (:require [staxchg.markdown :as markdown])
   (:require [staxchg.hilite :as hilite])
+  (:require [staxchg.post :as post])
   (:require [staxchg.dev :as dev])
   (:gen-class))
 
@@ -290,19 +291,14 @@
       (not blank?) (assoc :search-term term)
       blank? (assoc :switched-pane? true))))
 
-(def question-snippets
-  (let [annotator #(hash-map :question-id (% "question_id"))
-        extracter (comp staxchg.markdown/code-snippets
-                        #(% "body_markdown"))]
-    (comp (fn [[x y]] (map merge x y))
-          (fn [[x y]] [(repeat (count y) x) y])
-          (juxt annotator extracter))))
-
 (defn update-for-new-questions
   ""
   [{:as world :keys [width height io/context]}
    questions]
-  (let [snippets (->> questions (map question-snippets) (keep not-empty) flatten)
+  (let [snippets (->> questions
+                      (map post/code-snippets)
+                      (keep not-empty)
+                      flatten)
         world (-> (make questions)
                   (assoc :io/context context :width width :height height))]
     (if (empty? snippets)
