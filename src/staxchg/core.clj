@@ -20,10 +20,7 @@
   "I don't do a whole lot ... yet."
   [& args]
   (thread (run-request-loop io/request-channel io/response-channel))
-  (smachine/run {:s-init (-> dev/response-body
-                             (get "items")
-                             ((partial mapv api/scrub))
-                             state/make)
+  (smachine/run {:s-init (state/make)
                  :req-ch io/request-channel
                  :resp-ch io/response-channel
                  :req-fn state.recipe/request

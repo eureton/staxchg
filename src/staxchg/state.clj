@@ -12,14 +12,16 @@
 
 (defn make
   ""
-  [questions]
-  (let [question-ids (map #(% "question_id") questions)]
-    {:line-offsets (zipmap question-ids (repeat 0))
-     :selected-question-index 0
-     :question-list-size 2
-     :question-list-offset 0
-     :questions questions
-     :active-pane :questions}))
+  ([questions]
+   (let [question-ids (map #(% "question_id") questions)]
+     {:line-offsets (zipmap question-ids (repeat 0))
+      :selected-question-index 0
+      :question-list-size 2
+      :question-list-offset 0
+      :questions questions
+      :active-pane :questions}))
+  ([]
+   (make [])))
 
 (defn increment-selected-question-index
   [{:as world
@@ -413,12 +415,23 @@
            (generated-output? world-before world-after))))
 
 (comment
-  (def w (-> dev/response-body
-             (get "items")
-             ((partial mapv api/scrub))
-             (make)
-             (update-for-keystroke \J false)
-             (update-for-keystroke \J false)
-             (update-for-keystroke \j false)
-             (update-for-keystroke \j false))))
+  (def w (let [req-ch (clojure.core.async/chan 1)
+               resp-ch (clojure.core.async/chan 1)
+               ctx {:screen 1234}
+               qs (-> dev/response-body (get "items") ((partial mapv api/scrub)))
+               w (-> (make)
+                     (assoc :io/context ctx :width 100 :height 200)
+                     (update-for-new-questions qs))
+               req (-> w
+                       staxchg.state.recipe/input
+                       (#(hash-map :recipes % :context ctx)))]
+           (clojure.core.async/>!! req-ch req)
+           (staxchg.request/route {:from req-ch
+                                   :to resp-ch
+                                   :log-fn dev/log-request})
+           (as-> (clojure.core.async/<!! resp-ch) v
+                 (update-world w v)
+                 (get-in v [:questions 0])
+                 (staxchg.flow.item/highlight-code {:plot (staxchg.markdown/plot (v "body_markdown") {:width 100})
+                                                    :code-highlights (v :code-highlights)})))))
 
