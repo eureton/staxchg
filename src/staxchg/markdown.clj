@@ -115,8 +115,8 @@
   [node]
   (->> (:content node)
        clojure.string/split-lines
-       (map-indexed #(subs %2 (if (zero? %1) 0 4)))
-       clojure.string/join))
+       (map-indexed #(subs %2 (if (or (zero? %1) (< (count %2) 4)) 0 4)))
+       (clojure.string/join "\r\n")))
 
 (defmethod code-content :fenced-code-block
   [node]
