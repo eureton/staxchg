@@ -5,6 +5,7 @@
   (:require [clojure.set :refer [union]])
   (:require [cheshire.core])
   (:import (org.jsoup Jsoup))
+  (:import (org.jsoup.parser Parser))
   (:gen-class))
 
 (def skylighting-class-trait-map {:kw :hilite-keyword
@@ -59,7 +60,11 @@
     (reduce (partial merge-with (fn [[classes1 html1] [classes2 html2]]
                                   [(union classes1 classes2)
                                    (first (sort-by (comp - count) [html1 html2]))])))
-    (reduce-kv (fn [acc k v] (conj acc {:code k :classes (v 0) :html (v 1)})) [])))
+    (reduce-kv (fn [acc k v]
+                 (conj acc {:code k
+                            :classes (v 0)
+                            :html (Parser/unescapeEntities (v 1) true)}))
+               [])))
 
 (defn parse
   ""
@@ -74,7 +79,8 @@
           (string/replace #"[\r\n]"  "")
           Jsoup/parse
           (.select "code.sourceCode")
-          .html)))
+          .html
+          (Parser/unescapeEntities true))))
 
 (defn annotate
   ""
