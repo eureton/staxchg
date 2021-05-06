@@ -254,7 +254,7 @@
 
 (defmethod ast :code
   [node options]
-  (-> node (assoc :tag :default) (ast options) (decorate :code)))
+  (-> node (assoc :tag :default) (ast options) (decorate :standout)))
 
 (defn cluster-rf
   ""
