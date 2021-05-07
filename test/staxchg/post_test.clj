@@ -4,10 +4,11 @@
             [staxchg.post :refer :all]))
 
 (deftest code-info-test
-  (defn md [{:keys [tags snippet fence-syntax id-key id-value]}]
-    {"tags" tags
-     "body_markdown"  (str "``` " fence-syntax "\r\n" snippet "\r\n```")
-     id-key id-value})
+  (defn md [{:keys [tags snippet fence-syntax question-id answer-id]}]
+    (cond-> {"tags" tags
+             "body_markdown"  (str "``` " fence-syntax "\r\n" snippet "\r\n```")}
+      question-id (assoc "question_id" question-id)
+      answer-id (assoc "answer_id" answer-id)))
   (defn code-snippet-strings [md]
     (->> md code-info (map (comp clojure.string/trim-newline :string))))
   (defn code-snippet-syntaxes [md]
@@ -30,10 +31,13 @@
            ["clojure"])))
 
   (testing "question id"
-    (is (= (code-snippet-question-ids (md {:id-key "question_id" :id-value "12321"}))
+    (is (= (code-snippet-question-ids (md {:question-id "12321"}))
            ["12321"])))
 
   (testing "answer id"
-    (is (= (code-snippet-answer-ids (md {:id-key "answer_id" :id-value "12321"}))
-           ["12321"]))))
+    (let [result (code-info (md {:question-id "12321" :answer-id "32123"}))]
+      (is (and (= (map :answer-id result)
+                  ["32123"])
+               (= (map :question-id result)
+                  ["12321"]))))))
 

@@ -63,15 +63,14 @@
 
 (defn code-info
   ""
-  [post]
-  (let [answer? (answer? post)
-        question? (question? post)
-        id-key (cond answer? :answer-id question? :question-id)
-        id-value (post (cond answer? "answer_id" question? "question_id"))
-        syntax (syntax-tag post)
+  [{:as post
+    :strs [question_id answer_id]}]
+  (let [syntax (syntax-tag post)
         set-if-nil-or-empty #(some not-empty %&)
         annotate (comp #(update % :syntax set-if-nil-or-empty syntax)
-                       #(assoc % id-key id-value))]
+                       #(cond-> %
+                                answer_id (assoc :answer-id answer_id)
+                                question_id (assoc :question-id question_id)))]
     (->> (get post "body_markdown")
          staxchg.markdown/code-info
          (map annotate))))
