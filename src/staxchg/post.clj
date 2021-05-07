@@ -21,6 +21,6 @@
         id-key (cond answer? :answer-id question? :question-id)
         id-value (post (cond answer? "answer_id" question? "question_id"))]
     (->> (get post "body_markdown")
-         staxchg.markdown/code-snippets
+         staxchg.markdown/code-info
          (map #(assoc % id-key id-value)))))
 

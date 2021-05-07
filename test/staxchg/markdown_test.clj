@@ -1,5 +1,6 @@
 (ns staxchg.markdown-test
   (:require [clojure.test :refer :all]
+            [clojure.test.check.generators :as gen]
             [staxchg.markdown :refer :all]))
 
 (deftest plot-test
@@ -295,3 +296,58 @@
            [[0 0] [1 0]
             [0 2] [1 2]]))))
 
+(deftest code-info-test
+  (defn rand-snippet [snippet-line-count]
+    (->> snippet-line-count
+         (gen/sample (gen/not-empty gen/string-alphanumeric))
+         (clojure.string/join "\r\n")))
+  (def snippet-gen (gen/fmap rand-snippet (gen/choose 5 15)))
+  (def string-gen (gen/not-empty gen/string-alphanumeric))
+  (def snippet-count (+ 2 (rand-int 6)))
+  (def snippets (gen/generate (gen/vector snippet-gen snippet-count)))
+
+  (defn code-snippet-strings [md]
+    (->> md code-info (map :string)))
+  (defn code-snippet-syntaxes [md]
+    (->> md code-info (map :syntax)))
+
+  (testing "fenced code blocks"
+    (def syntax-gen string-gen)
+    (defn block [snippet syntax] (->> [(str "``` " syntax)
+                                       snippet
+                                       "```"]
+                                      (clojure.string/join "\r\n")))
+
+    (def syntaxes (gen/generate (gen/vector syntax-gen snippet-count)))
+    (def md (->> (map block snippets syntaxes)
+                 (interleave (gen/generate (gen/vector string-gen snippet-count)))
+                 (clojure.string/join "\r\n")))
+
+    (testing "string extraction"
+      (is (= (code-snippet-strings md)
+             (map #(str % "\r\n") snippets))))
+
+    (testing "preserves leading empty lines"
+      (is (= (code-snippet-strings (block "\r\n\r\nfoo" "bar"))
+             ["\r\n\r\nfoo\r\n"])))
+
+    (testing "syntax extraction"
+      (is (= (code-snippet-syntaxes md)
+             syntaxes))))
+  (testing "indented code blocks"
+    (defn indent [snippet]
+      (->> snippet
+           clojure.string/split-lines
+           (map #(str  "    " %))
+           (clojure.string/join "\r\n")))
+    (def md (->> (map indent snippets)
+                 (interleave (gen/generate (gen/vector string-gen snippet-count)))
+                 (clojure.string/join "\r\n\r\n")))
+
+    (testing "string extraction"
+      (is (= (code-snippet-strings md)
+             snippets)))
+
+    (testing "syntax extraction"
+      (is (= (code-snippet-syntaxes md)
+             (repeat snippet-count nil))))))

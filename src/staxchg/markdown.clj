@@ -129,15 +129,23 @@
   [_]
   nil)
 
-(defn code-snippets
+(defmulti code-info-rf (fn [_ {:keys [tag]}] tag))
+
+(defmethod code-info-rf :indented-code-block
+  [acc node]
+  (conj acc {:string (code-content node)}))
+
+(defmethod code-info-rf :fenced-code-block
+  [acc node]
+  (conj acc {:string (code-content node)
+             :syntax (:info node)}))
+
+(defmethod code-info-rf :default
+  [acc _]
+  acc)
+
+(defn code-info
   ""
   [string]
-  (let [tree (flexmark/parse string)
-        scrape-text #(->> % (filter (comp #{:txt} :tag)) first :content)
-        f (fn [acc {:keys [tag content children info] :as node}]
-            (let [text (code-content node)]
-              (cond-> acc
-                (= :indented-code-block tag) (conj {:string text})
-                (= :fenced-code-block tag)   (conj {:string text :lang info}))))]
-    (ast/reduce-df f [] tree)))
+  (ast/reduce-df code-info-rf [] (flexmark/parse string)))
 
