@@ -104,7 +104,7 @@
                               :order "desc"
                               :sort "votes"
                               :site ((util/config-hash) "SITE" default-site)
-                              :filter "!*cCE1WB4Zi)NAFAJ)1MAjs8QNFjLAJ0x9tOP9"}))
+                              :filter "!WWsokPk3Vh*T_kIP2MV(bQNcR1w-GRejyamhb31"}))
 
 (defn unescape-html [string]
   (org.jsoup.parser.Parser/unescapeEntities string true))
