@@ -170,7 +170,7 @@
 
 (defn highlight-code!
   ""
-  [code syntax id]
+  [code syntax question-id answer-id]
   (let [sh-out (try
                  (clojure.java.shell/sh
                    "skylighting"
@@ -179,7 +179,7 @@
                    :in code)
                  (catch java.io.IOException _ nil))]
     {:function :highlight-code!
-     :values [sh-out id]}))
+     :values [sh-out question-id answer-id]}))
 
 (def request-channel (async/chan))
 

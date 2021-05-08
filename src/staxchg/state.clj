@@ -20,7 +20,8 @@
       :question-list-size 2
       :question-list-offset 0
       :questions questions
-      :active-pane :questions}))
+      :active-pane :questions
+      :code-highlights {}}))
   ([]
    (make [])))
 
@@ -291,19 +292,24 @@
       (not blank?) (assoc :search-term term)
       blank? (assoc :switched-pane? true))))
 
+(defn update-for-new-posts
+  ""
+  [world posts]
+  (let [snippets (->> posts
+                      (map post/code-info)
+                      (keep not-empty)
+                      flatten)]
+    (cond-> world
+      (not-empty snippets) (assoc :snippets snippets))))
+
 (defn update-for-new-questions
   ""
-  [{:as world :keys [width height io/context]}
+  [{:keys [width height io/context]}
    questions]
-  (let [snippets (->> questions
-                      (map post/code-snippets)
-                      (keep not-empty)
-                      flatten)
-        world (-> (make questions)
-                  (assoc :io/context context :width width :height height))]
-    (if (empty? snippets)
-      (assoc world :switched-question? true)
-      (assoc world :snippets snippets))))
+  (-> (make questions)
+      (assoc :io/context context :width width :height height)
+      (assoc :switched-question? true)
+      (update-for-new-posts questions)))
 
 (defn update-for-questions-response
   ""
@@ -317,16 +323,26 @@
       (and (nil? error) (empty? items)) (assoc :no-questions true)
       (not-empty items) (update-for-new-questions items))))
 
+(defn supplement-answer
+  ""
+  [answer question]
+  (-> answer
+      (assoc "question_id" (question "question_id"))
+      (update "tags" (comp distinct concat) (question "tags"))))
+
 (defn update-for-new-answers
   ""
   [world answers more? question-id]
-  (let [index (question-id-to-index question-id world)]
+  (let [index (question-id-to-index question-id world)
+        question (get-in world [:questions index])
+        answers (map supplement-answer answers (repeat question))]
     (->
       world
       (update-in [:questions index "answers"] (comp vec concat) answers)
       (assoc-in [:questions index :more-answers-to-fetch?] more?)
       (assoc-in [:selected-answers question-id] (-> answers first (get "answer_id")))
-      (assoc :active-pane :answers :switched-pane? true))))
+      (assoc :active-pane :answers :switched-pane? true)
+      (update-for-new-posts answers))))
 
 (defn update-for-answers-response
   ""
@@ -352,16 +368,15 @@
 
 (defn update-for-code-highlights
   ""
-  [world sh-out question-id]
-  (let [html (hilite/parse sh-out)
-        index (question-id-to-index question-id world)]
+  [world sh-out question-id answer-id]
+  (let [html (hilite/parse sh-out)]
     (dev/log "[update-for-code-highlights] html: " html
-             ", qid: " question-id
-             ", index: " index)
+             ", question-id: '" question-id "'"
+             ", answer-id: '" answer-id "'")
     (-> world
         (clear-marks)
-        (assoc :switched-question? true)
-        (update-in [:questions index :code-highlights] (comp vec conj) html))))
+        (assoc (if answer-id :switched-answer? :switched-question?) true)
+        (update-in [:code-highlights (or answer-id question-id)] (comp vec conj) html))))
 
 (defn update-world-rf
   ""
@@ -411,23 +426,56 @@
            (generated-output? world-before world-after))))
 
 (comment
-  (def w (let [req-ch (clojure.core.async/chan 1)
+  (def w (let [hsk-md ["For example:"
+                       ""
+                       "    ws &lt;- getLine &gt;&gt;= return . words  -- Monad"
+                       "    ws &lt;- words &lt;$&gt; getLine           -- Functor (much nicer)"
+                       ""
+                       "It&#39;s possible without a monad..."]
+               cpp-md ["Check this out:"
+                       ""
+                       "    <template type T>"
+                       "    class Foo<T>"
+                       "    {"
+                       "        public:"
+                       "        Foo(T t) { _t = t; }"
+                       "    "
+                       "        void dump()"
+                       "        {"
+                       "            std::cout << _t << std::endl;"
+                       "        }"
+                       "    "
+                       "        private:"
+                       "        T _t;"
+                       "    };"]
+               qs-raw [{"tags" ["haskell"]
+                        "question_id" 12345678
+                        "body_markdown" (clojure.string/join "\r\n" hsk-md)
+                        "title" "What&#39;s so special about Monads in Kleisli category?"}]
+               as-raw [{"tags" ["c++"]
+                        "answer_id" 87654321
+                        "question_id" 12345678
+                        "body_markdown" (clojure.string/join "\r\n" cpp-md)
+                        "title" "The C++ you know, and the other one"}]
+               req-ch (clojure.core.async/chan 1)
                resp-ch (clojure.core.async/chan 1)
                ctx {:screen 1234}
-               qs (-> dev/response-body (get "items") ((partial mapv api/scrub)))
-               w (-> (make)
-                     (assoc :io/context ctx :width 100 :height 200)
-                     (update-for-new-questions qs))
-               req (-> w
-                       staxchg.state.recipe/input
-                       (#(hash-map :recipes % :context ctx)))]
-           (clojure.core.async/>!! req-ch req)
-           (staxchg.request/route {:from req-ch
-                                   :to resp-ch
-                                   :log-fn dev/log-request})
-           (as-> (clojure.core.async/<!! resp-ch) v
-                 (update-world w v)
-                 (get-in v [:questions 0])
-                 (staxchg.flow.item/highlight-code {:plot (staxchg.markdown/plot (v "body_markdown") {:width 100})
-                                                    :code-highlights (v :code-highlights)})))))
+               qs (mapv api/scrub qs-raw)
+               as (mapv api/scrub as-raw)
+               w1 (-> (make)
+                      (assoc :io/context ctx :width 100 :height 200)
+                      (update-for-new-questions qs)
+                      (update-for-new-answers as false (get-in qs-raw [0 "question_id"])))
+               in-rs (staxchg.state.recipe/input w1)
+               req {:recipes in-rs :context ctx}
+               _ (do
+                   (clojure.core.async/>!! req-ch req)
+                   (staxchg.request/route {:from req-ch
+                                           :to resp-ch
+                                           :log-fn dev/log-request}))
+               w2 (update-world w1 (clojure.core.async/<!! resp-ch))
+               a2 (get-in w2 [:questions 0 "answers" 0])]
+           (staxchg.flow.item/highlight-code {:plot (staxchg.markdown/plot (a2 "body_markdown") {:width 100})
+                                              :code-highlights (get-in w2 [:code-highlights (a2 "answer_id")])})
+           )))
 

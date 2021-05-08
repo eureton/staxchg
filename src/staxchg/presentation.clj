@@ -268,19 +268,20 @@
 (defn question-flow
   ""
   [{:as question
-    :strs [body_markdown question_id]
-    :keys [code-highlights]} world]
+    :strs [body_markdown question_id]}
+   world]
   (flow/make {:type :markdown
               :raw body_markdown
               :scroll-delta (get-in world [:scroll-deltas question_id])
-              :code-highlights code-highlights}))
+              :code-highlights (get-in world [:code-highlights question_id])}))
 
 (defn answer-flow
   ""
   [{:as answer :strs [body_markdown answer_id]} world]
   (flow/make {:type :markdown
               :raw body_markdown
-              :scroll-delta (get-in world [:scroll-deltas answer_id])}))
+              :scroll-delta (get-in world [:scroll-deltas answer_id])
+              :code-highlights (get-in world [:code-highlights answer_id])}))
 
 (defn questions-body-flow
   ""
