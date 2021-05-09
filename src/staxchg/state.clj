@@ -455,8 +455,9 @@
                as-raw [{"tags" ["c++"]
                         "answer_id" 87654321
                         "question_id" 12345678
-                        "body_markdown" (clojure.string/join "\r\n" cpp-md)
-                        "title" "The C++ you know, and the other one"}]
+                        "body_markdown" "A transducer is a function that takes a reducing function and returns a new reducing function. To make it work with transducers where there is not a one-to-one mapping from elements in the input collection to the output, you will have to use your transducer to create a new reducing function (`step2` in the code below) that will associate elements into your hash map. Something like this.\r\n\r\n    (def ^:dynamic assoc-k nil)\r\n    \r\n    (defn assoc-step [dst x]\r\n      (assoc dst assoc-k x))\r\n\r\n    (defn to-hash [coll xform]\r\n      (let [step (xform (completing assoc-step))\r\n            step2 (fn [dst x] (binding [assoc-k x] (step dst x)))]\r\n        (reduce step2 {} coll)))\r\n\r\nThis implementation is quite basic and I am not sure to which extent it will work with *stateful* transducers. But it will work with the stateless ones, such as `map` and `filter`.\r\n\r\nAnd we can test it with a transducer that keeps odd elements in the input collection and squares them:\r\n\r\n    (defn square [x] (* x x))\r\n    \r\n    (to-hash (range 10) (comp (filter odd?) (map square)))\r\n    ;; => {1 1, 3 9, 5 25, 7 49, 9 81}\r\n\r\n\r\n\r\n\r\n"
+                        "title" "The C++ you know, and the other one"
+                        }]
                req-ch (clojure.core.async/chan 1)
                resp-ch (clojure.core.async/chan 1)
                ctx {:screen 1234}
@@ -477,7 +478,20 @@
                ;ii (clojure.core.async/<!! resp-ch)
                a2 (get-in w2 [:questions 0 "answers" 0])
                ]
-            (staxchg.flow.item/highlight-code {:plot (staxchg.markdown/plot (a2 "body_markdown") {:width 100})
-                                               :code-highlights (get-in w2 [:code-highlights (a2 "answer_id")])})
+         ; (staxchg.flow.item/highlight-code {:plot (staxchg.markdown/plot (a2 "body_markdown") {:width 100})
+         ;                                    :code-highlights (get-in w2 [:code-highlights (a2 "answer_id")])})
+         ; (-> (presentation/answer-flow a2 w2) :items count)
+           (->>
+             (staxchg.flow.item/plot-markdown
+               {:id :answers-body :left 1 :top 2 :width 118 :height 32 :clear? true}
+               (-> (presentation/answers-body-flow
+                     a2
+                     w2
+                     {:id :answers-body :left 1 :top 2 :width 118 :height 32 :clear? true})
+                   :items
+                   first))
+             (map first)
+             (take 500)
+             (drop 300))
            )))
 

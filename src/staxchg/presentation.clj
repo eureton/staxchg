@@ -378,7 +378,7 @@
                     :hilite-operator yellow-txt
                     :hilite-extension blue-txt
                     :hilite-preprocessor red-txt
-                    :hilite-attribute
+                    :hilite-attribute (comp bold-txt blue-txt)
                     :hilite-region-marker yellow-txt
                     :hilite-information (comp bold-txt green-txt)
                     :hilite-warning (comp bold-txt yellow-txt)
