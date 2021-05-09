@@ -95,8 +95,6 @@
 
 (defn commit
   [recipe]
-  (let [{:keys [value timing]} (util/timed-eval
-                                 (doall (map step/commit recipe)))]
-    (dev/log "[commit] " (clojure.string/trim-newline timing))
-    value))
+  (util/timed-eval
+    (doall (map step/commit recipe))))
 

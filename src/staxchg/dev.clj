@@ -66,7 +66,13 @@
   (log "[highlight-code] BEGIN syntax: " syntax ", "
        "question-id: " question-id ", "
        "answer-id: " answer-id "\r\n"
-       code
+       "\\")
+  (->> code
+       string/trim-newline
+       string/split-lines
+       (map #(str " |  " %))
+       (run! log))
+  (log "/" "\r\n"
        "[highlight-code] END"))
 
 (defmethod log-recipe-step :staxchg.io/quit!
@@ -89,11 +95,13 @@
 
 (defn log-request
   ""
-  [{:keys [recipes]}]
+  [{:keys [recipes timing]}]
   (log " /^^^ " (count recipes) " recipe(s)")
   (run! log (map
-              (fn [r] (str "|----- " (string/join ", " (map :function r))))
-              recipes))
+              #(str "|----- " (string/join ", " (map :function %1))
+                    " --- " %2)
+              recipes
+              (map (comp second #(re-find #"(\d*.\d* msecs)" %)) timing)))
   (log " \\___ Complete")
   (run! log-recipe-step (flatten recipes)))
 

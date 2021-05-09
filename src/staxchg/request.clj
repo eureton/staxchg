@@ -14,9 +14,9 @@
         results (->> request
                      inflate
                      (map (comp recipe/commit recipe/bind-symbols))
-                     flatten
                      doall)]
-    (when (some? log-fn) (log-fn request))
-    (cond->> results
+    (when (some? log-fn)
+      (log-fn (assoc request :timing (map :timing results))))
+    (cond->> (flatten (map :value results))
       (some? to) (>!! to))))
 

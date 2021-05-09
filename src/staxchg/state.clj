@@ -474,8 +474,10 @@
                                            :to resp-ch
                                            :log-fn dev/log-request}))
                w2 (update-world w1 (clojure.core.async/<!! resp-ch))
-               a2 (get-in w2 [:questions 0 "answers" 0])]
-           (staxchg.flow.item/highlight-code {:plot (staxchg.markdown/plot (a2 "body_markdown") {:width 100})
-                                              :code-highlights (get-in w2 [:code-highlights (a2 "answer_id")])})
+               ;ii (clojure.core.async/<!! resp-ch)
+               a2 (get-in w2 [:questions 0 "answers" 0])
+               ]
+            (staxchg.flow.item/highlight-code {:plot (staxchg.markdown/plot (a2 "body_markdown") {:width 100})
+                                               :code-highlights (get-in w2 [:code-highlights (a2 "answer_id")])})
            )))
 
