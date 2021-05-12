@@ -1,5 +1,6 @@
 (ns staxchg.post
   (:require [staxchg.markdown :as markdown])
+  (:require [staxchg.code :as code])
   (:gen-class))
 
 (defn answer?
@@ -65,9 +66,9 @@
   ""
   [{:as post
     :strs [question_id answer_id]}]
-  (let [syntax (syntax-tag post)
-        set-if-nil-or-empty #(some not-empty %&)
-        annotate (comp #(update % :syntax set-if-nil-or-empty syntax)
+  (let [set-if-nil-or-empty #(some not-empty %&)
+        annotate (comp #(update % :string code/expand-tabs (:syntax %))
+                       #(update % :syntax set-if-nil-or-empty (syntax-tag post))
                        #(cond-> %
                                 answer_id (assoc :answer-id answer_id)
                                 question_id (assoc :question-id question_id)))]

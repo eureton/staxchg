@@ -1,6 +1,5 @@
 (ns staxchg.post-test
   (:require [clojure.test :refer :all]
-            [clojure.test.check.generators :as gen]
             [staxchg.post :refer :all]))
 
 (deftest code-info-test
@@ -39,5 +38,27 @@
       (is (and (= (map :answer-id result)
                   ["32123"])
                (= (map :question-id result)
-                  ["12321"]))))))
+                  ["12321"])))))
+
+  (testing "tab expansion by fence annotation"
+    (are [syntax result]
+         (= (code-snippet-strings (md {:fence-syntax syntax
+                                       :snippet "abc\txyz"}))
+            [result])
+         "java" "abc    xyz"
+         "ruby" "abc  xyz"))
+
+  (testing "tab expansion by post tag"
+    (are [syntax result]
+         (= (code-snippet-strings (md {:tags [syntax]
+                                       :snippet "abc\txyz"}))
+            [result])
+         "java" "abc    xyz"
+         "ruby" "abc  xyz"))
+
+  (testing "tab expansion: fence annotation trumps post tag"
+    (is (= (code-snippet-strings (md {:tags ["ruby"]
+                                      :fence-syntax "java"
+                                      :snippet "abc\txyz"}))
+           ["abc    xyz"]))))
 
