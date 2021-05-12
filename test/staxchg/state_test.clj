@@ -171,22 +171,47 @@
          :search-term
          :fetch-answers))
   (testing "answers set"
-    (are [previous-answers current-answers]
+    (are [previous-answer-ids current-answer-ids]
       (let [question-id "1234"
             question {"question_id" question-id
-                      "answer_count" (count previous-answers)
-                      "answers" previous-answers}
+                      "answer_count" (count previous-answer-ids)
+                      "answers" (map to-answer previous-answer-ids)}
             world {:questions [question]
                    :selected-question-index 0}
             result (update-for-answers-response
                      world
-                     (to-response {"items" current-answers})
+                     (to-response {"items" (map to-answer current-answer-ids)})
                      question-id)]
-        (= (get-in result [:questions 0 "answers"])
-           (concat previous-answers current-answers)))
-      nil                  [(to-answer "1357") (to-answer "7531")]
-      []                   [(to-answer "1357") (to-answer "7531")]
-      [(to-answer "abcd")] [(to-answer "1357") (to-answer "7531")]))
+        (= (map #(% "answer_id") (get-in result [:questions 0 "answers"]))
+           (concat previous-answer-ids current-answer-ids)))
+      nil      ["1357" "7531"]
+      []       ["1357" "7531"]
+      ["abcd"] ["1357" "7531"]))
+  (testing "supplementation with question id"
+    (let [question-id "1234"
+          world {:questions [{"question_id" question-id}]
+                 :selected-question-index 0}
+          result (update-for-answers-response
+                   world
+                   (to-response {"items" (map to-answer ["a1" "a2"])})
+                   question-id)]
+      (is (= (->> (get-in result [:questions 0 "answers"])
+                  (map #(% "question_id"))
+                  distinct)
+             [question-id]))))
+  (testing "supplementation with question tags"
+    (let [question-id "1234"
+          tags ["t1" "t2"]
+          world {:questions [{"question_id" question-id
+                              "tags" tags}]
+                 :selected-question-index 0}
+          result (update-for-answers-response
+                   world
+                   (to-response {"items" (map to-answer ["a1" "a2"])})
+                   question-id)]
+      (is (= (->> (get-in result [:questions 0 "answers"])
+                  (map #(% "tags")))
+             (repeat 2 tags)))))
   (testing "more-answers-to-fetch? set"
     (are [value]
       (let [question-id "1234"
