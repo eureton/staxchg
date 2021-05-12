@@ -34,3 +34,42 @@
   (testing "x: trim left"
     (is (= (pack 7 7 " abc def") ["" "abc def"]))))
 
+(deftest trim-leading-indent-test
+  (testing "pun nil"
+    (nil? (trim-leading-indent nil)))
+
+  (testing "spaces: less than 4"
+    (are [s] (= (trim-leading-indent s) s)
+         "xyz"
+         " xyz"
+         "  xyz"
+         "   xyz"))
+
+  (testing "spaces: equal to or more than 4"
+    (are [in out] (= (trim-leading-indent in) out)
+         "    xyz"  "xyz"
+         "     xyz" " xyz"))
+
+  (testing "tabs"
+    (are [in out] (= (trim-leading-indent in) out)
+         "\txyz"   "xyz"
+         "\t\txyz" "\txyz")))
+
+(deftest append-missing-crlf-test
+  (testing "pun nil"
+    (nil? (append-missing-crlf nil)))
+
+  (testing "missing"
+    (are [s] (= (append-missing-crlf s)
+                (str s "\r\n"))
+         ""
+         "xyz"
+         "xyz\r"
+         "xyz\n"
+         "xy\r\nz"))
+
+  (testing "not missing"
+    (are [s] (= (append-missing-crlf s) s)
+         "xyz\r\n"
+         "\r\n")))
+

@@ -57,3 +57,18 @@
     flatten
     (string/join "\r\n")))
 
+(defn trim-leading-indent
+  "Trims the following off each line of the given string:
+     * the first tab character
+     * the first 4 spaces"
+  [string]
+  (when (some? string)
+    (string/replace string #"(?im)^(?:    |\t)" "")))
+
+(defn append-missing-crlf
+  "Appends a CRLF sequence to the given string, unless it already ends in one."
+  [string]
+  (when (some? string)
+    (cond-> string
+      (not (string/ends-with? string "\r\n")) (str "\r\n"))))
+
