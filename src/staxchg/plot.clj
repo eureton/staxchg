@@ -1,5 +1,6 @@
 (ns staxchg.plot
   (:require [clojure.string :as string])
+  (:require [staxchg.code :as code])
   (:require [staxchg.string])
   (:gen-class))
 
@@ -27,6 +28,8 @@
                 (derive :html-inline :inline)
                 (derive :link-ref :inline)
                 (derive :html-entity :inline)
+                (derive :fenced-code-block :code-block)
+                (derive :indented-code-block :code-block)
                 atom))
 
 (defn straight
@@ -125,18 +128,6 @@
       (map-indexed line-plotter v)
       (reduce concat v))))
 
-(defmethod ast :indented-code-block
-  [node
-   {:as options
-    :keys [x y]
-    :or {x 0 y 0}}]
-  (->
-    node
-    (assoc :tag :txt)
-    (update :content string/replace #"(?im)^(?:    |\t)" "")
-    (ast options)
-    (decorate :code)))
-
 (defmethod ast :tbr
   [node
    {:keys [y width]
@@ -220,9 +211,14 @@
   [node options]
   (-> node (assoc :tag :default) (ast options) (decorate :strong)))
 
-(defmethod ast :fenced-code-block
+(defmethod ast :code-block
   [node options]
-  (-> node (assoc :tag :default) (ast options) (decorate :code)))
+  (let [syntax (some not-empty [(:info node) (:syntax options)])]
+    (-> node
+        (assoc :tag :txt)
+        (update :content code/expand-tabs syntax)
+        (ast options)
+        (decorate :code))))
 
 (defmethod ast :html-inline
   [node options]
