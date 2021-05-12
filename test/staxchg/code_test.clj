@@ -9,16 +9,18 @@
   (testing "java"
     (are [in out] (= (expand-tabs in "java")
                      out)
-         "xyz\t"    "xyz    "
-         "\txyz"    "    xyz"
-         "abc\txyz" "abc    xyz"))
+         "xyz\t"          "xyz    "
+         "\txyz"          "    xyz"
+         "abc\txyz"       "abc    xyz"
+         "\tabc\r\n\txyz" "    abc\r\n    xyz"))
 
   (testing "ruby"
     (are [in out] (= (expand-tabs in "ruby")
                      out)
-         "xyz\t"    "xyz  "
-         "\txyz"    "  xyz"
-         "abc\txyz" "abc  xyz"))
+         "xyz\t"          "xyz  "
+         "\txyz"          "  xyz"
+         "abc\txyz"       "abc  xyz"
+         "\tabc\r\n\txyz" "  abc\r\n  xyz"))
 
   (testing "unknown syntax"
     (is (= (expand-tabs "abc\txyz" "1234")
