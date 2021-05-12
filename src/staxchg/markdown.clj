@@ -1,5 +1,6 @@
 (ns staxchg.markdown
   (:require [clojure.core.cache.wrapped :as cache])
+  (:require [clojure.string :as string])
   (:require [clojure.set])
   (:require [staxchg.flexmark :as flexmark])
   (:require [staxchg.ast :as ast])
@@ -7,36 +8,48 @@
   (:require [staxchg.dev :as dev])
   (:gen-class))
 
-(defmulti annotate
+(defmulti normalize
   (fn [node _] (node :tag))
   :hierarchy plot/ontology)
 
-(defmethod annotate :olist
+(defmethod normalize :olist
   [node _]
   (update node :children #(map-indexed
                             (fn [i item]
                               (assoc item :index (inc i) :list-size (count %)))
                             %)))
 
-(defmethod annotate :link
+(defmethod normalize :link
   [node _]
   (let [url {:tag :url :content (str " " (node :url))}]
     (update node :children conj url)))
 
-(defmethod annotate :link-ref
+(defmethod normalize :link-ref
   [node _]
   (->
     node
     (assoc :content (str "[" (node :ref) "]"))
     (dissoc :children)))
 
-(defmethod annotate :html-comment-block
+(defmethod normalize :html-comment-block
   [node _]
   (update node :content #(->> %
                               (re-find #"<!-- (.*) -->")
                               second)))
 
-(defmethod annotate :default
+(defmethod normalize :fenced-code-block
+  [node _]
+  (assoc node :content (->> (:children node)
+                            (filter (comp #{:txt} :tag))
+                            (map :content)
+                            string/join)))
+
+(defmethod normalize :indented-code-block
+  [node _]
+  (update node :content (comp staxchg.string/append-missing-crlf
+                              staxchg.string/trim-leading-indent)))
+
+(defmethod normalize :default
   [node _]
   node)
 
@@ -65,17 +78,20 @@
     :or {x 0 y 0 left 0 top 0}}]
   (hash [string x y left top width height]))
 
+(defn ast
+  ""
+  [string]
+  (-> string
+      flexmark/parse
+      (ast/depth-first-walk normalize)))
+
 (defn no-cache-plot
   "Returns a sequence of pairs -one for each character of the input string-
    consisting of:
      * the character
      * the [x y] coordinates of the character"
   [string options]
-  (->
-    string
-    flexmark/parse
-    (ast/depth-first-walk annotate)
-    (plot/ast options)))
+  (plot/ast (ast string) options))
 
 (defn through-cache-plot
   ""
@@ -109,36 +125,15 @@
     (reduce -)
     inc))
 
-(defmulti code-content :tag)
+(defmulti code-info-rf
+  (fn [_ {:keys [tag]}] tag)
+  :hierarchy plot/ontology)
 
-(defmethod code-content :indented-code-block
-  [node]
-  (->> (:content node)
-       clojure.string/split-lines
-       (map-indexed #(subs %2 (if (or (zero? %1) (< (count %2) 4)) 0 4)))
-       (clojure.string/join "\r\n")))
-
-(defmethod code-content :fenced-code-block
-  [node]
-  (->> (:children node)
-       (filter (comp #{:txt} :tag))
-       first
-       :content))
-
-(defmethod code-content :default
-  [_]
-  nil)
-
-(defmulti code-info-rf (fn [_ {:keys [tag]}] tag))
-
-(defmethod code-info-rf :indented-code-block
-  [acc node]
-  (conj acc {:string (code-content node)}))
-
-(defmethod code-info-rf :fenced-code-block
-  [acc node]
-  (conj acc {:string (code-content node)
-             :syntax (:info node)}))
+(defmethod code-info-rf :code-block
+  [acc {:keys [content info]}]
+  (let [entry (cond-> {:string content}
+                info (assoc :syntax info))]
+    (conj acc entry)))
 
 (defmethod code-info-rf :default
   [acc _]
@@ -147,5 +142,5 @@
 (defn code-info
   ""
   [string]
-  (ast/reduce-df code-info-rf [] (flexmark/parse string)))
+  (ast/reduce-df code-info-rf [] (ast string)))
 

@@ -3,6 +3,18 @@
             [clojure.test.check.generators :as gen]
             [staxchg.markdown :refer :all]))
 
+(defn fenced-block [snippet syntax] (->> [(str "``` " syntax)
+                                          snippet
+                                          "```"]
+                                         (clojure.string/join "\r\n")))
+(defn indented-block [snippet]
+  (->> snippet
+       clojure.string/split-lines
+       (map #(str  "    " %))
+       (clojure.string/join "\r\n")))
+(defn join-lines [& ls]
+  (clojure.string/join "\r\n" ls))
+
 (deftest plot-test
   (defn cs [s opts]
     (->> (plot s opts) (map first)))
@@ -294,7 +306,84 @@
   (testing "html comment block: bottom margin"
     (is (= (xys "<!-- 12 -->\r\n\r\n34" {:width 100})
            [[0 0] [1 0]
-            [0 2] [1 2]]))))
+            [0 2] [1 2]])))
+
+  (testing "tab expansion"
+    (testing "indented code block"
+      (def md (indented-block (join-lines "_" "\ta" "\t\tb")))
+      (defn opts [syntax] {:width 100 :syntax syntax})
+
+      (testing "java: characters"
+        (is (= (cs md (opts "java"))
+               [\_
+                \space \space \space \space \a
+                \space \space \space \space \space \space \space \space \b])))
+
+      (testing "java: coordinates"
+        (is (= (xys md (opts "java"))
+               [[0 0]
+                [0 1] [1 1] [2 1] [3 1] [4 1]
+                [0 2] [1 2] [2 2] [3 2] [4 2] [5 2] [6 2] [7 2] [8 2]])))
+
+      (testing "ruby: characters"
+        (is (= (cs md (opts "ruby"))
+               [\_
+                \space \space \a
+                \space \space \space \space \b])))
+
+      (testing "ruby: coordinates"
+        (is (= (xys md (opts "ruby"))
+               [[0 0]
+                [0 1] [1 1] [2 1]
+                [0 2] [1 2] [2 2] [3 2] [4 2]]))))
+
+    (testing "fenced code block"
+      (def md (partial fenced-block (join-lines "\ta" "b\t" "\t\tc")))
+      (defn opts [syntax] {:width 100 :syntax syntax})
+      (def cs-by-4 [\space \space \space \space     \a
+                        \b \space \space \space \space
+                    \space \space \space \space \space \space \space \space \c])
+      (def xys-by-4 [[0 0] [1 0] [2 0] [3 0] [4 0]
+                     [0 1] [1 1] [2 1] [3 1] [4 1]
+                     [0 2] [1 2] [2 2] [3 2] [4 2] [5 2] [6 2] [7 2] [8 2]])
+      (def cs-by-2 [\space \space     \a
+                        \b \space \space
+                    \space \space \space \space \c])
+      (def xys-by-2 [[0 0] [1 0] [2 0]
+                     [0 1] [1 1] [2 1]
+                     [0 2] [1 2] [2 2] [3 2] [4 2]])
+
+      (testing "java tag, no fence info: characters"
+        (is (= (cs (md nil) (opts "java"))
+               cs-by-4)))
+
+      (testing "java tag, no fence info: coordinates"
+        (is (= (xys (md nil) (opts "java"))
+               xys-by-4)))
+
+      (testing "java tag, ruby fence info: characters"
+        (is (= (cs (md "ruby") (opts "java"))
+               cs-by-2)))
+
+      (testing "java tag, ruby fence info: coordinates"
+        (is (= (xys (md "ruby") (opts "java"))
+               xys-by-2)))
+
+      (testing "ruby tag, no fence info: characters"
+        (is (= (cs (md nil) (opts "ruby"))
+               cs-by-2)))
+
+      (testing "ruby tag, no fence info: coordinates"
+        (is (= (xys (md nil) (opts "ruby"))
+               xys-by-2)))
+
+      (testing "ruby tag, java fence info: characters"
+        (is (= (cs (md "java") (opts "ruby"))
+               cs-by-4)))
+      
+      (testing "ruby tag, java fence info: coordinates"
+        (is (= (xys (md "java") (opts "ruby"))
+               xys-by-4))))))
 
 (deftest code-info-test
   (defn rand-snippet [snippet-line-count]
@@ -313,13 +402,9 @@
 
   (testing "fenced code blocks"
     (def syntax-gen string-gen)
-    (defn block [snippet syntax] (->> [(str "``` " syntax)
-                                       snippet
-                                       "```"]
-                                      (clojure.string/join "\r\n")))
 
     (def syntaxes (gen/generate (gen/vector syntax-gen snippet-count)))
-    (def md (->> (map block snippets syntaxes)
+    (def md (->> (map fenced-block snippets syntaxes)
                  (interleave (gen/generate (gen/vector string-gen snippet-count)))
                  (clojure.string/join "\r\n")))
 
@@ -328,26 +413,23 @@
              (map #(str % "\r\n") snippets))))
 
     (testing "preserves leading empty lines"
-      (is (= (code-snippet-strings (block "\r\n\r\nfoo" "bar"))
+      (is (= (code-snippet-strings (fenced-block "\r\n\r\nfoo" "bar"))
              ["\r\n\r\nfoo\r\n"])))
 
     (testing "syntax extraction"
       (is (= (code-snippet-syntaxes md)
              syntaxes))))
+
   (testing "indented code blocks"
-    (defn indent [snippet]
-      (->> snippet
-           clojure.string/split-lines
-           (map #(str  "    " %))
-           (clojure.string/join "\r\n")))
-    (def md (->> (map indent snippets)
+    (def md (->> (map indented-block snippets)
                  (interleave (gen/generate (gen/vector string-gen snippet-count)))
                  (clojure.string/join "\r\n\r\n")))
 
     (testing "string extraction"
       (is (= (code-snippet-strings md)
-             snippets)))
+             (map #(str % "\r\n") snippets))))
 
     (testing "syntax extraction"
       (is (= (code-snippet-syntaxes md)
              (repeat snippet-count nil))))))
+
