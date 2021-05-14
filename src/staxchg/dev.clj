@@ -33,11 +33,11 @@
 
 (defmethod log-recipe-step :staxchg.io/scroll!
   [{[_ top bottom distance] :params}]
-  (log "[scroll] at [" top " " bottom "] by " distance))
+  (log "[scroll] at (" top ", " bottom ") by " distance))
 
 (defmethod log-recipe-step :staxchg.io/clear!
   [{[graphics left top width height] :params}]
-  (log "[clear] rect [" width "x" height "] at [" left "x" top "]"))
+  (log "[clear] rect [" width "x" height "] at (" left ", " top ")"))
 
 (defmethod log-recipe-step :staxchg.io/refresh!
   [_]
@@ -70,7 +70,7 @@
   (->> code
        string/trim-newline
        string/split-lines
-       (map #(str " |  " %))
+       (map #(str " |" %))
        (run! log))
   (log "/" "\r\n"
        "[highlight-code] END"))
