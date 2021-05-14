@@ -3,6 +3,7 @@
   (:require [staxchg.hilite :as hilite])
   (:require [staxchg.plot :as plot])
   (:require [staxchg.dev :as dev])
+  (:require [clojure.string :as string])
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:gen-class))
 
@@ -20,13 +21,20 @@
 (defn highlight-code
   ""
   [{:keys [plot code-highlights]}]
-  (let [code-clusters (plot/cluster-by-trait plot :code)
-        clusters (map #(assoc %1 :highlight %2) code-clusters code-highlights)
-        hilite-fn (comp #(plot/strip-traits % :code) hilite/annotate)]
-    (reduce (fn [agg {:keys [from to highlight]}]
-              (plot/map-sub agg from to hilite-fn highlight))
-            plot
-            clusters)))
+  (reduce (fn [agg {:keys [from to] code-plot :plot}]
+            (if-some [highlight (->> code-highlights
+                                     (filter #(hilite/match? % code-plot))
+                                     first)]
+              (concat (take from agg)
+                      (-> code-plot
+                          ((juxt identity #(hilite/index-of highlight %)))
+                          (#(apply plot/prepend-filler %))
+                          (hilite/annotate (:html highlight))
+                          (plot/strip-traits :code))
+                      (drop to agg))
+              agg))
+          plot
+          (plot/cluster-by-trait plot :code)))
 
 (defn plot-markdown
   [zone

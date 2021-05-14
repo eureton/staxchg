@@ -106,15 +106,12 @@
                               :site ((util/config-hash) "SITE" default-site)
                               :filter "!WWsokPk3Vh*T_kIP2MV(bQNcR1w-GRejyamhb31"}))
 
-(defn unescape-html [string]
-  (org.jsoup.parser.Parser/unescapeEntities string true))
-
 (defn scrub
   ""
   [item]
   (cond-> item
-    (contains? item "title") (update "title" unescape-html)
-    (contains? item "body_markdown") (update "body_markdown" unescape-html)
+    (contains? item "title") (update "title" util/unescape-html)
+    (contains? item "body_markdown") (update "body_markdown" util/unescape-html)
     (contains? item "answers") (update "answers" (partial mapv scrub))
     (contains? item "comments") (update "comments" (partial mapv scrub))))
 

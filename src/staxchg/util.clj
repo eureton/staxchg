@@ -47,3 +47,6 @@
      {:value (<!! channel#)
       :timing timing#}))
 
+(defn unescape-html [string]
+  (org.jsoup.parser.Parser/unescapeEntities string true))
+

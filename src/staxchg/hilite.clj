@@ -1,11 +1,11 @@
 (ns staxchg.hilite
+  (:require [staxchg.util :as util])
   (:require [staxchg.dev :as dev])
   (:require [clojure.pprint])
   (:require [clojure.string :as string])
   (:require [clojure.set :refer [union]])
   (:require [cheshire.core])
   (:import (org.jsoup Jsoup))
-  (:import (org.jsoup.parser Parser))
   (:gen-class))
 
 (def skylighting-class-trait-map {:kw :hilite-keyword
@@ -63,8 +63,28 @@
     (reduce-kv (fn [acc k v]
                  (conj acc {:code k
                             :classes (v 0)
-                            :html (Parser/unescapeEntities (v 1) true)}))
+                            :html (util/unescape-html (v 1))}))
                [])))
+
+(defn jsoup-elem
+  "Expects skylighting shell output in HTML format.
+   Returns the JSoup element for the <code class=\"sourceCode\"> tag."
+  [sh-out]
+  (-> sh-out
+      :out
+      (string/replace #"[\r\n]" "")
+      Jsoup/parse
+      (.select "code.sourceCode")
+      .first))
+
+(defn untrimmed-html
+  "Returns the inner HTML of the given JSoup element.
+   Preserves surrounding whitespace."
+  [jsoup-elem]
+  (let [untrimmed-txt (.wholeText jsoup-elem)]
+    (string/join [(re-find #"^\s*" untrimmed-txt)
+                  (.html jsoup-elem)
+                  (re-find #"\s*$" untrimmed-txt)])))
 
 (defn parse
   ""
@@ -74,13 +94,26 @@
                         (comp zero? :exit)
                         (comp string? :out))]
     (when (ok? sh-out))
-      (-> sh-out
-          :out
-          (string/replace #"[\r\n]"  "")
-          Jsoup/parse
-          (.select "code.sourceCode")
-          .html
-          (Parser/unescapeEntities true))))
+      (->> sh-out
+           jsoup-elem
+           ((juxt untrimmed-html #(.wholeText %)))
+           (map util/unescape-html)
+           (zipmap [:html :text]))))
+
+(defn match?
+  "Returns true if the text to which the plot corresponds is entirely contained
+   in the code which the highlight is derived from, false otherwise."
+  [highlight plot]
+  (string/includes? (:text highlight)
+                    (string/join (map first plot))))
+
+(defn index-of
+  "Returns the index at which the text to which the plot corresponds is found in
+   in the code which the highlight is derived from.
+   If it is not found, returns nil."
+  [highlight plot]
+  (string/index-of (:text highlight)
+                   (string/join (map first plot))))
 
 (defn annotate
   ""
