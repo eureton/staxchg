@@ -63,7 +63,7 @@
     (reduce-kv (fn [acc k v]
                  (conj acc {:code k
                             :classes (v 0)
-                            :html (util/unescape-html (v 1))}))
+                            :html (v 1)}))
                [])))
 
 (defn jsoup-elem
@@ -97,7 +97,6 @@
       (->> sh-out
            jsoup-elem
            ((juxt untrimmed-html #(.wholeText %)))
-           (map util/unescape-html)
            (zipmap [:html :text]))))
 
 (defn match?
@@ -126,21 +125,22 @@
              result []]
         (if (empty? html)
           result
-          (let [normal-count (->> html
-                                  (re-find #"^(.*?)(?:<span class=\"|$)")
-                                  second
-                                  count)
+          (let [out-of-tag-html (->> html
+                                     (re-find #"^(.*?)(?:<span class=\"|$)")
+                                     second)
+                out-of-tag-esc-html-size (count out-of-tag-html)
+                out-of-tag-unesc-html-size (count (util/unescape-html out-of-tag-html))
                 html-starts-with? #(string/starts-with? html %)]
-            (if (zero? normal-count)
+            (if (zero? out-of-tag-esc-html-size)
               (let [tag (first (filter (comp html-starts-with? :html) info))
-                    token-size (count (:code tag))
+                    token-size (count (staxchg.util/unescape-html (:code tag)))
                     annotator #(update-in % [2 :traits] union (:classes tag))]
                 (recur
                   (subs html (count (:html tag)))
                   (drop token-size plot)
                   (concat result (->> plot (take token-size) (map annotator)))))
               (recur
-                (subs html normal-count)
-                (drop normal-count plot)
-                (concat result (take normal-count plot))))))))))
+                (subs html out-of-tag-esc-html-size)
+                (drop out-of-tag-unesc-html-size plot)
+                (concat result (take out-of-tag-unesc-html-size plot))))))))))
 

@@ -456,7 +456,7 @@
                as-raw [{"tags" ["c++"]
                         "answer_id" 87654321
                         "question_id" 12345678
-                        "body_markdown" "kjnadfadf adfkajdfn"
+                        "body_markdown" "method:\r\n\r\n    template <typename T>\r\n    class MyAlloc\r\n    {\r\n    };\r\n\r\nA"
                         "title" "The C++ you know, and the other one"}]
                req-ch (clojure.core.async/chan 1)
                resp-ch (clojure.core.async/chan 1)
