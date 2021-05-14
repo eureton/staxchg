@@ -154,7 +154,7 @@
       (assoc-in [:line-offsets post-id] current))))
 
 (defn half-screen [world]
-  (/ (active-pane-body-height world) 2))
+  (quot (active-pane-body-height world) 2))
 
 (defn full-screen [world]
   (dec (active-pane-body-height world)))
@@ -427,37 +427,15 @@
            (generated-output? world-before world-after))))
 
 (comment
-  (def w (let [hsk-md ["For example:"
-                       ""
-                       "    ws &lt;- getLine &gt;&gt;= return . words  -- Monad"
-                       "    ws &lt;- words &lt;$&gt; getLine           -- Functor (much nicer)"
-                       ""
-                       "It&#39;s possible without a monad..."]
-               cpp-md ["Check this out:"
-                       ""
-                       "    <template type T>"
-                       "    class Foo<T>"
-                       "    {"
-                       "        public:"
-                       "        Foo(T t) { _t = t; }"
-                       "    "
-                       "        void dump()"
-                       "        {"
-                       "            std::cout << _t << std::endl;"
-                       "        }"
-                       "    "
-                       "        private:"
-                       "        T _t;"
-                       "    };"]
-               qs-raw [{"tags" ["haskell"]
+  (def w (let [qs-raw [{"tags" []
                         "question_id" 12345678
-                        "body_markdown" (clojure.string/join "\r\n" hsk-md)
-                        "title" "What&#39;s so special about Monads in Kleisli category?"}]
+                        "body_markdown" ""
+                        "title" ""}]
                as-raw [{"tags" ["c++"]
                         "answer_id" 87654321
                         "question_id" 12345678
-                        "body_markdown" "method:\r\n\r\n    template <typename T>\r\n    class MyAlloc\r\n    {\r\n    };\r\n\r\nA"
-                        "title" "The C++ you know, and the other one"}]
+                        "body_markdown" ""
+                        "title" ""}]
                req-ch (clojure.core.async/chan 1)
                resp-ch (clojure.core.async/chan 1)
                ctx {:screen 1234}
@@ -466,7 +444,8 @@
                w1 (-> (make)
                       (assoc :io/context ctx :width 100 :height 200)
                       (update-for-new-questions qs)
-                      (update-for-new-answers as false (get-in qs-raw [0 "question_id"])))
+                      (update-for-new-answers as false (get-in qs-raw [0 "question_id"]))
+                      (assoc-in [:line-offsets (get-in as-raw [0 "answer_id"])] 49))
                in-rs (staxchg.state.recipe/input w1)
                req {:recipes in-rs :context ctx}
                _ (do
