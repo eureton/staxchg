@@ -56,14 +56,14 @@
   (->>
     (.select (Jsoup/parse html) "span[class]")
     (map (juxt #(.wholeText %) classes #(.outerHtml %)))
-    (map (fn [[text classes html]] {text [classes html]}))
-    (reduce (partial merge-with (fn [[classes1 html1] [classes2 html2]]
-                                  [(union classes1 classes2)
-                                   (first (sort-by (comp - count) [html1 html2]))])))
-    (reduce-kv (fn [acc k v]
-                 (conj acc {:code k
-                            :classes (v 0)
-                            :html (v 1)}))
+    (map (fn [[text classes html]] {html [classes text]}))
+    (reduce merge)
+    (reduce-kv (fn [acc k [classes code]]
+                 (conj acc {:code code
+                            :classes classes
+                            :html (string/replace k
+                                                  #"\">(?!<span class=\")(.*?)</"
+                                                  (str "\">" (util/escape-html code) "</"))}))
                [])))
 
 (defn jsoup-elem
@@ -123,7 +123,7 @@
       (loop [html html
              plot plot
              result []]
-        (if (empty? html)
+        (if (some empty? [plot html])
           result
           (let [out-of-tag-html (->> html
                                      (re-find #"^(.*?)(?:<span class=\"|$)")

@@ -2,6 +2,25 @@
   (:require [clojure.test :refer :all]
             [staxchg.hilite :refer :all]))
 
+(deftest info-test
+  (testing "preserves whitespace"
+    (def code "//    xyz")
+
+    (testing "inside tag"
+      (def html (str "<span class=\"co\">" code "</span>"))
+
+      (is (->> (info html)
+               (filter (comp #{html} :html))
+               some?)))
+
+    (testing "inside nested tag"
+      (def html
+        (str "<span class=\"cv\"><span class=\"co\">" code "</span></span>"))
+
+      (is (->> (info html)
+               (filter (comp #{html} :html))
+               some?)))))
+
 (deftest annotate-test
   (testing "HTML entities outside tags"
     (def plot [[\t []]
