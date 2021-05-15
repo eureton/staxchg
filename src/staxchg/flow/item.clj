@@ -25,13 +25,16 @@
             (if-some [highlight (->> code-highlights
                                      (filter #(hilite/match? % code-plot))
                                      first)]
-              (concat (take from agg)
-                      (-> code-plot
-                          ((juxt identity #(hilite/index-of highlight %)))
-                          (#(apply plot/prepend-filler %))
-                          (hilite/annotate (:html highlight))
-                          (plot/strip-traits :code))
-                      (drop to agg))
+              (let [offset (hilite/index-of highlight code-plot)
+                    pad #(concat (repeat offset [\_ []]) %)
+                    trim #(drop offset %)]
+                (concat (take from agg)
+                        (-> code-plot
+                            pad
+                            (hilite/annotate (:html highlight))
+                            (plot/strip-traits :code)
+                            trim)
+                        (drop to agg)))
               agg))
           plot
           (plot/cluster-by-trait plot :code)))

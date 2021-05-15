@@ -282,9 +282,3 @@
                          :from (- k (dec (count v)))
                          :to (inc k)}))))
 
-(defn prepend-filler
-  "Add n nonsensical plot items at the front of the plot."
-  [plot n]
-  (concat (repeat n [\@ [0 0] {:traits #{}}])
-          plot))
-
