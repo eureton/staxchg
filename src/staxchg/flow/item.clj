@@ -61,8 +61,8 @@
   raw)
 
 (defmethod payload :markdown
-  [item]
-  (highlight-code item))
+  [{:keys [plot]}]
+  plot)
 
 (defmulti line-count dispatch-fn-2)
 

@@ -83,6 +83,11 @@
      :width width
      :height (if gap-filler? (Math/abs scroll-delta) height)}))
 
+(defn plot-transducer
+  ""
+  [_ zone]
+  (map #(assoc % :plot (item/plot-markdown zone %))))
+
 (defn y-layout-transducer
   ""
   [{:as flow
@@ -99,20 +104,47 @@
            (vswap! line-count + (item/line-count x zone))
            (rf acc (update x :y + previous (- scroll-offset)))))))))
 
-(defn clip
+(defn translate-to-zone-transducer
   ""
-  [flow
-   {:as zone
-    :keys [left top]}]
-  (let [viewport (scroll-gap-rect flow zone)
-        xform (comp
-                (map #(assoc % :plot (item/plot-markdown zone %)))
-                (y-layout-transducer flow zone)
-                (map #(-> %
-                          (update :x + left)
-                          (update :y + top)))
-                (map #(item/clip % viewport))
-                (remove item/invisible?)
-                (map #(item/translate % viewport)))]
+  [_ {:keys [left top]}]
+  (map #(-> %
+            (update :x + left)
+            (update :y + top))))
+
+(defn hilite-transducer
+  ""
+  [_ _]
+  (map #(assoc % :plot (item/highlight-code %))))
+
+(defn clip-transducer
+  ""
+  [flow zone]
+  (map #(item/clip % (scroll-gap-rect flow zone))))
+
+(defn cull-transducer
+  ""
+  [_ _]
+  (remove item/invisible?))
+
+(defn translate-to-viewport-transducer
+  ""
+  [flow zone]
+  (map #(item/translate % (scroll-gap-rect flow zone))))
+
+(def adjust-flow-to-zone-transducers
+  ""
+  [plot-transducer
+   y-layout-transducer
+   translate-to-zone-transducer
+   hilite-transducer
+   clip-transducer
+   cull-transducer
+   translate-to-viewport-transducer])
+
+(defn adjust
+  ""
+  [flow zone]
+  (let [transducers ((apply juxt adjust-flow-to-zone-transducers) flow zone)
+        xform (apply comp transducers)]
     (update flow :items #(eduction xform %))))
 
