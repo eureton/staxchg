@@ -21,35 +21,6 @@
                (filter (comp #{html} :html))
                some?)))))
 
-(deftest truncate-test
-  (defn hilite [lines] (parse {:exit 0
-                               :out (str "<code class=\"sourceCode\">"
-                                         (clojure.string/join "\n" lines)
-                                         "</code>")}))
-
-  (testing "standard use"
-    (def l1 "(<span class=\"kw\">ns</span> foo.bar)")
-    (def l2 "")
-    (def l3 "<span class=\"co\">; foo</span>")
-    (def l4 "(<span class=\"kw\">def</span> x 1)")
-
-    (are [in n out] (= (->> in hilite (truncate n) :html)
-                       (->> out hilite :html))
-         [l1 l2 l3 l4] 0 [l1 l2 l3 l4]
-         [l1 l2 l3 l4] 1 [l2 l3 l4]
-         [l1 l2 l3 l4] 2 [l3 l4]
-         [l1 l2 l3 l4] 3 [l4]
-         [l1 l2 l3 l4] 4 []))
-
-  (testing "index out of range"
-    (def lines ["abc" "xyz"])
-
-    (are [n out] (= (->> lines hilite (truncate n) :html)
-                    (->> out hilite :html))
-         -1 lines
-          3 []
-          4 [])))
-
 (deftest annotate-test
   (testing "HTML entities outside tags"
     (def plot [[\t []]

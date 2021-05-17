@@ -107,18 +107,6 @@
   (string/index-of (:text highlight)
                    (string/join (map first plot))))
 
-(defn truncate
-  "Drops n lines from the info."
-  [n hilite]
-  (let [wrap #(str "<code class=\"sourceCode\">" % "</code>")]
-    (->> (.html (:raw hilite))
-         string/split-lines
-         (drop n)
-         (string/join "\r\n")
-         wrap
-         (hash-map :exit 0 :out)
-         parse)))
-
 (defn annotate
   ""
   [plot html]
