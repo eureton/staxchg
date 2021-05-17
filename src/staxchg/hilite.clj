@@ -6,6 +6,7 @@
   (:require [clojure.set :refer [union]])
   (:require [cheshire.core])
   (:import (org.jsoup Jsoup))
+  (:import org.jsoup.nodes.Document$OutputSettings)
   (:gen-class))
 
 (def skylighting-class-trait-map {:kw :hilite-keyword
@@ -72,19 +73,10 @@
   [sh-out]
   (-> sh-out
       :out
-      (string/replace #"[\r\n]" "")
       Jsoup/parse
+      (.outputSettings (.prettyPrint (Document$OutputSettings.) false))
       (.select "code.sourceCode")
       .first))
-
-(defn untrimmed-html
-  "Returns the inner HTML of the given JSoup element.
-   Preserves surrounding whitespace."
-  [jsoup-elem]
-  (let [untrimmed-txt (.wholeText jsoup-elem)]
-    (string/join [(re-find #"^\s*" untrimmed-txt)
-                  (.html jsoup-elem)
-                  (re-find #"\s*$" untrimmed-txt)])))
 
 (defn parse
   ""
@@ -92,12 +84,13 @@
   (let [ok? (every-pred some?
                         (comp number? :exit)
                         (comp zero? :exit)
-                        (comp string? :out))]
+                        (comp string? :out))
+        iron #(string/replace % #"[\r\n]" "")]
     (when (ok? sh-out))
       (->> sh-out
            jsoup-elem
-           ((juxt untrimmed-html #(.wholeText %)))
-           (zipmap [:html :text]))))
+           ((juxt identity #(iron (.html %)) #(iron (.wholeText %))))
+           (zipmap [:raw :html :text]))))
 
 (defn match?
   "Returns true if the text to which the plot corresponds is entirely contained
@@ -113,6 +106,18 @@
   [highlight plot]
   (string/index-of (:text highlight)
                    (string/join (map first plot))))
+
+(defn truncate
+  "Drops n lines from the info."
+  [n hilite]
+  (let [wrap #(str "<code class=\"sourceCode\">" % "</code>")]
+    (->> (.html (:raw hilite))
+         string/split-lines
+         (drop n)
+         (string/join "\r\n")
+         wrap
+         (hash-map :exit 0 :out)
+         parse)))
 
 (defn annotate
   ""
