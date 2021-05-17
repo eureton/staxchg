@@ -131,20 +131,19 @@
   [flow zone]
   (map #(item/translate % (scroll-gap-rect flow zone))))
 
-(def adjust-flow-to-zone-transducers
+(defn adjust-transducer
   ""
-  [plot-transducer
-   y-layout-transducer
-   translate-to-zone-transducer
-   hilite-transducer
-   clip-transducer
-   cull-transducer
-   translate-to-viewport-transducer])
+  [flow zone]
+  (apply comp ((juxt plot-transducer
+                     y-layout-transducer
+                     translate-to-zone-transducer
+                     hilite-transducer
+                     clip-transducer
+                     cull-transducer
+                     translate-to-viewport-transducer) flow zone)))
 
 (defn adjust
   ""
   [flow zone]
-  (let [transducers ((apply juxt adjust-flow-to-zone-transducers) flow zone)
-        xform (apply comp transducers)]
-    (update flow :items #(eduction xform %))))
+  (update flow :items #(eduction (adjust-transducer flow zone) %)))
 
