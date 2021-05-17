@@ -260,6 +260,35 @@
         (update previous (comp vec conj) plot-item)
         (clojure.set/rename-keys {previous index}))))
 
+(defn cluster-by
+  "Clusters adjunct plot items by the result of applying f to the item.
+
+   For each such cluster, a hash is returned. This hash contains keys:
+    * :from
+    * :to
+    * :plot
+    * :value
+
+   These hold values, respectively:
+    * start index (inclusive)
+    * end index (exclusive)
+    * corresponding plot
+    * value of (f item)
+
+   The hashes are returned in a sequence, sorted by :from ascending."
+  [f plot]
+  (->> plot
+       (map-indexed vector)
+       (group-by (comp f second))
+       (reduce-kv (fn [agg k0 v0]
+                    (->> (reduce cluster-rf {} v0)
+                         (map (fn [[k v]] {:plot v
+                                           :from (- k (dec (count v)))
+                                           :to (inc k)
+                                           :value k0}))
+                         (concat agg))) [])
+       (sort-by :from)))
+
 (defn strip-traits
   ""
   [plot & traits]
@@ -268,17 +297,28 @@
 (defn cluster-by-trait
   "Clusters adjunct plot items which share the given trait.
 
-   For each such cluster, a hash is returned. This hash contains :from, :to and
-   :plot keys which hold the start index (inclusive), end index (exclusive) and
-   corresponding plot, respectively.
-
-   The hashes are returned in a sequence."
+   For each such cluster, a hash is returned. See cluster-by for details on the
+   hash format. Removes the :value key from the hashes."
   [plot trait]
   (->> plot
-       (map-indexed vector)
-       (filter (fn [[_ [_ _ {:keys [traits]}]]] (contains? traits trait)))
-       (reduce cluster-rf {})
-       (map (fn [[k v]] {:plot v
-                         :from (- k (dec (count v)))
-                         :to (inc k)}))))
+       (cluster-by #(get-in % [2 :traits]))
+       (filter (comp #(contains? % trait) :value))
+       (map #(dissoc % :value))))
+
+(defn string
+  "Returns a string consisting of the characters in the plot. Honors whitespace.
+   Joins lines using the given separator."
+  [separator plot]
+  (let [cluster-to-line (comp string/join
+                              #(map first %)
+                              :plot)]
+    (->> plot
+         (cluster-by (comp second second))
+         (map cluster-to-line)
+         (string/join separator))))
+
+(defn text
+  "Shorthand for (string \"\r\n\" plot)."
+  [plot]
+  (string "\r\n" plot))
 
