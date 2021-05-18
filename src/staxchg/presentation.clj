@@ -34,54 +34,45 @@
         answer-body-left 1
         answer-body-top (+ answers-header-height answers-separator-height)
         answers-footer-left-width (quot width 3)]
-    {:questions-header {:id :questions-header
-                        :left question-list-left
+    {:questions-header {:left question-list-left
                         :top 0
                         :width (- width (* question-list-left 2))
                         :height question-list-size
                         :clear? switched-pane?}
-     :questions-separator {:id :questions-separator
-                           :left 0
+     :questions-separator {:left 0
                            :top question-list-size
                            :width width
                            :height 1}
-     :questions-body {:id :questions-body
-                      :left questions-body-left
+     :questions-body {:left questions-body-left
                       :top questions-body-top
                       :width (- width (* questions-body-left 2))
                       :height (- height questions-body-top 1)
                       :clear? (or switched-pane? switched-question?)}
-     :questions-footer {:id :questions-footer
-                        :left 0
+     :questions-footer {:left 0
                         :top (dec height)
                         :width width
                         :height 1
                         :clear? (or switched-pane? switched-question?)}
-     :answers-body {:id :answers-body
-                    :left answer-body-left
+     :answers-body {:left answer-body-left
                     :top answer-body-top
                     :width (- width (* answer-body-left 2))
                     :height (- height answer-body-top 1)
                     :clear? (or switched-pane? switched-answer?)}
-     :answers-footer-left {:id :answers-footer-left
-                           :left 0
+     :answers-footer-left {:left 0
                            :top (dec height)
                            :width answers-footer-left-width
                            :height 1
                            :clear? (or switched-pane? switched-answer?)}
-     :answers-footer-right {:id :answers-footer-right
-                            :left answers-footer-left-width
+     :answers-footer-right {:left answers-footer-left-width
                             :top (dec height)
                             :width (- width answers-footer-left-width)
                             :height 1
                             :clear? (or switched-pane? switched-answer?)}
-     :answers-header {:id :answers-header
-                      :left answers-header-left
+     :answers-header {:left answers-header-left
                       :top 0
                       :width (- width (* answers-header-left 2))
                       :height answers-header-height}
-     :answers-separator {:id :answers-separator
-                         :left 0
+     :answers-separator {:left 0
                          :top answers-header-height
                          :width width
                          :height (inc answers-separator-height)
