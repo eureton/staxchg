@@ -1,5 +1,6 @@
 (ns staxchg.dev
   (:require [clojure.string :as string])
+  (:require [staxchg.plot :as plot])
   (:require [staxchg.util :as util])
   (:gen-class))
 
@@ -14,94 +15,140 @@
         x))
     x))
 
-(defn log
-  [& items]
-  (when-let [pathname (util/config-hash "LOGFILE")]
-    (with-open [writer (clojure.java.io/writer pathname :append true)]
-      (.write writer (str (apply str (map truncate items)) "\n")))))
+(defn decorate
+  "Helps a block of text stand out by:
+    1. indenting
+    2. prepending each line with a character
+
+   The number of spaces to indent and the decoration character are controlled
+   by the options :indent and :decor, respectively."
+  ([string {:keys [indent decor]
+            :or {indent 1
+                 decor \|}}]
+   (->> (concat [(str (string/join (repeat (dec indent) \^)) "\\")]
+                (->> string
+                     string/trim-newline
+                     string/split-lines
+                     (map #(str (string/join (repeat indent \space)) decor %)))
+                [(str (string/join (repeat (dec indent) \_)) \/)])
+        (string/join "\r\n")))
+  ([string]
+   (decorate string {})))
 
 (defmulti log-recipe-step :function)
 
 (defmethod log-recipe-step :staxchg.io/put-markdown!
   [{[_ plot _] :params}]
-  (log "[put-markdown] " (->> (map second plot) (take 10) (apply str))
-       " |>" (string/join (map (comp #(.getCharacter %) first) plot)) "<|"))
+  (->> [(str "[put-markdown] from: " (->> plot first second) ", "
+                              "to: " (->> plot last second) " BEGIN")
+        (->> plot
+             (map #(update % 0 (memfn getCharacter)))
+             plot/text
+             decorate)
+        "[put-markdown] END"]
+       (string/join "\r\n")))
 
 (defmethod log-recipe-step :staxchg.io/put-string!
   [{[_ string {:keys [x y]}] :params}]
-  (log "[put-string] " [x y] " |>"  string "<|"))
+  (str "[put-string] " [x y] " |>"  string "<|"))
 
 (defmethod log-recipe-step :staxchg.io/scroll!
   [{[_ top bottom distance] :params}]
-  (log "[scroll] at (" top ", " bottom ") by " distance))
+  (str "[scroll] at (" top ", " bottom ") by " distance))
 
 (defmethod log-recipe-step :staxchg.io/clear!
   [{[graphics left top width height] :params}]
-  (log "[clear] rect [" width "x" height "] at (" left ", " top ")"))
+  (str "[clear] rect [" width "x" height "] at (" left ", " top ")"))
 
 (defmethod log-recipe-step :staxchg.io/refresh!
   [_]
-  (log "[refresh]"))
+  "[refresh]")
 
 (defmethod log-recipe-step :staxchg.io/read-key!
   [_]
-  (log "[read-key]"))
+  "[read-key]")
 
 (defmethod log-recipe-step :staxchg.io/query!
   [_]
-  (log "[query]"))
+  "[query]")
 
 (defmethod log-recipe-step :staxchg.io/fetch-questions!
   [{[_ url query-params] :params}]
-  (log "[fetch-questions] url: " url ", query-params: " query-params))
+  (str "[fetch-questions] url: " url ", query-params: " query-params))
 
 (defmethod log-recipe-step :staxchg.io/fetch-answers!
   [{[_ url query-params question-id] :params}]
-  (log "[fetch-answers] url: " url ", "
+  (str "[fetch-answers] url: " url ", "
        "query-params: " query-params ", "
        "question-id: " question-id))
 
 (defmethod log-recipe-step :staxchg.io/highlight-code!
   [{[code syntax question-id answer-id] :params}]
-  (log "[highlight-code] BEGIN syntax: " syntax ", "
-       "question-id: " question-id ", "
-       "answer-id: " answer-id "\r\n"
-       "\\")
-  (->> code
-       string/trim-newline
-       string/split-lines
-       (map #(str " |" %))
-       (run! log))
-  (log "/" "\r\n"
-       "[highlight-code] END"))
+  (->> [(cond-> (str "[highlight-code] BEGIN syntax: " syntax ", ")
+          answer-id (str "answer-id: " answer-id ", ")
+          true (str "question-id: " question-id))
+        (decorate code)
+        "[highlight-code] END"]
+       (string/join "\r\n")))
 
 (defmethod log-recipe-step :staxchg.io/quit!
   [_]
-  (log "[quit]"))
+  "[quit]")
 
 (defmethod log-recipe-step :staxchg.io/register-theme!
   [{[theme-name filename] :params}]
-  (log "[register-theme] name: " theme-name ", filename: " filename))
+  (str "[register-theme] name: " theme-name ", filename: " filename))
 
 (defmethod log-recipe-step :staxchg.io/acquire-screen!
   [_]
-  (log "[acquire-screen]"))
+  "[acquire-screen]")
 
 (defmethod log-recipe-step :staxchg.io/enable-screen!
   [_]
-  (log "[enable-screen]"))
+  "[enable-screen]")
 
 (defmethod log-recipe-step :default [_])
 
-(defn log-request
-  ""
+(defn log-item-df
+  "Dispatch function for dev/log-item."
+  [item]
+  (let [has-keys? #(every? (partial contains? item) %)
+        hash-with-keys? #(and (map? item)
+                              (has-keys? %&))]
+    (cond
+      (hash-with-keys? :context :recipes) :request
+      (hash-with-keys? :raw :html :text) :hilite)))
+
+(defmulti log-item
+  "Abstraction layer for logging domain structures.
+   Returns a string suitable for writing to a file."
+  log-item-df)
+
+(defmethod log-item :request
   [{:keys [recipes timing]}]
-  (log " /^^^ " (count recipes) " recipe(s)")
-  (run! log (map
-              #(str "|----- " (string/join ", " (map :function %1))
-                    " --- " %2)
-              recipes
-              (map (comp second #(re-find #"(\d*.\d* msecs)" %)) timing)))
-  (log " \\___ Complete")
-  (run! log-recipe-step (flatten recipes)))
+  (->> [[(str " /^^^ " (count recipes) " recipe(s)")]
+        (map #(str "|----- " (string/join ", " (map :function %1)) " ---- " %2)
+             recipes
+             (map (comp second #(re-find #"(\d*.\d* msecs)" %)) timing))
+        [" \\___ Complete"]
+        (map log-recipe-step (flatten recipes))]
+       (reduce concat)
+       (string/join "\r\n")))
+
+(defmethod log-item :hilite
+  [{:keys [raw]}]
+  (->> ["HTML BEGIN"
+        (-> raw .html (string/replace #"\r" "") decorate)
+        "HTML END"]
+       (string/join "\r\n")))
+
+(defmethod log-item :default
+  [item]
+  item)
+
+(defn log
+  [& items]
+  (when-let [pathname (util/config-hash "LOGFILE")]
+    (with-open [writer (clojure.java.io/writer pathname :append true)]
+      (.write writer (str (apply str (map log-item items)) "\n")))))
 

@@ -13,7 +13,7 @@
   ""
   [in-channel out-channel]
   (loop []
-    (request/route {:from in-channel :to out-channel :log-fn dev/log-request})
+    (request/route {:from in-channel :to out-channel :log-fn dev/log})
     (recur)))
 
 (defn -main

@@ -369,15 +369,16 @@
 (defn update-for-code-highlights
   ""
   [world sh-out question-id answer-id]
-  (let [hilite-info (hilite/parse sh-out)
+  (let [hilite (hilite/parse sh-out)
         post-id (or answer-id question-id)]
-    (dev/log "[update-for-code-highlights] html: " (:html hilite-info)
-             ", question-id: '" question-id "'"
-             ", answer-id: '" answer-id "'")
+    (dev/log "[update-for-code-highlights] "
+             "question-id: '" question-id "', "
+             "answer-id: '" answer-id "'\r\n"
+             hilite)
     (-> world
         (clear-marks)
         (assoc (if answer-id :switched-answer? :switched-question?) true)
-        (update-in [:code-highlights post-id] (comp vec conj) hilite-info))))
+        (update-in [:code-highlights post-id] (comp vec conj) hilite))))
 
 (defn update-world-rf
   ""
@@ -427,36 +428,43 @@
            (generated-output? world-before world-after))))
 
 (comment
-  (def w (let [qs-raw [{"tags" []
-                        "question_id" 12345678
-                        "body_markdown" ""
+  (def w (let [qid 12345678
+               aid 87654321
+               qs-raw [{"tags" ["clojure"]
+                        "question_id" qid
+                        "body_markdown" (->> ["```"
+                                              "; lorem ipsum"
+                                              "(defn foo"
+                                              "  \"dolor sit amet\""
+                                              "  [x]"
+                                              "  (* x x))"
+                                              "```"]
+                                             (clojure.string/join "\r\n"))
                         "title" ""}]
                as-raw [{"tags" ["c++"]
-                        "answer_id" 87654321
-                        "question_id" 12345678
+                        "answer_id" aid
+                        "question_id" qid
                         "body_markdown" ""
                         "title" ""}]
+               qs (mapv api/scrub qs-raw)
+               as (mapv api/scrub as-raw)
                req-ch (clojure.core.async/chan 1)
                resp-ch (clojure.core.async/chan 1)
                ctx {:screen 1234}
-               qs (mapv api/scrub qs-raw)
-               as (mapv api/scrub as-raw)
                w1 (-> (make)
                       (assoc :io/context ctx :width 100 :height 200)
-                      (update-for-new-questions qs)
-                      (update-for-new-answers as false (get-in qs-raw [0 "question_id"]))
-                      (assoc-in [:line-offsets (get-in as-raw [0 "answer_id"])] 49))
+                      ;(update-for-new-questions qs)
+                      )
                in-rs (staxchg.state.recipe/input w1)
                req {:recipes in-rs :context ctx}
-               _ (do
+               _ (comment(do
                    (clojure.core.async/>!! req-ch req)
                    (staxchg.request/route {:from req-ch
                                            :to resp-ch
-                                           :log-fn dev/log-request}))
+                                           :log-fn dev/log})))
                in (clojure.core.async/<!! resp-ch)
                w2 (update-world w1 in)
                a2 (get-in w2 [:questions 0 "answers" 0])]
-           (run! dev/log (staxchg.flow.item/highlight-code {:plot (staxchg.markdown/plot (a2 "body_markdown") {:width 100})
-                                              :code-highlights (get-in w2 [:code-highlights (a2 "answer_id")])}))
+           (dev/log {:context 123 :recipes (presentation/recipes w2)})
            )))
 

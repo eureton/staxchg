@@ -89,8 +89,8 @@
     (when (ok? sh-out))
       (->> sh-out
            jsoup-elem
-           ((juxt #(iron (.html %)) #(iron (.wholeText %))))
-           (zipmap [:html :text]))))
+           ((juxt identity #(iron (.html %)) #(iron (.wholeText %))))
+           (zipmap [:raw :html :text]))))
 
 (defn match?
   "Returns true if the text to which the plot corresponds is entirely contained
