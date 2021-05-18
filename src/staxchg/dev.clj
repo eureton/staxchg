@@ -60,9 +60,9 @@
   [{[graphics left top width height] :params}]
   (str "[clear] rect [" width "x" height "] at (" left ", " top ")"))
 
-(defmethod log-recipe-step :staxchg.io/check-resize!
+(defmethod log-recipe-step :staxchg.io/poll-resize!
   [_]
-  "[check-resize]")
+  "[poll-resize]")
 
 (defmethod log-recipe-step :staxchg.io/refresh!
   [_]

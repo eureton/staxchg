@@ -125,10 +125,10 @@
   [interval]
   (Thread/sleep interval))
 
-(defn check-resize!
+(defn poll-resize!
   ""
   [screen]
-  {:function :check-resize!
+  {:function :poll-resize!
    :values [(.doResizeIfNecessary screen)]})
 
 (defn poll-key!

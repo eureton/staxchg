@@ -103,7 +103,7 @@
   [_]
   [[{:function :staxchg.io/sleep!
      :params [poll-loop-latency]}
-    {:function :staxchg.io/check-resize!
+    {:function :staxchg.io/poll-resize!
      :params [:screen]}
     {:function :staxchg.io/poll-key!
      :params [:screen]}]])

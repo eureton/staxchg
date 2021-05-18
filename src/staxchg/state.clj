@@ -401,7 +401,7 @@
                 :acquire-screen! update-for-screen
                 :enable-screen! update-for-dimensions
                 :poll-key! update-for-keystroke
-                :check-resize! update-for-resize
+                :poll-resize! update-for-resize
                 :query! update-for-search-term
                 :fetch-questions! update-for-questions-response
                 :fetch-answers! update-for-answers-response
