@@ -60,22 +60,6 @@
   [{[graphics left top width height] :params}]
   (str "[clear] rect [" width "x" height "] at (" left ", " top ")"))
 
-(defmethod log-recipe-step :staxchg.io/poll-resize!
-  [_]
-  "[poll-resize]")
-
-(defmethod log-recipe-step :staxchg.io/refresh!
-  [_]
-  "[refresh]")
-
-(defmethod log-recipe-step :staxchg.io/poll-key!
-  [_]
-  "[poll-key]")
-
-(defmethod log-recipe-step :staxchg.io/query!
-  [_]
-  "[query]")
-
 (defmethod log-recipe-step :staxchg.io/fetch-questions!
   [{[_ url query-params] :params}]
   (str "[fetch-questions] url: " url ", query-params: " query-params))
@@ -95,21 +79,9 @@
         "[highlight-code] END"]
        (string/join "\r\n")))
 
-(defmethod log-recipe-step :staxchg.io/quit!
-  [_]
-  "[quit]")
-
 (defmethod log-recipe-step :staxchg.io/register-theme!
   [{[theme-name filename] :params}]
   (str "[register-theme] name: " theme-name ", filename: " filename))
-
-(defmethod log-recipe-step :staxchg.io/acquire-screen!
-  [_]
-  "[acquire-screen]")
-
-(defmethod log-recipe-step :staxchg.io/enable-screen!
-  [_]
-  "[enable-screen]")
 
 (defmethod log-recipe-step :default [_])
 
@@ -135,7 +107,7 @@
              recipes
              (map (comp second #(re-find #"(\d*.\d* msecs)" %)) timing))
         [" \\___ Complete"]
-        (map log-recipe-step (flatten recipes))]
+        (->> recipes flatten (map log-recipe-step) (remove nil?))]
        (reduce concat)
        (string/join "\r\n")))
 
