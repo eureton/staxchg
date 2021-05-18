@@ -76,7 +76,12 @@
                          :top answers-header-height
                          :width width
                          :height (inc answers-separator-height)
-                         :clear? switched-pane?}}))
+                         :clear? switched-pane?}
+     :full-screen {:left 0
+                   :top 0
+                   :width width
+                   :height height
+                   :clear? switched-pane?}}))
 
 (defn line-offset
   ""
@@ -432,7 +437,8 @@
                                          :raw title
                                          :modifiers [SGR/REVERSE]})
              :answers-separator (flow/make {:type :string
-                                            :raw (format-answers-pane-separator question world zone)})}
+                                            :raw (format-answers-pane-separator question world zone)})
+             :empty {:scroll-offset 0 :items []}}
       (some? question) (assoc :question-body (flow/scroll-y
                                                (questions-body-flow question world zone)
                                                (- (line-offset question world)))
@@ -447,10 +453,12 @@
                             :answer-acceptance (answer-acceptance-flow answer world)))))
 
 (def consignments
-  [{:pane :questions :flow-id :questions-separator :zone-id :questions-separator}
+  [{:pane :questions :flow-id :empty               :zone-id :full-screen}
+   {:pane :questions :flow-id :questions-separator :zone-id :questions-separator}
    {:pane :questions :flow-id :questions-list      :zone-id :questions-header}
    {:pane :questions :flow-id :question-body       :zone-id :questions-body}
    {:pane :questions :flow-id :question-meta       :zone-id :questions-footer}
+   {:pane   :answers :flow-id :empty               :zone-id :full-screen}
    {:pane   :answers :flow-id :answers-separator   :zone-id :answers-separator}
    {:pane   :answers :flow-id :answer              :zone-id :answers-body}
    {:pane   :answers :flow-id :answer-meta         :zone-id :answers-footer-right}
