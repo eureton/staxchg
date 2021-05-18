@@ -120,11 +120,22 @@
   [screen]
   (.refresh screen)) ; TODO provide refresh type according to outgoing recipes
 
-(defn read-key!
+(defn sleep!
+  ""
+  [interval]
+  (Thread/sleep interval))
+
+(defn check-resize!
   ""
   [screen]
-  {:function :read-key!
-   :values [(.readInput screen)]})
+  {:function :check-resize!
+   :values [(.doResizeIfNecessary screen)]})
+
+(defn poll-key!
+  ""
+  [screen]
+  {:function :poll-key!
+   :values [(.pollInput screen)]})
 
 (defn query!
   ""

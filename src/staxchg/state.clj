@@ -273,17 +273,30 @@
     (assoc world :width (.getColumns size) :height (.getRows size))))
 
 (defn update-for-keystroke [world keystroke]
-  (let [keycode (.getCharacter keystroke)
-        ctrl? (.isCtrlDown keystroke)
-        command (parse-command keycode ctrl?)]
-    (dev/log "[update-for-keystroke] code: '" keycode "', "
-             "ctrl? " ctrl? ", "
-             "command: " (if (some? command) (name command) "UNKNOWN"))
-    (->
-      world
-      (clear-marks)
-      (effect-command command)
-      (set-marks command))))
+  (if (some? keystroke)
+    (let [keycode (.getCharacter keystroke)
+          ctrl? (.isCtrlDown keystroke)
+          command (parse-command keycode ctrl?)]
+      (dev/log "[update-for-keystroke] code: '" keycode "', "
+               "ctrl? " ctrl? ", "
+               "command: " (if (some? command) (name command) "UNKNOWN"))
+      (-> world
+          (clear-marks)
+          (effect-command command)
+          (set-marks command)))
+    world))
+
+(defn update-for-resize
+  ""
+  [world size]
+  (when (some? size)
+    (let [width (.getColumns size)
+          height (.getRows size)]
+      (dev/log "[update-for-resize] width: " width ", height: " height)))
+  (cond-> (clear-marks world)
+    size (assoc :width (.getColumns size)
+                :height (.getRows size)
+                :switched-pane? true)))
 
 (defn update-for-search-term [world term]
   (dev/log "[update-for-search-term] term: " (if (nil? term) "<canceled>" term))
@@ -387,7 +400,8 @@
   (if-some [f (case function
                 :acquire-screen! update-for-screen
                 :enable-screen! update-for-dimensions
-                :read-key! update-for-keystroke
+                :poll-key! update-for-keystroke
+                :check-resize! update-for-resize
                 :query! update-for-search-term
                 :fetch-questions! update-for-questions-response
                 :fetch-answers! update-for-answers-response
@@ -408,24 +422,37 @@
         (assoc :previous world))
     nil))
 
-(defn generated-output?
-  ""
+(defn dirty?
+  "Returns true if a user-visible change has occurred, false otherwise."
   [world-before world-after]
-  (not= (clear-marks world-before)
-        (clear-marks world-after)))
+  (let [sanitize (comp clear-marks
+                       #(dissoc % :previous :io/context))]
+    (not= (sanitize world-before)
+          (sanitize world-after))))
 
-(defn write-output?
-  ""
-  [world-before
-   {:as world-after
-    :keys [active-pane switched-question? switched-answer? switched-pane?
-           width height]}]
-  (and (some? width)
-       (some? height)
-       (or switched-pane?
-           (and (= active-pane :questions) switched-question?)
-           (and (= active-pane :answers) switched-answer?)
-           (generated-output? world-before world-after))))
+(defn render?
+  "Returns true if both conditions are fulfilled, false otherwise:
+     1. can be rendered
+     2. must be rendered
+
+   Condition (1) implies that preparatory I/O has been completed.
+   Condition (2) implies that new, display-worthy information has arrived."
+  [{:as world
+    :keys [active-pane switched-question? switched-answer?  width height]
+    pane? :switched-pane?}]
+  (let [question? (and (= active-pane :questions) switched-question?)
+        answer? (and (= active-pane :answers) switched-answer?)
+        change? (dirty? (:previous world) world)
+        render? (and (some? width)
+                     (some? height)
+                     (or pane? question? answer? change?))]
+    (if render?
+      (do (when pane? (dev/log "[render?] switched pane"))
+          (when question? (dev/log "[render?] switched question"))
+          (when answer? (dev/log "[render?] switched answer"))
+          (when change? (dev/log "[render?] state change")))
+      (dev/log "[render?] none"))
+    render?))
 
 (comment
   (def w (let [qid 12345678
@@ -456,6 +483,7 @@
                       ;(update-for-new-questions qs)
                       )
                in-rs (staxchg.state.recipe/input w1)
+               out-rs (presentation/recipes w1)
                req {:recipes in-rs :context ctx}
                _ (comment(do
                    (clojure.core.async/>!! req-ch req)
@@ -465,6 +493,6 @@
                in (clojure.core.async/<!! resp-ch)
                w2 (update-world w1 in)
                a2 (get-in w2 [:questions 0 "answers" 0])]
-           (dev/log {:context 123 :recipes (presentation/recipes w2)})
+           (dev/log out-rs)
            )))
 

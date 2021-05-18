@@ -6,6 +6,10 @@
   (:require [staxchg.recipe.step :as recipe.step])
   (:gen-class))
 
+(def poll-loop-latency
+  "The number of milliseconds to sleep for between poll runs."
+  500)
+
 (defn highlight-code-step
   ""
   [{:keys [string syntax question-id answer-id]}]
@@ -29,7 +33,7 @@
     fetch-failed :fetch-failed
     (or query? (empty? questions)) :query
     quit? :quit
-    :else :read-key))
+    :else :poll-loop))
 
 (defmulti input input-df)
 
@@ -95,15 +99,19 @@
   [[{:function :staxchg.io/quit!
      :params [:screen]}]])
 
-(defmethod input :read-key
+(defmethod input :poll-loop
   [_]
-  [[{:function :staxchg.io/read-key!
+  [[{:function :staxchg.io/sleep!
+     :params [poll-loop-latency]}
+    {:function :staxchg.io/check-resize!
+     :params [:screen]}
+    {:function :staxchg.io/poll-key!
      :params [:screen]}]])
 
 (defn output
   ""
   [world]
-  (if (state/write-output? (:previous world) world)
+  (if (state/render? world)
     (presentation/recipes world)
     []))
 
