@@ -388,10 +388,10 @@
              "question-id: '" question-id "', "
              "answer-id: '" answer-id "'\r\n"
              hilite)
-    (-> world
-        (clear-marks)
-        (assoc (if answer-id :switched-answer? :switched-question?) true)
-        (update-in [:code-highlights post-id] (comp vec conj) hilite))))
+    (cond-> world
+        true (clear-marks)
+        true (assoc (if answer-id :switched-answer? :switched-question?) true)
+        hilite (update-in [:code-highlights post-id] (comp vec conj) hilite))))
 
 (defn update-world-rf
   ""
