@@ -69,10 +69,12 @@
   (let [set-if-nil-or-empty #(some not-empty %&)
         annotate (comp #(update % :string code/expand-tabs (:syntax %))
                        #(update % :syntax set-if-nil-or-empty (syntax-tag post))
+                       #(update % :syntax skylight-syntax-ids)
                        #(cond-> %
                                 answer_id (assoc :answer-id answer_id)
                                 question_id (assoc :question-id question_id)))]
     (->> (get post "body_markdown")
          staxchg.markdown/code-info
-         (map annotate))))
+         (map annotate)
+         (remove (comp nil? :syntax)))))
 
