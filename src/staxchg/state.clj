@@ -455,44 +455,50 @@
     render?))
 
 (comment
-  (def w (let [qid 12345678
-               aid 87654321
-               qs-raw [{"tags" ["clojure"]
-                        "question_id" qid
-                        "body_markdown" (->> ["```"
-                                              "; lorem ipsum"
-                                              "(defn foo"
-                                              "  \"dolor sit amet\""
-                                              "  [x]"
-                                              "  (* x x))"
-                                              "```"]
-                                             (clojure.string/join "\r\n"))
-                        "title" ""}]
-               as-raw [{"tags" ["c++"]
-                        "answer_id" aid
-                        "question_id" qid
-                        "body_markdown" ""
-                        "title" ""}]
-               qs (mapv api/scrub qs-raw)
-               as (mapv api/scrub as-raw)
-               req-ch (clojure.core.async/chan 1)
-               resp-ch (clojure.core.async/chan 1)
-               ctx {:screen 1234}
-               w1 (-> (make)
-                      (assoc :io/context ctx :width 100 :height 200)
-                      ;(update-for-new-questions qs)
-                      )
-               in-rs (staxchg.state.recipe/input w1)
-               out-rs (presentation/recipes w1)
-               req {:recipes in-rs :context ctx}
-               _ (comment(do
-                   (clojure.core.async/>!! req-ch req)
-                   (staxchg.request/route {:from req-ch
-                                           :to resp-ch
-                                           :log-fn dev/log})))
-               in (clojure.core.async/<!! resp-ch)
-               w2 (update-world w1 in)
-               a2 (get-in w2 [:questions 0 "answers" 0])]
-           (dev/log out-rs)
-           )))
+  (let [qid 12345678
+        aid 87654321
+        md (->> ["```"
+                 "; lorem ipsum"
+                 "(defn foo"
+                 "  \"dolor sit amet\""
+                 "  [x]"
+                 "  (* x x))"
+                 "```"]
+                (clojure.string/join "\r\n"))
+        qs-raw [{;"tags" ["clojure"]
+                 "tags" ["javascript" "haskell" "functional-programming" "monads"]
+                 "question_id" qid
+;                "body_markdown" md
+                 "body_markdown" (get-in api/error-wrapper-object ["items" 0 "body_markdown"])
+                 "title" ""}]
+        as-raw [{"tags" ["c++"]
+                 "answer_id" aid
+                 "question_id" qid
+                 "body_markdown" ""
+                 "title" ""}]
+        qs (mapv api/scrub qs-raw)
+        as (mapv api/scrub as-raw)
+        req-ch (clojure.core.async/chan 1)
+        resp-ch (clojure.core.async/chan 1)
+        ctx {:screen 1234}
+        w1 (-> (make)
+               (assoc :io/context ctx :width 100 :height 200)
+               (update-for-new-questions qs)
+               )
+        in-rs (staxchg.state.recipe/input w1)
+        out-rs (presentation/recipes w1)
+        req {:recipes in-rs :context ctx}
+        _ (do
+            (clojure.core.async/>!! req-ch req)
+            (staxchg.request/route {:from req-ch
+                                    :to resp-ch
+                                    :log-fn dev/log}))
+        in (clojure.core.async/<!! resp-ch)
+        w2 (update-world w1 in)
+        plot (staxchg.markdown/plot (get-in w2 [:questions 0 "body_markdown"]) {:width 118})
+        hilites (get-in w2 [:code-highlights qid])
+;       a2 (get-in w2 [:questions 0 "answers" 0])
+        ]
+    (staxchg.flow.item/highlight-code {:plot plot :code-highlights hilites})
+    ))
 
