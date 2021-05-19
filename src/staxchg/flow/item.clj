@@ -27,14 +27,15 @@
                                      first)]
               (let [offset (hilite/index-of highlight code-plot)
                     pad #(concat (repeat offset [\_ []]) %)
-                    trim #(drop offset %)]
-                (concat (take from agg)
-                        (-> code-plot
-                            pad
-                            (hilite/annotate (:html highlight))
-                            (plot/strip-traits :code)
-                            trim)
-                        (drop to agg)))
+                    trim #(drop offset %)
+                    hilit (try
+                            (-> code-plot
+                                pad
+                                (hilite/annotate (:html highlight))
+                                (plot/strip-traits :code)
+                                trim)
+                            (catch Exception _ code-plot))]
+                (concat (take from agg) hilit (drop to agg)))
               agg))
           plot
           (plot/cluster-by-trait plot :code)))
