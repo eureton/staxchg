@@ -86,11 +86,11 @@
                         (comp zero? :exit)
                         (comp string? :out))
         iron #(string/replace % #"[\r\n]" "")]
-    (when (ok? sh-out))
+    (when (ok? sh-out)
       (->> sh-out
            jsoup-elem
            ((juxt identity #(iron (.html %)) #(iron (.wholeText %))))
-           (zipmap [:raw :html :text]))))
+           (zipmap [:raw :html :text])))))
 
 (defn match?
   "Returns true if the text to which the plot corresponds is entirely contained
