@@ -6,7 +6,7 @@
   :dependencies [[org.clojure/clojure "1.10.3"]
                  [org.clojure/core.async "1.3.610"]
                  [org.clojure/test.check "0.10.0"]
-                 [clj-http "3.10.3"]
+                 [org.martinklepsch/clj-http-lite "0.4.3"]
                  [cheshire "5.10.0"]
                  [com.googlecode.lanterna/lanterna "3.0.4"]
                  [org.jsoup/jsoup "1.11.2"]
@@ -26,13 +26,14 @@
                                                  "-Dclojure.compiler.direct-linking=true"]}}}
   :plugins [[io.taylorwood/lein-native-image "0.3.1"]]
   :native-image {:name "staxchg"
-                 :graal-bin "/home/agis/tools/graalvm-ce-java8-21.0.0.2/bin"
                  :opts ["--initialize-at-build-time"
+                        "--allow-incomplete-classpath"
                         "--report-unsupported-elements-at-runtime"
                         "--no-server"
                         "--no-fallback"
                         "--enable-https"
                         "--enable-url-protocols=https"
+                        "--initialize-at-run-time=sun.java2d.xr.XRBackendNative,sun.font.StrikeCache"
                         "-H:+ReportExceptionStackTraces"
                         "-H:ReflectionConfigurationFiles=native-image/config/reflection-config.json"
                         "-H:ResourceConfigurationFiles=native-image/config/resource-config.json"]})

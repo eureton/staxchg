@@ -1,6 +1,9 @@
 [
+	{	"name": "java.lang.reflect.AccessibleObject",
+		"methods" : [{"name":"canAccess"}]
+	},
 	{
-		"name" : "java.awt.GraphicsEnvironment",
+		"name" : "sun.font.StrikeCache",
 		"allDeclaredConstructors" : true,
 		"allPublicConstructors" : true,
 		"allDeclaredMethods" : true,
