@@ -21,7 +21,7 @@
       :question-list-offset 0
       :questions questions
       :active-pane :questions
-      :code-highlights {}}))
+      :highlights {}}))
   ([]
    (make [])))
 
@@ -196,6 +196,14 @@
   [world command]
   (assoc world :switched-answer? (#{:previous-answer :next-answer} command)))
 
+(defn mark-hilite-pending
+  ""
+  [{:as world :keys [highlights]}]
+  (let [{:as question :strs [question_id]} (presentation/selected-question world)
+        snippets (post/code-info question)]
+    (cond-> world
+      (not (contains? highlights question_id)) (assoc :snippets snippets))))
+
 (defn parse-command
   ""
   [keycode ctrl?]
@@ -259,7 +267,8 @@
     world
     (mark-pane-switch command)
     (mark-question-switch command)
-    (mark-answer-switch command)))
+    (mark-answer-switch command)
+    (mark-hilite-pending)))
 
 (defn update-for-screen
   ""
@@ -305,16 +314,6 @@
       (not blank?) (assoc :search-term term)
       blank? (assoc :switched-pane? true))))
 
-(defn update-for-new-posts
-  ""
-  [world posts]
-  (let [snippets (->> posts
-                      (map post/code-info)
-                      (keep not-empty)
-                      flatten)]
-    (cond-> world
-      (not-empty snippets) (assoc :snippets snippets))))
-
 (defn update-for-new-questions
   ""
   [{:keys [width height io/context]}
@@ -322,7 +321,7 @@
   (-> (make questions)
       (assoc :io/context context :width width :height height)
       (assoc :switched-question? true)
-      (update-for-new-posts questions)))
+      mark-hilite-pending))
 
 (defn update-for-questions-response
   ""
@@ -355,7 +354,7 @@
       (assoc-in [:questions index :more-answers-to-fetch?] more?)
       (assoc-in [:selected-answers question-id] (-> answers first (get "answer_id")))
       (assoc :active-pane :answers :switched-pane? true)
-      (update-for-new-posts answers))))
+      mark-hilite-pending)))
 
 (defn update-for-answers-response
   ""
@@ -379,19 +378,19 @@
     true (clear-marks)
     (not-empty questions) (assoc :switched-pane? true)))
 
-(defn update-for-code-highlights
+(defn update-for-highlights
   ""
   [world sh-out question-id answer-id]
   (let [hilite (hilite/parse sh-out)
         post-id (or answer-id question-id)]
-    (dev/log "[update-for-code-highlights] "
+    (dev/log "[update-for-highlights] "
              "question-id: '" question-id "', "
              "answer-id: '" answer-id "'\r\n"
              hilite)
     (cond-> world
         true (clear-marks)
         true (assoc (if answer-id :switched-answer? :switched-question?) true)
-        hilite (update-in [:code-highlights post-id] (comp vec conj) hilite))))
+        hilite (update-in [:highlights post-id] (comp vec conj) hilite))))
 
 (defn update-world-rf
   ""
@@ -408,7 +407,7 @@
                 :no-questions! update-for-no-posts
                 :no-answers! update-for-no-posts
                 :fetch-failed! update-for-no-posts
-                :highlight-code! update-for-code-highlights
+                :highlight-code! update-for-highlights
                 nil)]
     (do (dev/log "[update-world-rf] " function)
         (apply f world values))
@@ -465,12 +464,42 @@
                  "  (* x x))"
                  "```"]
                 (clojure.string/join "\r\n"))
-        qs-raw [{;"tags" ["clojure"]
-                 "tags" ["javascript" "haskell" "functional-programming" "monads"]
+        q2id 11223344
+        md2 (->> ["Have some Haskell:"
+                  ""
+                  "    ws <- getLine >>= return . words  -- Monad"
+                  "    ws <- words <$> getLine           -- Functor (much nicer)"
+                  ""
+                  "Now have some JavaScript :D"
+                  ""
+                  "```"
+                  "console.log(\"Functor\");"
+                  "{"
+                  "	const unit = (val) => ({"
+                  "		// contextValue: () => val,"
+                  "		fmap: (f) => unit((() => {"
+                  "			//you can do pretty much anything here"
+                  "			const newVal = f(val);"
+                  "			//  console.log(newVal); //IO in the functional context"
+                  "			return newVal;"
+                  "		})()),"
+                  "	});"
+                  ""
+                  "	const a = unit(3)"
+                  "		.fmap(x => x * 2)  //6"
+                  "		.fmap(x => x + 1); //7"
+                  "}"
+                  "```"]
+                 (clojure.string/join "\r\n"))
+
+        qs-raw [{"tags" ["clojure"]
                  "question_id" qid
-;                "body_markdown" md
-                 "body_markdown" (get-in api/error-wrapper-object ["items" 0 "body_markdown"])
-                 "title" ""}]
+                 "body_markdown" md
+                 "title" "haskell !!"}
+                {"tags" ["haskell" "javascript"]
+                 "question_id" q2id
+                 "body_markdown" md2
+                 "title" "javascript :("}]
         as-raw [{"tags" ["c++"]
                  "answer_id" aid
                  "question_id" qid
@@ -496,9 +525,13 @@
         in (clojure.core.async/<!! resp-ch)
         w2 (update-world w1 in)
         plot (staxchg.markdown/plot (get-in w2 [:questions 0 "body_markdown"]) {:width 118})
-        hilites (get-in w2 [:code-highlights qid])
-;       a2 (get-in w2 [:questions 0 "answers" 0])
+        hilites (get-in w2 [:highlights qid])
+        a2 (get-in w2 [:questions 0 "answers" 0])
         ]
-    (staxchg.flow.item/highlight-code {:plot plot :code-highlights hilites})
+    {:state (select-keys w2 [:snippets :highlights])
+;    :incoming in-rs
+;    :outgoing out-rs
+;    :render? (render? w1)
+     }
     ))
 
