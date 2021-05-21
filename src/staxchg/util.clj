@@ -50,6 +50,3 @@
 (defn unescape-html [string]
   (org.jsoup.parser.Parser/unescapeEntities string true))
 
-(defn escape-html [string]
-  (org.jsoup.nodes.Entities/escape string))
-

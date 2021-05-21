@@ -62,9 +62,7 @@
     (reduce-kv (fn [acc k [classes code]]
                  (conj acc {:code code
                             :classes classes
-                            :html (string/replace k
-                                                  #"\">(?!<span class=\")(.*?)</"
-                                                  (str "\">" (util/escape-html code) "</"))}))
+                            :html k}))
                [])))
 
 (defn jsoup-elem
