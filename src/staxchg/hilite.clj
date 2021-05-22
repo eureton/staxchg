@@ -103,12 +103,11 @@
   [doc]
   (.outputSettings doc (.prettyPrint (Document$OutputSettings.) false)))
 
-(defn jsoup-elem
+(defn root-jsoup-elem
   "Expects skylighting shell output in HTML format.
-   Returns the JSoup element for the <code class=\"sourceCode\"> tag."
-  [sh-out]
-  (-> sh-out
-      :out
+   Returns the JSoup element for the root tag."
+  [html]
+  (-> html
       Jsoup/parse
       configure-jsoup-doc
       (.select "code.sourceCode")
@@ -124,7 +123,7 @@
       :else :highlight.js)))
 
 (defmulti normalize
-  "Returns html parsable by hilite/jsoup-elem, regardless of utility of origin."
+  "Returns html parsable by hilite/root-jsoup-elem, regardless of utility of origin."
   normalize-df)
 
 (defmethod normalize :skylighting
@@ -151,8 +150,10 @@
   [sh-out]
   (let [iron #(string/replace % #"[\r\n]" "")]
     (when (util/shell-output-ok? sh-out)
-      (->> (update sh-out :out normalize)
-           jsoup-elem
+      (->> sh-out
+           :out
+           normalize
+           root-jsoup-elem
            ((juxt identity #(iron (.html %)) #(iron (.wholeText %))))
            (zipmap [:raw :html :text])))))
 
