@@ -9,36 +9,68 @@
   (:import org.jsoup.nodes.Document$OutputSettings)
   (:gen-class))
 
-(def skylighting-class-trait-map {:kw :hilite-keyword
-                                  :dt :hilite-data-type
-                                  :dv :hilite-dec-val
-                                  :bn :hilite-base-n
-                                  :fl :hilite-float
-                                  :cn :hilite-constant
-                                  :ch :hilite-char
-                                  :sc :hilite-special-char
-                                  :st :hilite-string
-                                  :vs :hilite-verbatim-string
-                                  :ss :hilite-special-string
-                                  :im :hilite-import
-                                  :co :hilite-comment
-                                  :do :hilite-documentation
-                                  :an :hilite-annotation
-                                  :cv :hilite-comment-var
-                                  :ot :hilite-other
-                                  :fu :hilite-function
-                                  :va :hilite-variable
-                                  :cf :hilite-control-flow
-                                  :op :hilite-operator
-                                  :bu :hilite-built-in
-                                  :ex :hilite-extension
-                                  :pp :hilite-preprocessor
-                                  :at :hilite-attribute
-                                  :re :hilite-region-marker
-                                  :in :hilite-information
-                                  :wa :hilite-warning
-                                  :al :hilite-alert
-                                  :er :hilite-error})
+(def class-trait-map {; skylighting
+                      :kw :hilite-keyword
+                      :dt :hilite-data-type
+                      :dv :hilite-dec-val
+                      :bn :hilite-base-n
+                      :fl :hilite-float
+                      :cn :hilite-constant
+                      :ch :hilite-char
+                      :sc :hilite-special-char
+                      :st :hilite-string
+                      :vs :hilite-verbatim-string
+                      :ss :hilite-special-string
+                      :im :hilite-import
+                      :co :hilite-comment
+                      :do :hilite-documentation
+                      :an :hilite-annotation
+                      :cv :hilite-comment-var
+                      :ot :hilite-other
+                      :fu :hilite-function
+                      :va :hilite-variable
+                      :cf :hilite-control-flow
+                      :op :hilite-operator
+                      :bu :hilite-built-in
+                      :ex :hilite-extension
+                      :pp :hilite-preprocessor
+                      :at :hilite-attribute
+                      :re :hilite-region-marker
+                      :in :hilite-information
+                      :wa :hilite-warning
+                      :al :hilite-alert
+                      :er :hilite-error
+                      ; highlight.js
+                      :hljs-keyword :hilite-keyword
+                      :hljs-class :hilite-keyword
+                      :hljs-type :hilite-data-type
+                      :hljs-number :hilite-dec-val
+                      :hljs-title :hilite-title
+                      :hljs-params :hilite-params
+                      :hljs-symbol :hilite-constant
+                      :hljs-regexp :hilite-constant
+                      :hljs-literal :hilite-constant
+                      :hljs-string :hilite-string
+                      :hljs-meta-keyword :hilite-import
+                      :hljs-comment :hilite-comment
+                      :hljs-doctag :hilite-documentation
+                      :hljs-function :hilite-function
+                      :hljs-variable :hilite-variable
+                      :hljs-operator :hilite-operator
+                      :hljs-built_in :hilite-built-in
+                      :hljs-builtin-name :hilite-built-in
+                      :hljs-meta :hilite-preprocessor
+                      :hljs-meta-string :hilite-preprocessor
+                      :hljs-attr :hilite-attribute
+                      :hljs-attribute :hilite-attribute
+                      :hljs-sub-attribute :hilite-attribute
+                      :hljs-section :hilite-region-marker
+                      :hljs-tag :hilite-tag
+                      :hljs-selector-tag :hilite-css-selector-tag
+                      :hljs-selector-id :hilite-css-selector-id
+                      :hljs-selector-class :hilite-css-selector-class
+                      :hljs-selector-attr :hilite-css-selector-attr
+                      :hljs-selector-pseudo :hilite-css-selector-pseudo})
 
 (defn classes
   ""
@@ -47,7 +79,7 @@
       .attributes
       (.get "class")
       keyword
-      skylighting-class-trait-map
+      class-trait-map
       vector
       set))
 
@@ -65,6 +97,12 @@
                             :html k}))
                [])))
 
+(defn configure-jsoup-doc
+  "Configures the output settings of the org.jsoup.nodes.Document object to work
+   well with the app."
+  [doc]
+  (.outputSettings doc (.prettyPrint (Document$OutputSettings.) false)))
+
 (defn jsoup-elem
   "Expects skylighting shell output in HTML format.
    Returns the JSoup element for the <code class=\"sourceCode\"> tag."
@@ -72,20 +110,48 @@
   (-> sh-out
       :out
       Jsoup/parse
-      (.outputSettings (.prettyPrint (Document$OutputSettings.) false))
+      configure-jsoup-doc
       (.select "code.sourceCode")
       .first))
+
+(defn normalize-df
+  "Dispatch function for hilite/normalize. Returns a keyword."
+  [html]
+  (let [doc (-> html Jsoup/parse configure-jsoup-doc)]
+    (cond
+      (-> doc (.select "code.sourceCode") .first some?) :skylighting
+      (-> doc (.select "div.highlight") .first some?) :pygments
+      :else :highlight.js)))
+
+(defmulti normalize
+  "Returns html parsable by hilite/jsoup-elem, regardless of utility of origin."
+  normalize-df)
+
+(defmethod normalize :skylighting
+  [html]
+  html)
+
+(defmethod normalize :pygments
+  [html]
+  (str "<code class=\"sourceCode\">"
+       (-> html
+           Jsoup/parse
+           configure-jsoup-doc
+           (.select "div.highlight pre")
+           .first
+           .html)
+       "</code>"))
+
+(defmethod normalize :highlight.js
+  [html]
+  (str "<code class=\"sourceCode\">" html "</code>"))
 
 (defn parse
   ""
   [sh-out]
-  (let [ok? (every-pred some?
-                        (comp number? :exit)
-                        (comp zero? :exit)
-                        (comp string? :out))
-        iron #(string/replace % #"[\r\n]" "")]
-    (when (ok? sh-out)
-      (->> sh-out
+  (let [iron #(string/replace % #"[\r\n]" "")]
+    (when (util/shell-output-ok? sh-out)
+      (->> (update sh-out :out normalize)
            jsoup-elem
            ((juxt identity #(iron (.html %)) #(iron (.wholeText %))))
            (zipmap [:raw :html :text])))))
