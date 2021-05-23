@@ -7,15 +7,23 @@ var path = require('path');
 
 function requireHljs(modulesDir, languages) {
 	try {
-		var libDir = modulesDir + path.sep + 'highlight.js' + path.sep + 'lib';
-		var hljs = require(libDir + path.sep + 'core');
-		var langDir = libDir + path.sep + 'languages';
+		var rootDir = modulesDir + path.sep + 'highlight.js';
 
-		for (l of languages) {
-			hljs.registerLanguage(l, require(langDir + path.sep + l));
+		if (languages.length > 0) {
+			var libDir = rootDir + path.sep + 'lib';
+			var hljs = require(libDir + path.sep + 'core');
+			var langDir = libDir + path.sep + 'languages';
+
+			for (l of languages) {
+				var lang = require(langDir + path.sep + l);
+
+				hljs.registerLanguage(l, lang);
+			}
+
+			return hljs;
+		} else {
+			return require(rootDir);
 		}
-
-		return hljs;
 	} catch (err) {
 		return null;
 	}
