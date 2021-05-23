@@ -132,7 +132,7 @@
 (defmethod code-info-rf :code-block
   [acc {:keys [content info]}]
   (let [entry (cond-> {:string content}
-                info (assoc :syntax info))]
+                (not-empty info) (assoc :syntax info))]
     (conj acc entry)))
 
 (defmethod code-info-rf :default
