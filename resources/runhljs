@@ -5,9 +5,17 @@
 var child_process = require('child_process');
 var path = require('path');
 
-function requireHljs(modulesDir) {
+function requireHljs(modulesDir, languages) {
 	try {
-		return require(modulesDir + path.sep + 'highlight.js');
+		var libDir = modulesDir + path.sep + 'highlight.js' + path.sep + 'lib';
+		var hljs = require(libDir + path.sep + 'core');
+		var langDir = libDir + path.sep + 'languages';
+
+		for (l of languages) {
+			hljs.registerLanguage(l, require(langDir + path.sep + l));
+		}
+
+		return hljs;
 	} catch (err) {
 		return null;
 	}
@@ -37,9 +45,11 @@ function yarnModulesDir() {
 	}
 }
 
-var hljs = requireHljs(npmModulesDir())
-	|| requireHljs(yarnModulesDir())
+var languages = process.argv.slice(2);
+var hljs = requireHljs(npmModulesDir(), languages)
+	|| requireHljs(yarnModulesDir(), languages)
 	|| process.exit(1);
+
 var fs = require('fs');
 
 var code = fs.readFileSync(0).toString(); // STDIN_FILENO = 0
