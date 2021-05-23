@@ -191,7 +191,7 @@
                 html-starts-with? #(string/starts-with? html %)]
             (if (zero? out-of-tag-esc-html-size)
               (let [tag (first (filter (comp html-starts-with? :html) info))
-                    token-size (count (staxchg.util/unescape-html (:code tag)))
+                    token-size (count (:code tag))
                     annotator #(update-in % [2 :traits] union (:classes tag))]
                 (recur
                   (subs html (count (:html tag)))
