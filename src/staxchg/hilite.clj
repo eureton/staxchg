@@ -83,11 +83,19 @@
       vector
       set))
 
+(defn jsoup-document
+  "Returns the org.jsoup.nodes.Document which holds the given HTML, properly
+   configured to work well with the app."
+  [html]
+  (-> html
+      Jsoup/parse
+      (.outputSettings (.prettyPrint (Document$OutputSettings.) false))))
+
 (defn info
   ""
   [html]
   (->>
-    (.select (Jsoup/parse html) "span[class]")
+    (.select (jsoup-document html) "span[class]")
     (map (juxt #(.wholeText %) classes #(.outerHtml %)))
     (map (fn [[text classes html]] {html [classes text]}))
     (reduce merge)
@@ -97,26 +105,19 @@
                             :html k}))
                [])))
 
-(defn configure-jsoup-doc
-  "Configures the output settings of the org.jsoup.nodes.Document object to work
-   well with the app."
-  [doc]
-  (.outputSettings doc (.prettyPrint (Document$OutputSettings.) false)))
-
 (defn root-jsoup-elem
   "Expects skylighting shell output in HTML format.
    Returns the JSoup element for the root tag."
   [html]
   (-> html
-      Jsoup/parse
-      configure-jsoup-doc
+      jsoup-document
       (.select "code.sourceCode")
       .first))
 
 (defn normalize-df
   "Dispatch function for hilite/normalize. Returns a keyword."
   [html]
-  (let [doc (-> html Jsoup/parse configure-jsoup-doc)]
+  (let [doc (jsoup-document html)]
     (cond
       (-> doc (.select "code.sourceCode") .first some?) :skylighting
       (-> doc (.select "div.highlight") .first some?) :pygments
@@ -134,8 +135,7 @@
   [html]
   (str "<code class=\"sourceCode\">"
        (-> html
-           Jsoup/parse
-           configure-jsoup-doc
+           jsoup-document
            (.select "div.highlight pre")
            .first
            .html)
