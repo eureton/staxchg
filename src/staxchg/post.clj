@@ -33,6 +33,10 @@
   [post]
   (post "answer_id"))
 
+(defmethod id :default
+  [_]
+  nil)
+
 (def stackexchange-syntax-tags #{"4d" "abc" "asn.1" "abnf" "access-log" "ada"
                                  "arduino" "armasm" "avr" "actionscript"
                                  "apache-config" "apache" "applescript" "arcade"

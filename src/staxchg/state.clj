@@ -141,9 +141,7 @@
   (let [post (case active-pane
                :questions (presentation/selected-question world)
                :answers (presentation/selected-answer world))
-        post-id (get post (case active-pane
-                            :questions "question_id"
-                            :answers "answer_id"))
+        post-id (post/id post)
         previous (presentation/line-offset post world)
         current (clamp-line-offset (scrollf previous world) post world)]
     (dev/log "scroll-delta[" post-id "]: " (- current previous))
