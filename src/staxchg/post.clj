@@ -14,6 +14,25 @@
   (and (not (answer? post))
        (contains? post "question_id")))
 
+(defn df
+  "Dispatch function for post-based multimethods. Returns a keyword."
+  [post]
+  (cond
+    (question? post) :question
+    (answer? post) :answer))
+
+(defmulti id
+  "Returns the StackExchange post ID."
+  df)
+
+(defmethod id :question
+  [post]
+  (post "question_id"))
+
+(defmethod id :answer
+  [post]
+  (post "answer_id"))
+
 (def stackexchange-syntax-tags #{"4d" "abc" "asn.1" "abnf" "access-log" "ada"
                                  "arduino" "armasm" "avr" "actionscript"
                                  "apache-config" "apache" "applescript" "arcade"

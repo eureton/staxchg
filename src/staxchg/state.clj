@@ -196,13 +196,26 @@
   [world command]
   (assoc world :switched-answer? (#{:previous-answer :next-answer} command)))
 
+(defn has-highlights?
+  ""
+  [world post]
+  (contains? (:highlights world) (post/id post)))
+
 (defn mark-hilite-pending
   ""
-  [{:as world :keys [highlights]}]
-  (let [{:as question :strs [question_id]} (presentation/selected-question world)
-        snippets (post/code-info question)]
+  [{:as world :keys [active-pane]}]
+  (let [question (presentation/selected-question world)
+        answer (presentation/selected-answer question world)
+        question? (and (= active-pane :questions)
+                       (not (has-highlights? world question)))
+        answer? (and (some? answer)
+                     (= active-pane :answers)
+                     (not (has-highlights? world answer)))
+        snippets (cond
+                   question? (post/code-info question)
+                   answer? (post/code-info answer))]
     (cond-> world
-      (not (contains? highlights question_id)) (assoc :snippets snippets))))
+      (not-empty snippets) (assoc :snippets snippets))))
 
 (defn parse-command
   ""
@@ -475,31 +488,31 @@
                   "```"
                   "console.log(\"Functor\");"
                   "{"
-                  "	const unit = (val) => ({"
-                  "		// contextValue: () => val,"
-                  "		fmap: (f) => unit((() => {"
-                  "			//you can do pretty much anything here"
-                  "			const newVal = f(val);"
-                  "			//  console.log(newVal); //IO in the functional context"
-                  "			return newVal;"
-                  "		})()),"
-                  "	});"
+                  "  const unit = (val) => ({"
+                  "    // contextValue: () => val,"
+                  "    fmap: (f) => unit((() => {"
+                  "      //you can do pretty much anything here"
+                  "      const newVal = f(val);"
+                  "      //  console.log(newVal); //IO in the functional context"
+                  "      return newVal;"
+                  "    })()),"
+                  "  });"
                   ""
-                  "	const a = unit(3)"
-                  "		.fmap(x => x * 2)  //6"
-                  "		.fmap(x => x + 1); //7"
+                  "  const a = unit(3)"
+                  "    .fmap(x => x * 2)  //6"
+                  "    .fmap(x => x + 1); //7"
                   "}"
                   "```"]
                  (clojure.string/join "\r\n"))
 
-        qs-raw [{"tags" ["clojure"]
-                 "question_id" qid
-                 "body_markdown" md
-                 "title" "haskell !!"}
-                {"tags" ["haskell" "javascript"]
+        qs-raw [{"tags" ["haskell" "javascript"]
                  "question_id" q2id
                  "body_markdown" md2
-                 "title" "javascript :("}]
+                 "title" "javascript :("}
+                {"tags" ["clojure"]
+                 "question_id" qid
+                 "body_markdown" md
+                 "title" "haskell !!"}]
         as-raw [{"tags" ["c++"]
                  "answer_id" aid
                  "question_id" qid
@@ -525,13 +538,15 @@
         in (clojure.core.async/<!! resp-ch)
         w2 (update-world w1 in)
         plot (staxchg.markdown/plot (get-in w2 [:questions 0 "body_markdown"]) {:width 118})
-        hilites (get-in w2 [:highlights qid])
+        hilites (get-in w2 [:highlights q2id])
         a2 (get-in w2 [:questions 0 "answers" 0])
         ]
-    {:state (select-keys w2 [:snippets :highlights])
+    {:plot plot :highlights hilites}
+;   (staxchg.flow.item/highlight-code {:plot plot :highlights hilites})
+;   {:state (select-keys w2 [:snippets :highlights])
 ;    :incoming in-rs
 ;    :outgoing out-rs
 ;    :render? (render? w1)
-     }
+;    }
     ))
 

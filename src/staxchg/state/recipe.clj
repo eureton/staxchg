@@ -13,7 +13,7 @@
 (defn highlight-code-step
   ""
   [{:keys [string syntax question-id answer-id]}]
-  {:function :staxchg.io/highlight-code!
+  {:function :staxchg.io/run-highlight.js!
    :params [string syntax question-id answer-id]})
 
 (defn input-df
