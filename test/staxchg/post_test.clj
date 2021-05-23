@@ -30,12 +30,12 @@
 
   (testing "tag with no fence syntax"
     (is (= (code-snippet-syntaxes (post {:tags ["java"]}))
-           ["java"])))
+           [#{"java"}])))
 
   (testing "tag with fence syntax"
     (is (= (code-snippet-syntaxes (post {:tags ["java"]
                                          :fence-syntax "clojure"}))
-           ["clojure"])))
+           [#{"clojure"}])))
 
   (testing "question id"
     (is (= (code-snippet-question-ids (post {:question-id "12321"
@@ -85,6 +85,8 @@
          (str (fence-blk "xyz")
               "\r\n\r\n"
               (fence-blk "abc" "java")) [{:string "abc\r\n"
-                                          :syntax "java"
-                                          :question-id qid}])))
+                                          :syntax #{"java"}
+                                          :question-id qid}]))
+ (testing "pun nil"
+    (is (empty? (code-info nil)))))
 
