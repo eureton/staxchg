@@ -90,3 +90,7 @@
  (testing "pun nil"
     (is (empty? (code-info nil)))))
 
+(deftest id-test
+  (testing "pun nil"
+    (is (nil? (id nil)))))
+
