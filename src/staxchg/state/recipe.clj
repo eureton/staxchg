@@ -10,11 +10,28 @@
   "The number of milliseconds to sleep for between poll runs."
   500)
 
-(defn highlight-code-step
-  ""
-  [{:keys [string syntax question-id answer-id]}]
+(defn highlight-code-step-df
+  "Dispatch function for highlight-code-step."
+  [_ highlighter]
+  highlighter)
+
+(defmulti highlight-code-step
+  "Returns a recipe step hash for highlighting snippet with highlighter."
+  highlight-code-step-df)
+
+(defmethod highlight-code-step :skylighting
+  [{:keys [string syntax question-id answer-id]} _]
+  {:function :staxchg.io/run-skylighting!
+   :params [string (first syntax) question-id answer-id]})
+
+(defmethod highlight-code-step :highlight.js
+  [{:keys [string syntax question-id answer-id]} _]
   {:function :staxchg.io/run-highlight.js!
    :params [string syntax question-id answer-id]})
+
+(defmethod highlight-code-step :pygments
+  [snippet _]
+  (highlight-code-step snippet :skylighting))
 
 (defn input-df
   ""
@@ -42,6 +59,8 @@
   [[{:function :staxchg.io/register-theme!
      :params ["staxchg" "lanterna-theme.properties"]}
     {:function :staxchg.io/acquire-screen!
+     :params []}
+    {:function :staxchg.io/resolve-highlighter!
      :params []}]])
 
 (defmethod input :enable-screen
@@ -50,8 +69,8 @@
      :params [:screen]}]])
 
 (defmethod input :snippets
-  [{:keys [snippets]}]
-  (list (map highlight-code-step snippets)))
+  [{:io/keys [context] :keys [snippets]}]
+  (list (map highlight-code-step snippets (repeat (get context :highlighter)))))
 
 (defmethod input :search-term
   [{:keys [search-term]}]

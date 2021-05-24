@@ -9,6 +9,10 @@
   (:import org.jsoup.nodes.Document$OutputSettings)
   (:gen-class))
 
+(def tools
+  "Set containing keyword IDs of all supported syntax highlighting tools."
+  #{:skylighting :highlight.js :pygments})
+
 (def class-trait-map {; skylighting
                       :kw :hilite-keyword
                       :dt :hilite-data-type

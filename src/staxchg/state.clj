@@ -286,6 +286,14 @@
   [world screen]
   (update world :io/context assoc :screen screen))
 
+(defn update-for-highlighter
+  ""
+  [world value]
+  (let [highlighter (or (-> value keyword hilite/tools)
+                        :skylighting)]
+    (dev/log "[update-for-highlighter] '" value "' -> " highlighter)
+    (update world :io/context assoc :highlighter highlighter)))
+
 (defn update-for-dimensions
   ""
   [world]
@@ -409,6 +417,7 @@
    {:keys [function values]}]
   (if-some [f (case function
                 :acquire-screen! update-for-screen
+                :resolve-highlighter! update-for-highlighter
                 :enable-screen! update-for-dimensions
                 :poll-key! update-for-keystroke
                 :poll-resize! update-for-resize
@@ -520,7 +529,7 @@
         as (mapv api/scrub as-raw)
         req-ch (clojure.core.async/chan 1)
         resp-ch (clojure.core.async/chan 1)
-        ctx {:screen 1234}
+        ctx {:screen 1234 :highlighter :highlight.js}
         w1 (-> (make)
                (assoc :io/context ctx :width 100 :height 200)
                (update-for-new-questions qs)
@@ -539,8 +548,8 @@
         hilites (get-in w2 [:highlights q2id])
         a2 (get-in w2 [:questions 0 "answers" 0])
         ]
-    {:plot plot :highlights hilites}
-;   (staxchg.flow.item/highlight-code {:plot plot :highlights hilites})
+;   in-rs
+    (staxchg.flow.item/highlight-code {:plot plot :highlights hilites})
 ;   {:state (select-keys w2 [:snippets :highlights])
 ;    :incoming in-rs
 ;    :outgoing out-rs
