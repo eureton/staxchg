@@ -35,7 +35,12 @@
   ([string]
    (decorate string {})))
 
-(defmulti log-recipe-step :function)
+(def recipe-step-hierarchy (-> (make-hierarchy)
+                               (derive :staxchg.io/run-highlight.js! :staxchg.io/highlight-code!)
+                               (derive :staxchg.io/run-skylighting! :staxchg.io/highlight-code!)
+                               atom))
+
+(defmulti log-recipe-step :function :hierarchy recipe-step-hierarchy)
 
 (defmethod log-recipe-step :staxchg.io/put-markdown!
   [{[_ plot _] :params}]
@@ -71,8 +76,9 @@
        "question-id: " question-id))
 
 (defmethod log-recipe-step :staxchg.io/highlight-code!
-  [{[code syntax question-id answer-id] :params}]
-  (->> [(cond-> (str "[highlight-code] BEGIN syntax: " syntax ", ")
+  [{[code syntaxes question-id answer-id] :params}]
+  (->> [(cond-> (str "[highlight-code] BEGIN syntax: ")
+          true (str (cond->> syntaxes (coll? syntaxes) (string/join " ")) ", ")
           answer-id (str "answer-id: " answer-id ", ")
           true (str "question-id: " question-id))
         (decorate code)
