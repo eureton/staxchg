@@ -1,6 +1,7 @@
 (ns staxchg.io
   (:require [clojure.core.async :as async :refer [>!! <!! thread close!]])
   (:require [clojure.java.shell])
+  (:require [clojure.java.io :as io])
   (:require [staxchg.markdown :as markdown])
   (:require [staxchg.state :as state])
   (:require [staxchg.state.recipe :as state.recipe])
@@ -185,8 +186,8 @@
   (let [sh-out (try
                  (clojure.java.shell/sh
                    "skylighting"
-                   "--format=html"
-                   (str "--syntax=" syntax)
+                   "--format" "html"
+                   "--syntax" syntax
                    :in code)
                  (catch java.io.IOException _ nil))]
     {:function :highlight-code!
@@ -195,10 +196,10 @@
 (defn run-highlight.js!
   ""
   [code syntaxes question-id answer-id]
-  (dev/log ">>" syntaxes "<<")
-  (let [sh-out (try
+  (let [pathname (-> "runhljs" io/resource .toURI java.io.File. .getPath)
+        sh-out (try
                  (apply clojure.java.shell/sh
-                        "./resources/runhljs"
+                        pathname
                         (concat syntaxes [:in code]))
                  (catch java.io.IOException _ nil))]
     {:function :highlight-code!
