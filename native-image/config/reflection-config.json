@@ -3,7 +3,7 @@
 		"methods" : [{"name":"canAccess"}]
 	},
 	{
-		"name" : "sun.font.StrikeCache",
+		"name" : "java.lang.String",
 		"allDeclaredConstructors" : true,
 		"allPublicConstructors" : true,
 		"allDeclaredMethods" : true,
@@ -12,7 +12,43 @@
 		"allPublicClasses" : true
 	},
 	{
-		"name" : "org.apache.commons.logging.impl.LogFactoryImpl",
+		"name" : "java.lang.Math",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "java.time.LocalDateTime",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "java.time.Month",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "java.time.ZoneOffset",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "sun.font.StrikeCache",
 		"allDeclaredConstructors" : true,
 		"allPublicConstructors" : true,
 		"allDeclaredMethods" : true,
@@ -76,33 +112,6 @@
 	},
 	{
 		"name" : "org.jsoup.nodes.Document$OutputSettings",
-		"allDeclaredConstructors" : true,
-		"allPublicConstructors" : true,
-		"allDeclaredMethods" : true,
-		"allPublicMethods" : true,
-		"allDeclaredClasses" : true,
-		"allPublicClasses" : true
-	},
-	{
-		"name" : "java.lang.String",
-		"allDeclaredConstructors" : true,
-		"allPublicConstructors" : true,
-		"allDeclaredMethods" : true,
-		"allPublicMethods" : true,
-		"allDeclaredClasses" : true,
-		"allPublicClasses" : true
-	},
-	{
-		"name" : "java.lang.Math",
-		"allDeclaredConstructors" : true,
-		"allPublicConstructors" : true,
-		"allDeclaredMethods" : true,
-		"allPublicMethods" : true,
-		"allDeclaredClasses" : true,
-		"allPublicClasses" : true
-	},
-	{
-		"name" : "org.apache.commons.logging.LogFactory",
 		"allDeclaredConstructors" : true,
 		"allPublicConstructors" : true,
 		"allDeclaredMethods" : true,
@@ -327,24 +336,6 @@
 		"allPublicClasses" : true
 	},
 	{
-		"name" : "com.vladsch.flexmark.parser.Parser",
-		"allDeclaredConstructors" : true,
-		"allPublicConstructors" : true,
-		"allDeclaredMethods" : true,
-		"allPublicMethods" : true,
-		"allDeclaredClasses" : true,
-		"allPublicClasses" : true
-	},
-	{
-		"name" : "com.vladsch.flexmark.parser.Parser$Builder",
-		"allDeclaredConstructors" : true,
-		"allPublicConstructors" : true,
-		"allDeclaredMethods" : true,
-		"allPublicMethods" : true,
-		"allDeclaredClasses" : true,
-		"allPublicClasses" : true
-	},
-	{
 		"name" : "com.googlecode.lanterna.TerminalTextUtils",
 		"allDeclaredConstructors" : true,
 		"allPublicConstructors" : true,
@@ -454,6 +445,24 @@
 	},
 	{
 		"name" : "com.googlecode.lanterna.terminal.ansi.UnixLikeTerminal$CtrlCBehaviour",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.parser.Parser",
+		"allDeclaredConstructors" : true,
+		"allPublicConstructors" : true,
+		"allDeclaredMethods" : true,
+		"allPublicMethods" : true,
+		"allDeclaredClasses" : true,
+		"allPublicClasses" : true
+	},
+	{
+		"name" : "com.vladsch.flexmark.parser.Parser$Builder",
 		"allDeclaredConstructors" : true,
 		"allPublicConstructors" : true,
 		"allDeclaredMethods" : true,
@@ -760,42 +769,6 @@
 	},
 	{
 		"name" : "com.vladsch.flexmark.util.ast.NodeIterator",
-		"allDeclaredConstructors" : true,
-		"allPublicConstructors" : true,
-		"allDeclaredMethods" : true,
-		"allPublicMethods" : true,
-		"allDeclaredClasses" : true,
-		"allPublicClasses" : true
-	},
-	{
-		"name" : "java.time.LocalDateTime",
-		"allDeclaredConstructors" : true,
-		"allPublicConstructors" : true,
-		"allDeclaredMethods" : true,
-		"allPublicMethods" : true,
-		"allDeclaredClasses" : true,
-		"allPublicClasses" : true
-	},
-	{
-		"name" : "java.time.Month",
-		"allDeclaredConstructors" : true,
-		"allPublicConstructors" : true,
-		"allDeclaredMethods" : true,
-		"allPublicMethods" : true,
-		"allDeclaredClasses" : true,
-		"allPublicClasses" : true
-	},
-	{
-		"name" : "java.time.ZoneOffset",
-		"allDeclaredConstructors" : true,
-		"allPublicConstructors" : true,
-		"allDeclaredMethods" : true,
-		"allPublicMethods" : true,
-		"allDeclaredClasses" : true,
-		"allPublicClasses" : true
-	},
-	{
-		"name" : "org.apache.commons.logging.impl.SimpleLog",
 		"allDeclaredConstructors" : true,
 		"allPublicConstructors" : true,
 		"allDeclaredMethods" : true,
