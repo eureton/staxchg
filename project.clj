@@ -27,7 +27,6 @@
   :plugins [[io.taylorwood/lein-native-image "0.3.1"]]
   :native-image {:name "staxchg"
                  :opts ["--initialize-at-build-time"
-                        "--allow-incomplete-classpath"
                         "--report-unsupported-elements-at-runtime"
                         "--no-server"
                         "--no-fallback"
