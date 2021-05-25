@@ -196,10 +196,9 @@
 (defn run-highlight.js!
   ""
   [code syntaxes question-id answer-id]
-  (let [pathname (-> "runhljs" io/resource .toURI java.io.File. .getPath)
-        sh-out (try
+  (let [sh-out (try
                  (apply clojure.java.shell/sh
-                        pathname
+                        "runhljs"
                         (concat syntaxes [:in code]))
                  (catch java.io.IOException _ nil))]
     {:function :highlight-code!
