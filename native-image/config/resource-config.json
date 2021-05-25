@@ -1,7 +1,8 @@
 {
 	"resources": {
 		"includes": [
-			{"pattern": ".*lanterna-theme.properties$"}
+			{"pattern": ".*lanterna-theme.properties$"},
+			{"pattern": ".*runhljs$"}
 		],
 		"excludes": []
 	}
