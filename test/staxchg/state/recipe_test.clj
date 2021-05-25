@@ -50,23 +50,20 @@
          :skylighting :staxchg.io/run-skylighting!
          :highlight.js :staxchg.io/run-highlight.js!))
 
-  (testing "params"
-    (def snippet {:string "xyz"
-                  :syntax #{"ruby"}
-                  :question-id "qid"
-                  :answer-id "aid"})
-
-    (are [index value]
-         (= (get-in (highlight-code-step snippet :skylighting) [:params index])
-            value)
-         0 "xyz"
-         1 "ruby"
-         2 "qid"
-         3 "aid"))
-
   (testing "highlight.js, multiple syntaxes"
     (def snippet {:string "x" :syntax #{"c" "c++"}})
 
     (is (= (get-in (highlight-code-step snippet :highlight.js) [:params 1])
-           #{"c" "c++"}))))
+           #{"c" "c++"})))
+
+  (testing "syntax translation"
+    (defn snippet [syntax] {:string "x" :syntax #{syntax}})
+
+    (testing "skylighting"
+      (is (= (get-in (highlight-code-step (snippet "f#") :skylighting) [:params 1])
+             "fsharp")))
+
+    (testing "highlight.js"
+      (is (= (get-in (highlight-code-step (snippet "avr") :highlight.js) [:params 1])
+             #{"avrasm"})))))
 
