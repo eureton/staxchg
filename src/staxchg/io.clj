@@ -1,7 +1,6 @@
 (ns staxchg.io
   (:require [clojure.core.async :as async :refer [>!! <!! thread close!]])
   (:require [clojure.java.shell])
-  (:require [clojure.java.io :as io])
   (:require [staxchg.markdown :as markdown])
   (:require [staxchg.state :as state])
   (:require [staxchg.state.recipe :as state.recipe])
