@@ -20,9 +20,9 @@
 
 (defn highlight-code
   ""
-  [{:keys [plot code-highlights]}]
+  [{:keys [plot highlights]}]
   (reduce (fn [agg {:keys [from to] code-plot :plot}]
-            (if-some [highlight (->> code-highlights
+            (if-some [highlight (->> highlights
                                      (filter #(hilite/match? % code-plot))
                                      first)]
               (let [offset (hilite/index-of highlight code-plot)

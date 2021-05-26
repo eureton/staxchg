@@ -11,7 +11,6 @@
   (:require [staxchg.api :as api])
   (:require [staxchg.dev :as dev])
   (:require [staxchg.util :as util])
-; (:require [clj-http.client :as http])
   (:require [clj-http.lite.client :as http])
   (:import com.googlecode.lanterna.TerminalSize)
   (:import com.googlecode.lanterna.TextColor$ANSI)
@@ -95,7 +94,7 @@
 
 (defn put-markdown!
   [graphics plot _]
-  (doseq [[character [x y]] plot]
+  (doseq [[character [x y] {:keys [traits]}] plot]
     (.setCharacter graphics x y (decorate-with-current character graphics))))
 
 (defn put-string!
@@ -180,15 +179,26 @@
   {:function :fetch-answers!
    :values [(blocking-fetch! url query-params screen) question-id]})
 
-(defn highlight-code!
+(defn run-skylighting!
   ""
   [code syntax question-id answer-id]
   (let [sh-out (try
                  (clojure.java.shell/sh
                    "skylighting"
-                   "--format=html"
-                   (str "--syntax=" syntax)
+                   "--format" "html"
+                   "--syntax" syntax
                    :in code)
+                 (catch java.io.IOException _ nil))]
+    {:function :highlight-code!
+     :values [sh-out question-id answer-id]}))
+
+(defn run-highlight.js!
+  ""
+  [code syntaxes question-id answer-id]
+  (let [sh-out (try
+                 (apply clojure.java.shell/sh
+                        "runhljs"
+                        (concat syntaxes [:in code]))
                  (catch java.io.IOException _ nil))]
     {:function :highlight-code!
      :values [sh-out question-id answer-id]}))
@@ -223,6 +233,12 @@
         ; terminal (.createTerminal (DefaultTerminalFactory.))
     {:function :acquire-screen!
      :values [(TerminalScreen. terminal)]}))
+
+(defn resolve-highlighter!
+  ""
+  []
+  {:function :resolve-highlighter!
+   :values [((util/config-hash) "HIGHLIGHTER")]})
 
 (defn enable-screen!
   ""

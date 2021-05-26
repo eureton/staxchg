@@ -1,5 +1,6 @@
 (ns staxchg.presentation
   (:require [clojure.string :as string])
+  (:require [staxchg.post :as post])
   (:require [staxchg.flow :as flow])
   (:require [staxchg.dev :as dev])
   (:require [staxchg.markdown :as markdown])
@@ -85,13 +86,9 @@
 
 (defn line-offset
   ""
-  [post
-   {:as world
-    :keys [active-pane]}]
-  (let [id-key (case active-pane :questions "question_id" :answers "answer_id")
-        post-id (get post id-key)]
-   (or (get-in world [:line-offsets post-id])
-       0)))
+  [post world]
+  (or (get-in world [:line-offsets (post/id post)])
+      0))
 
 (defn selected-question
   ""
@@ -269,7 +266,7 @@
   (flow/make {:type :markdown
               :raw body_markdown
               :scroll-delta (get-in world [:scroll-deltas question_id])
-              :code-highlights (get-in world [:code-highlights question_id])}))
+              :highlights (get-in world [:highlights question_id])}))
 
 (defn answer-flow
   ""
@@ -277,7 +274,7 @@
   (flow/make {:type :markdown
               :raw body_markdown
               :scroll-delta (get-in world [:scroll-deltas answer_id])
-              :code-highlights (get-in world [:code-highlights answer_id])}))
+              :highlights (get-in world [:highlights answer_id])}))
 
 (defn questions-body-flow
   ""

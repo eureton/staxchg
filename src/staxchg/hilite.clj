@@ -9,36 +9,72 @@
   (:import org.jsoup.nodes.Document$OutputSettings)
   (:gen-class))
 
-(def skylighting-class-trait-map {:kw :hilite-keyword
-                                  :dt :hilite-data-type
-                                  :dv :hilite-dec-val
-                                  :bn :hilite-base-n
-                                  :fl :hilite-float
-                                  :cn :hilite-constant
-                                  :ch :hilite-char
-                                  :sc :hilite-special-char
-                                  :st :hilite-string
-                                  :vs :hilite-verbatim-string
-                                  :ss :hilite-special-string
-                                  :im :hilite-import
-                                  :co :hilite-comment
-                                  :do :hilite-documentation
-                                  :an :hilite-annotation
-                                  :cv :hilite-comment-var
-                                  :ot :hilite-other
-                                  :fu :hilite-function
-                                  :va :hilite-variable
-                                  :cf :hilite-control-flow
-                                  :op :hilite-operator
-                                  :bu :hilite-built-in
-                                  :ex :hilite-extension
-                                  :pp :hilite-preprocessor
-                                  :at :hilite-attribute
-                                  :re :hilite-region-marker
-                                  :in :hilite-information
-                                  :wa :hilite-warning
-                                  :al :hilite-alert
-                                  :er :hilite-error})
+(def tools
+  "Set containing keyword IDs of all supported syntax highlighting tools."
+  #{:skylighting :highlight.js :pygments})
+
+(def class-trait-map {; skylighting
+                      :kw :hilite-keyword
+                      :dt :hilite-data-type
+                      :dv :hilite-dec-val
+                      :bn :hilite-base-n
+                      :fl :hilite-float
+                      :cn :hilite-constant
+                      :ch :hilite-char
+                      :sc :hilite-special-char
+                      :st :hilite-string
+                      :vs :hilite-verbatim-string
+                      :ss :hilite-special-string
+                      :im :hilite-import
+                      :co :hilite-comment
+                      :do :hilite-documentation
+                      :an :hilite-annotation
+                      :cv :hilite-comment-var
+                      :ot :hilite-other
+                      :fu :hilite-function
+                      :va :hilite-variable
+                      :cf :hilite-control-flow
+                      :op :hilite-operator
+                      :bu :hilite-built-in
+                      :ex :hilite-extension
+                      :pp :hilite-preprocessor
+                      :at :hilite-attribute
+                      :re :hilite-region-marker
+                      :in :hilite-information
+                      :wa :hilite-warning
+                      :al :hilite-alert
+                      :er :hilite-error
+                      ; highlight.js
+                      :hljs-keyword :hilite-keyword
+                      :hljs-class :hilite-keyword
+                      :hljs-type :hilite-data-type
+                      :hljs-number :hilite-dec-val
+                      :hljs-title :hilite-title
+                      :hljs-params :hilite-params
+                      :hljs-symbol :hilite-constant
+                      :hljs-regexp :hilite-constant
+                      :hljs-literal :hilite-constant
+                      :hljs-string :hilite-string
+                      :hljs-meta-keyword :hilite-import
+                      :hljs-comment :hilite-comment
+                      :hljs-doctag :hilite-documentation
+                      :hljs-function :hilite-function
+                      :hljs-variable :hilite-variable
+                      :hljs-operator :hilite-operator
+                      :hljs-built_in :hilite-built-in
+                      :hljs-builtin-name :hilite-built-in
+                      :hljs-meta :hilite-preprocessor
+                      :hljs-meta-string :hilite-preprocessor
+                      :hljs-attr :hilite-attribute
+                      :hljs-attribute :hilite-attribute
+                      :hljs-sub-attribute :hilite-attribute
+                      :hljs-section :hilite-region-marker
+                      :hljs-tag :hilite-tag
+                      :hljs-selector-tag :hilite-css-selector-tag
+                      :hljs-selector-id :hilite-css-selector-id
+                      :hljs-selector-class :hilite-css-selector-class
+                      :hljs-selector-attr :hilite-css-selector-attr
+                      :hljs-selector-pseudo :hilite-css-selector-pseudo})
 
 (defn classes
   ""
@@ -47,48 +83,81 @@
       .attributes
       (.get "class")
       keyword
-      skylighting-class-trait-map
+      class-trait-map
       vector
       set))
+
+(defn jsoup-document
+  "Returns the org.jsoup.nodes.Document which holds the given HTML, properly
+   configured to work well with the app."
+  [html]
+  (-> html
+      Jsoup/parse
+      (.outputSettings (.prettyPrint (Document$OutputSettings.) false))))
 
 (defn info
   ""
   [html]
   (->>
-    (.select (Jsoup/parse html) "span[class]")
+    (.select (jsoup-document html) "span[class]")
     (map (juxt #(.wholeText %) classes #(.outerHtml %)))
     (map (fn [[text classes html]] {html [classes text]}))
     (reduce merge)
     (reduce-kv (fn [acc k [classes code]]
                  (conj acc {:code code
                             :classes classes
-                            :html (string/replace k
-                                                  #"\">(?!<span class=\")(.*?)</"
-                                                  (str "\">" (util/escape-html code) "</"))}))
+                            :html k}))
                [])))
 
-(defn jsoup-elem
+(defn root-jsoup-elem
   "Expects skylighting shell output in HTML format.
-   Returns the JSoup element for the <code class=\"sourceCode\"> tag."
-  [sh-out]
-  (-> sh-out
-      :out
-      Jsoup/parse
-      (.outputSettings (.prettyPrint (Document$OutputSettings.) false))
+   Returns the JSoup element for the root tag."
+  [html]
+  (-> html
+      jsoup-document
       (.select "code.sourceCode")
       .first))
+
+(defn normalize-df
+  "Dispatch function for hilite/normalize. Returns a keyword."
+  [html]
+  (let [doc (jsoup-document html)]
+    (cond
+      (-> doc (.select "code.sourceCode") .first some?) :skylighting
+      (-> doc (.select "div.highlight") .first some?) :pygments
+      :else :highlight.js)))
+
+(defmulti normalize
+  "Returns html parsable by hilite/root-jsoup-elem, regardless of utility of origin."
+  normalize-df)
+
+(defmethod normalize :skylighting
+  [html]
+  html)
+
+(defmethod normalize :pygments
+  [html]
+  (str "<code class=\"sourceCode\">"
+       (-> html
+           jsoup-document
+           (.select "div.highlight pre")
+           .first
+           .html)
+       "</code>"))
+
+(defmethod normalize :highlight.js
+  [html]
+  (str "<code class=\"sourceCode\">" html "</code>"))
 
 (defn parse
   ""
   [sh-out]
-  (let [ok? (every-pred some?
-                        (comp number? :exit)
-                        (comp zero? :exit)
-                        (comp string? :out))
-        iron #(string/replace % #"[\r\n]" "")]
-    (when (ok? sh-out)
+  (let [iron #(string/replace % #"[\r\n]" "")]
+    (when (util/shell-output-ok? sh-out)
       (->> sh-out
-           jsoup-elem
+           :out
+           normalize
+           root-jsoup-elem
            ((juxt identity #(iron (.html %)) #(iron (.wholeText %))))
            (zipmap [:raw :html :text])))))
 
@@ -126,7 +195,7 @@
                 html-starts-with? #(string/starts-with? html %)]
             (if (zero? out-of-tag-esc-html-size)
               (let [tag (first (filter (comp html-starts-with? :html) info))
-                    token-size (count (staxchg.util/unescape-html (:code tag)))
+                    token-size (count (:code tag))
                     annotator #(update-in % [2 :traits] union (:classes tag))]
                 (recur
                   (subs html (count (:html tag)))

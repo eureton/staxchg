@@ -21,7 +21,7 @@
       :question-list-offset 0
       :questions questions
       :active-pane :questions
-      :code-highlights {}}))
+      :highlights {}}))
   ([]
    (make [])))
 
@@ -141,9 +141,7 @@
   (let [post (case active-pane
                :questions (presentation/selected-question world)
                :answers (presentation/selected-answer world))
-        post-id (get post (case active-pane
-                            :questions "question_id"
-                            :answers "answer_id"))
+        post-id (post/id post)
         previous (presentation/line-offset post world)
         current (clamp-line-offset (scrollf previous world) post world)]
     (dev/log "scroll-delta[" post-id "]: " (- current previous))
@@ -195,6 +193,27 @@
   ""
   [world command]
   (assoc world :switched-answer? (#{:previous-answer :next-answer} command)))
+
+(defn has-highlights?
+  ""
+  [world post]
+  (contains? (:highlights world) (post/id post)))
+
+(defn mark-hilite-pending
+  ""
+  [{:as world :keys [active-pane]}]
+  (let [question (presentation/selected-question world)
+        answer (presentation/selected-answer question world)
+        question? (and (= active-pane :questions)
+                       (not (has-highlights? world question)))
+        answer? (and (some? answer)
+                     (= active-pane :answers)
+                     (not (has-highlights? world answer)))
+        snippets (cond
+                   question? (post/code-info question)
+                   answer? (post/code-info answer))]
+    (cond-> world
+      (not-empty snippets) (assoc :snippets snippets))))
 
 (defn parse-command
   ""
@@ -259,12 +278,21 @@
     world
     (mark-pane-switch command)
     (mark-question-switch command)
-    (mark-answer-switch command)))
+    (mark-answer-switch command)
+    (mark-hilite-pending)))
 
 (defn update-for-screen
   ""
   [world screen]
   (update world :io/context assoc :screen screen))
+
+(defn update-for-highlighter
+  ""
+  [world value]
+  (let [highlighter (or (-> value keyword hilite/tools)
+                        :skylighting)]
+    (dev/log "[update-for-highlighter] '" value "' -> " highlighter)
+    (update world :io/context assoc :highlighter highlighter)))
 
 (defn update-for-dimensions
   ""
@@ -305,16 +333,6 @@
       (not blank?) (assoc :search-term term)
       blank? (assoc :switched-pane? true))))
 
-(defn update-for-new-posts
-  ""
-  [world posts]
-  (let [snippets (->> posts
-                      (map post/code-info)
-                      (keep not-empty)
-                      flatten)]
-    (cond-> world
-      (not-empty snippets) (assoc :snippets snippets))))
-
 (defn update-for-new-questions
   ""
   [{:keys [width height io/context]}
@@ -322,7 +340,7 @@
   (-> (make questions)
       (assoc :io/context context :width width :height height)
       (assoc :switched-question? true)
-      (update-for-new-posts questions)))
+      mark-hilite-pending))
 
 (defn update-for-questions-response
   ""
@@ -355,7 +373,7 @@
       (assoc-in [:questions index :more-answers-to-fetch?] more?)
       (assoc-in [:selected-answers question-id] (-> answers first (get "answer_id")))
       (assoc :active-pane :answers :switched-pane? true)
-      (update-for-new-posts answers))))
+      mark-hilite-pending)))
 
 (defn update-for-answers-response
   ""
@@ -379,19 +397,19 @@
     true (clear-marks)
     (not-empty questions) (assoc :switched-pane? true)))
 
-(defn update-for-code-highlights
+(defn update-for-highlights
   ""
   [world sh-out question-id answer-id]
   (let [hilite (hilite/parse sh-out)
         post-id (or answer-id question-id)]
-    (dev/log "[update-for-code-highlights] "
+    (dev/log "[update-for-highlights] "
              "question-id: '" question-id "', "
              "answer-id: '" answer-id "'\r\n"
              hilite)
     (cond-> world
         true (clear-marks)
         true (assoc (if answer-id :switched-answer? :switched-question?) true)
-        hilite (update-in [:code-highlights post-id] (comp vec conj) hilite))))
+        hilite (update-in [:highlights post-id] (comp vec conj) hilite))))
 
 (defn update-world-rf
   ""
@@ -399,6 +417,7 @@
    {:keys [function values]}]
   (if-some [f (case function
                 :acquire-screen! update-for-screen
+                :resolve-highlighter! update-for-highlighter
                 :enable-screen! update-for-dimensions
                 :poll-key! update-for-keystroke
                 :poll-resize! update-for-resize
@@ -408,7 +427,7 @@
                 :no-questions! update-for-no-posts
                 :no-answers! update-for-no-posts
                 :fetch-failed! update-for-no-posts
-                :highlight-code! update-for-code-highlights
+                :highlight-code! update-for-highlights
                 nil)]
     (do (dev/log "[update-world-rf] " function)
         (apply f world values))
@@ -465,12 +484,42 @@
                  "  (* x x))"
                  "```"]
                 (clojure.string/join "\r\n"))
-        qs-raw [{;"tags" ["clojure"]
-                 "tags" ["javascript" "haskell" "functional-programming" "monads"]
+        q2id 11223344
+        md2 (->> ["Have some Haskell:"
+                  ""
+                  "    ws <- getLine >>= return . words  -- Monad"
+                  "    ws <- words <$> getLine           -- Functor (much nicer)"
+                  ""
+                  "Now have some JavaScript :D"
+                  ""
+                  "```"
+                  "console.log(\"Functor\");"
+                  "{"
+                  "  const unit = (val) => ({"
+                  "    // contextValue: () => val,"
+                  "    fmap: (f) => unit((() => {"
+                  "      //you can do pretty much anything here"
+                  "      const newVal = f(val);"
+                  "      //  console.log(newVal); //IO in the functional context"
+                  "      return newVal;"
+                  "    })()),"
+                  "  });"
+                  ""
+                  "  const a = unit(3)"
+                  "    .fmap(x => x * 2)  //6"
+                  "    .fmap(x => x + 1); //7"
+                  "}"
+                  "```"]
+                 (clojure.string/join "\r\n"))
+
+        qs-raw [{"tags" ["haskell" "javascript"]
+                 "question_id" q2id
+                 "body_markdown" md2
+                 "title" "javascript :("}
+                {"tags" ["clojure"]
                  "question_id" qid
-;                "body_markdown" md
-                 "body_markdown" (get-in api/error-wrapper-object ["items" 0 "body_markdown"])
-                 "title" ""}]
+                 "body_markdown" md
+                 "title" "haskell !!"}]
         as-raw [{"tags" ["c++"]
                  "answer_id" aid
                  "question_id" qid
@@ -480,7 +529,7 @@
         as (mapv api/scrub as-raw)
         req-ch (clojure.core.async/chan 1)
         resp-ch (clojure.core.async/chan 1)
-        ctx {:screen 1234}
+        ctx {:screen 1234 :highlighter :highlight.js}
         w1 (-> (make)
                (assoc :io/context ctx :width 100 :height 200)
                (update-for-new-questions qs)
@@ -496,9 +545,15 @@
         in (clojure.core.async/<!! resp-ch)
         w2 (update-world w1 in)
         plot (staxchg.markdown/plot (get-in w2 [:questions 0 "body_markdown"]) {:width 118})
-        hilites (get-in w2 [:code-highlights qid])
-;       a2 (get-in w2 [:questions 0 "answers" 0])
+        hilites (get-in w2 [:highlights q2id])
+        a2 (get-in w2 [:questions 0 "answers" 0])
         ]
-    (staxchg.flow.item/highlight-code {:plot plot :code-highlights hilites})
+;   in-rs
+    (staxchg.flow.item/highlight-code {:plot plot :highlights hilites})
+;   {:state (select-keys w2 [:snippets :highlights])
+;    :incoming in-rs
+;    :outgoing out-rs
+;    :render? (render? w1)
+;    }
     ))
 
