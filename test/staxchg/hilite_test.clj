@@ -19,7 +19,20 @@
 
       (is (->> (info html)
                (filter (comp #{html} :html))
-               some?)))))
+               some?))))
+
+  (testing "nested tags"
+    (let [html "<span class=\"cv\"><span class=\"co\">x</span></span>"
+          classes (->> (info html)
+                       (filter (comp #{"x"} :code))
+                       (map :classes))]
+      (testing "groups classes"
+        (is (= (count classes)
+               1)))
+
+      (testing "collates classes into a set"
+        (is (= (first classes)
+               #{:hilite-comment-var :hilite-comment}))))))
 
 (deftest annotate-test
   (testing "HTML entities outside tags"
