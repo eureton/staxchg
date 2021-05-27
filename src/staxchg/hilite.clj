@@ -49,6 +49,7 @@
                       :hljs-class :hilite-keyword
                       :hljs-type :hilite-data-type
                       :hljs-number :hilite-dec-val
+                      :hljs-name :hilite-title
                       :hljs-title :hilite-title
                       :hljs-params :hilite-params
                       :hljs-symbol :hilite-constant
@@ -76,17 +77,6 @@
                       :hljs-selector-attr :hilite-css-selector-attr
                       :hljs-selector-pseudo :hilite-css-selector-pseudo})
 
-(defn classes
-  ""
-  [node]
-  (-> node
-      .attributes
-      (.get "class")
-      keyword
-      class-trait-map
-      vector
-      set))
-
 (defn jsoup-document
   "Returns the org.jsoup.nodes.Document which holds the given HTML, properly
    configured to work well with the app."
@@ -95,19 +85,51 @@
       Jsoup/parse
       (.outputSettings (.prettyPrint (Document$OutputSettings.) false))))
 
+(defn outer-hilite-nodes
+  "Returns Jsoup nodes which denote a syntax highlight. In case of multiple
+   nested nodes, only the outermost are returned."
+  [doc]
+  (.select doc "span[class]:not(span[class] > span[class])"))
+
+(defn inner-hilite-nodes
+  "Returns Jsoup nodes within node which denote a syntax highlight."
+  [node]
+  (loop [node node
+         result []]
+    (if-some [subnode (-> node
+                          .html
+                          jsoup-document
+                          outer-hilite-nodes
+                          first)]
+      (recur subnode (conj result subnode))
+      result)))
+
+(defn classes
+  "Returns a set of all detected syntax highlight classes for both node and its
+   descendants."
+  [node]
+  (let [mapper #(-> % .attributes (.get "class") keyword class-trait-map)]
+    (->> node
+         ((juxt inner-hilite-nodes identity))
+         (apply conj)
+         (map mapper)
+         set)))
+
 (defn info
   ""
   [html]
-  (->>
-    (.select (jsoup-document html) "span[class]")
-    (map (juxt #(.wholeText %) classes #(.outerHtml %)))
-    (map (fn [[text classes html]] {html [classes text]}))
-    (reduce merge)
-    (reduce-kv (fn [acc k [classes code]]
-                 (conj acc {:code code
-                            :classes classes
-                            :html k}))
-               [])))
+  (->> html
+       jsoup-document
+       outer-hilite-nodes
+       (map (juxt #(.wholeText %) #(.outerHtml %) classes))
+       (sort-by (comp - count second))
+       (map (fn [[text html classes]] {html [classes text]}))
+       (reduce merge)
+       (reduce-kv (fn [acc k [classes code]]
+                    (conj acc {:code code
+                               :classes classes
+                               :html k}))
+                  [])))
 
 (defn root-jsoup-elem
   "Expects skylighting shell output in HTML format.
