@@ -1,5 +1,5 @@
 (ns staxchg.flexmark
-  (:require [staxchg.ast :as ast])
+  (:require [treeduce.core :as treeduce])
   (:import (com.vladsch.flexmark.parser Parser))
   (:gen-class))
 
@@ -50,22 +50,21 @@
 
 (defn unpack
   ""
-  [node zerof addf leaff]
-  (let [attrs (attributes node)]
+  [node]
+  (let [data (assoc (attributes node) :tag (tag node))]
     (if (.hasChildren node)
       (loop [iterator (.getChildIterator node)
-             result (zerof (tag node) attrs)]
+             result (treeduce/node data)]
         (if (.hasNext iterator)
-          (recur
-            iterator
-            (addf result (unpack (.next iterator) zerof addf leaff)))
+          (recur iterator
+                 (treeduce/add result (unpack (.next iterator))))
           result))
-      (leaff (tag node) (-> node .getChars .unescape) attrs))))
+      (treeduce/node (assoc data :content (-> node .getChars .unescape))))))
 
 (defn parse
   ""
   [string]
   (let [parser (-> (Parser/builder) .build)
         root (.parse parser string)]
-    (unpack root ast/zero ast/add ast/leaf)))
+    (unpack root)))
 

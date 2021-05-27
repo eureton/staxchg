@@ -51,7 +51,7 @@
     #(apply update % 2 update :traits (comp set conj) traits)
     plot))
 
-(defn ast-dispatch-fn [node & _] (node :tag))
+(defn ast-dispatch-fn [node & _] (-> node :data :tag))
 
 (defmulti next-at ast-dispatch-fn :hierarchy ontology)
 
@@ -109,6 +109,18 @@
       (format (str "%" (if alpha? 1 figure-count) "s. "))
       (straight x y))))
 
+(defn retag
+  "Sets the markdown tag. Useful in forcing the node through a handler which
+   doesn't match the original tag, when calling multimethods."
+  ([node tag]
+   (assoc-in node [:data :tag] tag)))
+
+(defn untag
+  "Sets the markdown tag to :default, effectively untagging the node. Useful in
+   forcing the node through the default handler of multimethods."
+  [node]
+  (retag node :default))
+
 (defmulti ast ast-dispatch-fn :hierarchy ontology)
 
 (defmethod ast :txt
@@ -121,7 +133,7 @@
                                     (+ top y i)
                                     line))]
     (as->
-      (node :content) v
+      (-> node :data :content) v
       (staxchg.string/reflow v {:x x :width width})
       (string/split-lines v)
       (truncate v)
@@ -129,7 +141,7 @@
       (reduce concat v))))
 
 (defmethod ast :tbr
-  [node
+  [_
    {:keys [y width]
     :or {y 0}}]
   (decorate
@@ -145,18 +157,18 @@
         indent (straight x y indent-length \space)
         decor (list-item-decor
                 (ast-dispatch-fn node)
-                {:index (-> node :index)
+                {:index (-> node :data :index)
                  :level level
                  :x (+ x indent-length)
                  :y y
-                 :list-size (-> node :list-size)})
+                 :list-size (-> node :data :list-size)})
         inner-x-offset (+ indent-length (count decor))
         inner-options (assoc
                         options
                         :left (+ x inner-x-offset)
                         :width (- width inner-x-offset)
                         :level (inc level))
-        inner (ast (assoc node :tag :default) inner-options)]
+        inner (ast (untag node) inner-options)]
     (concat indent decor inner)))
 
 (defmethod ast :block-quot
@@ -170,7 +182,7 @@
                         options
                         :left (+ x inner-x-offset)
                         :width (- width inner-x-offset))
-        inner (ast (assoc node :tag :default) inner-options)]
+        inner (ast (untag node) inner-options)]
     (concat decor inner)))
 
 (defmethod ast :sbr
@@ -201,56 +213,56 @@
 
 (defmethod ast :h
   [node options]
-  (-> node (assoc :tag :default) (ast options) (decorate :h)))
+  (-> node untag (ast options) (decorate :h)))
 
 (defmethod ast :em
   [node options]
-  (-> node (assoc :tag :default) (ast options) (decorate :em)))
+  (-> node untag (ast options) (decorate :em)))
 
 (defmethod ast :strong
   [node options]
-  (-> node (assoc :tag :default) (ast options) (decorate :strong)))
+  (-> node untag (ast options) (decorate :strong)))
 
 (defmethod ast :code-block
   [node options]
-  (let [syntax (some not-empty [(:info node) (:syntax options)])]
+  (let [syntax (some not-empty [(-> node :data :info) (:syntax options)])]
     (-> node
-        (assoc :tag :txt)
-        (update :content code/expand-tabs syntax)
+        (retag :txt)
+        (update-in [:data :content] code/expand-tabs syntax)
         (ast options)
         (decorate :code))))
 
 (defmethod ast :html-inline
   [node options]
-  (-> node (assoc :tag :txt) (ast options) (decorate :standout)))
+  (-> node (retag :txt) (ast options) (decorate :standout)))
 
 (defmethod ast :link-ref
   [node options]
-  (-> node (assoc :tag :txt) (ast options) (decorate :standout)))
+  (-> node (retag :txt) (ast options) (decorate :standout)))
 
 (defmethod ast :ref
   [node options]
-  (-> node (assoc :tag :txt) (ast options) (decorate :standout)))
+  (-> node (retag :txt) (ast options) (decorate :standout)))
 
 (defmethod ast :url
   [node options]
-  (-> node (assoc :tag :txt) (ast options) (decorate :standout)))
+  (-> node (retag :txt) (ast options) (decorate :standout)))
 
 (defmethod ast :html-block
   [node options]
-  (-> node (assoc :tag :txt) (ast options) (decorate :standout)))
+  (-> node (retag :txt) (ast options) (decorate :standout)))
 
 (defmethod ast :html-comment-block
   [node options]
-  (-> node (assoc :tag :txt) (ast options) (decorate :comment)))
+  (-> node (retag :txt) (ast options) (decorate :comment)))
 
 (defmethod ast :html-entity
   [node options]
-  (-> node (assoc :tag :txt) (ast options)))
+  (-> node (retag :txt) (ast options)))
 
 (defmethod ast :code
   [node options]
-  (-> node (assoc :tag :default) (ast options) (decorate :standout)))
+  (-> node untag (ast options) (decorate :standout)))
 
 (defn cluster-rf
   ""

@@ -3,54 +3,59 @@
   (:require [clojure.string :as string])
   (:require [clojure.set])
   (:require [staxchg.flexmark :as flexmark])
-  (:require [staxchg.ast :as ast])
+  (:require [treeduce.core :as treeduce])
   (:require [staxchg.plot :as plot])
   (:require [staxchg.dev :as dev])
   (:gen-class))
 
 (defmulti normalize
-  (fn [node _] (node :tag))
+  "Markdown processing step for achieving a domain-specific canonical form.
+   It is implemented as a multimethod and is intended to be called on markdown
+   AST nodes. It dispatches on markdown tags."
+  (comp :tag :data)
   :hierarchy plot/ontology)
 
 (defmethod normalize :olist
-  [node _]
-  (update node :children #(map-indexed
-                            (fn [i item]
-                              (assoc item :index (inc i) :list-size (count %)))
-                            %)))
+  [node]
+  (let [indexer #(-> %2
+                     (assoc-in [:data :index] (inc %1))
+                     (assoc-in [:data :list-size] (-> node :children count)))]
+    (update node :children #(map-indexed indexer %))))
 
 (defmethod normalize :link
-  [node _]
-  (let [url {:tag :url :content (str " " (node :url))}]
+  [node]
+  (let [url (treeduce/node {:tag :url
+                            :content (->> node :data :url (str " "))})]
     (update node :children conj url)))
 
 (defmethod normalize :link-ref
-  [node _]
+  [node]
   (->
     node
-    (assoc :content (str "[" (node :ref) "]"))
+    (assoc-in [:data :content] (str "[" (-> node :data :ref) "]"))
     (dissoc :children)))
 
 (defmethod normalize :html-comment-block
-  [node _]
-  (update node :content #(->> %
-                              (re-find #"<!-- (.*) -->")
-                              second)))
+  [node]
+  (update-in node [:data :content] #(->> %
+                                         (re-find #"<!-- (.*) -->")
+                                         second)))
 
 (defmethod normalize :fenced-code-block
-  [node _]
-  (assoc node :content (->> (:children node)
-                            (filter (comp #{:txt} :tag))
-                            (map :content)
-                            string/join)))
+  [node]
+  (assoc-in node [:data :content] (->> (:children node)
+                                       (map :data)
+                                       (filter (comp #{:txt} :tag))
+                                       (map :content)
+                                       string/join)))
 
 (defmethod normalize :indented-code-block
-  [node _]
-  (update node :content (comp staxchg.string/append-missing-crlf
-                              staxchg.string/trim-leading-indent)))
+  [node]
+  (update-in node [:data :content] (comp staxchg.string/append-missing-crlf
+                                         staxchg.string/trim-leading-indent)))
 
 (defmethod normalize :default
-  [node _]
+  [node]
   node)
 
 (defn decorate [recipient traits & clauses]
@@ -81,9 +86,9 @@
 (defn ast
   ""
   [string]
-  (-> string
-      flexmark/parse
-      (ast/depth-first-walk normalize)))
+  (->> string
+       flexmark/parse
+       (treeduce/map normalize)))
 
 (defn no-cache-plot
   "Returns a sequence of pairs -one for each character of the input string-
@@ -142,5 +147,5 @@
 (defn code-info
   ""
   [string]
-  (ast/reduce-df code-info-rf [] (ast string)))
+  (treeduce/reduce code-info-rf [] (ast string) :depth-first))
 
