@@ -1,11 +1,11 @@
 (ns staxchg.core
   (:require [clojure.core.async :as async :refer [thread]])
   (:require [smachine.core :as smachine])
+  (:require [cookbook.core :as cookbook])
   (:require [staxchg.api :as api])
   (:require [staxchg.io :as io])
   (:require [staxchg.state :as state])
   (:require [staxchg.state.recipe :as state.recipe])
-  (:require [staxchg.request :as request])
   (:require [staxchg.dev :as dev])
   (:gen-class))
 
@@ -13,7 +13,7 @@
   ""
   [in-channel out-channel]
   (loop []
-    (request/route {:from in-channel :to out-channel :log-fn dev/log})
+    (cookbook/route {:from in-channel :to out-channel :log-fn dev/log})
     (recur)))
 
 (defn -main

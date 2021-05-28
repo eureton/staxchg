@@ -40,13 +40,6 @@
   ([config-key not-found]
    (get (config-hash) config-key not-found)))
 
-(defmacro timed-eval
-  [body]
-  `(let [channel# (async/chan 1)
-         timing# (with-out-str (>!! channel# (time (~@body))))]
-     {:value (<!! channel#)
-      :timing timing#}))
-
 (defn unescape-html [string]
   (org.jsoup.parser.Parser/unescapeEntities string true))
 

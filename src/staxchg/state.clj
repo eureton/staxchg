@@ -539,17 +539,15 @@
         req {:recipes in-rs :context ctx}
         _ (do
             (clojure.core.async/>!! req-ch req)
-            (staxchg.request/route {:from req-ch
-                                    :to resp-ch
-                                    :log-fn dev/log}))
+            (cookbook.core/route {:from req-ch :to resp-ch :log-fn dev/log}))
         in (clojure.core.async/<!! resp-ch)
         w2 (update-world w1 in)
         plot (staxchg.markdown/plot (get-in w2 [:questions 0 "body_markdown"]) {:width 118})
         hilites (get-in w2 [:highlights q2id])
         a2 (get-in w2 [:questions 0 "answers" 0])
         ]
-;   in-rs
-    (staxchg.flow.item/highlight-code {:plot plot :highlights hilites})
+    (cookbook.step/inflate-param (first (:params (first (second out-rs)))) (:io/context w2))
+;   (staxchg.flow.item/highlight-code {:plot plot :highlights hilites})
 ;   {:state (select-keys w2 [:snippets :highlights])
 ;    :incoming in-rs
 ;    :outgoing out-rs

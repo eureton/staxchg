@@ -1,33 +1,35 @@
 (ns staxchg.recipe
   (:require [staxchg.flow :as flow])
   (:require [staxchg.flow.item :as flow.item])
-  (:require [staxchg.recipe.step :as step])
   (:require [staxchg.dev :as dev])
-  (:require [staxchg.util :as util])
   (:import com.googlecode.lanterna.SGR)
   (:import com.googlecode.lanterna.TerminalPosition)
   (:import com.googlecode.lanterna.TerminalSize)
   (:gen-class))
 
 (defn sub-graphics
-  ""
+  "Precursor to a lanterna TextGraphics object, which corresponds to the
+   given terminal area.
+   Returns a cookbook.step inflation tuple and expects a lanterna Screen."
   [{:keys [left top width height]}]
-  #(->
-     %
-     .newTextGraphics
-     (.newTextGraphics
-       (TerminalPosition. left top)
-       (TerminalSize. width height))))
+  [#(-> %
+        .newTextGraphics
+        (.newTextGraphics (TerminalPosition. left top)
+                          (TerminalSize. width height)))
+   :screen])
 
 (defn fx-graphics
-  ""
+  "Precursor to a lanterna TextGraphics object, which corresponds to the
+   given terminal area. The object is further configured with the given colors
+   and modifiers.
+   Returns a cookbook.step inflation tuple and expects a lanterna Screen."
   [dimensions
    {:keys [foreground-color background-color modifiers]}]
-  #(->
-     ((sub-graphics dimensions) %)
-     (.enableModifiers (into-array SGR modifiers))
-     (.setForegroundColor foreground-color)
-     (.setBackgroundColor background-color)))
+  [#(-> ((first (sub-graphics dimensions)) %)
+        (.enableModifiers (into-array SGR modifiers))
+        (.setForegroundColor foreground-color)
+        (.setBackgroundColor background-color))
+   :screen])
 
 (defn clear-whole
   ""
@@ -83,18 +85,4 @@
         ((juxt clear-whole scroll clear-scroll-gap) flow zone)
         (map item-processor (visible-flow :items)))
       (remove nil?))))
-
-(defn inflate
-  ""
-  [recipe context]
-  (map step/inflate recipe (repeat context)))
-
-(defn bind-symbols
-  [recipe]
-  (map step/bind-symbol recipe))
-
-(defn commit
-  [recipe]
-  (util/timed-eval
-    (doall (map step/commit recipe))))
 
