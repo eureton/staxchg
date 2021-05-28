@@ -7,7 +7,6 @@
   (:require [staxchg.presentation :as presentation])
   (:require [staxchg.flow :as flow])
   (:require [staxchg.recipe :as recipe])
-  (:require [staxchg.request :as request])
   (:require [staxchg.api :as api])
   (:require [staxchg.dev :as dev])
   (:require [staxchg.util :as util])

@@ -98,7 +98,7 @@
         hash-with-keys? #(and (map? item)
                               (has-keys? %&))]
     (cond
-      (hash-with-keys? :context :recipes) :request
+      (hash-with-keys? :context :recipes) :cookbook
       (hash-with-keys? :raw :html :text) :hilite)))
 
 (defmulti log-item
@@ -106,7 +106,7 @@
    Returns a string suitable for writing to a file."
   log-item-df)
 
-(defmethod log-item :request
+(defmethod log-item :cookbook
   [{:keys [recipes timing]}]
   (->> [[(str " /^^^ " (count recipes) " recipe(s)")]
         (map #(str "|----- " (string/join ", " (map :function %1)) " ---- " %2)

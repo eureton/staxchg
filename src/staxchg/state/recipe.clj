@@ -3,7 +3,6 @@
   (:require [staxchg.api :as api])
   (:require [staxchg.state :as state])
   (:require [staxchg.presentation :as presentation])
-  (:require [staxchg.recipe.step :as recipe.step])
   (:gen-class))
 
 (def poll-loop-latency
