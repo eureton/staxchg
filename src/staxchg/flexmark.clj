@@ -1,5 +1,5 @@
 (ns staxchg.flexmark
-  (:require [treeduce.core :as treeduce])
+  (:require [squirrel.node :as node])
   (:import (com.vladsch.flexmark.parser Parser))
   (:gen-class))
 
@@ -54,12 +54,12 @@
   (let [data (assoc (attributes node) :tag (tag node))]
     (if (.hasChildren node)
       (loop [iterator (.getChildIterator node)
-             result (treeduce/node data)]
+             result (node/node data)]
         (if (.hasNext iterator)
           (recur iterator
-                 (treeduce/add result (unpack (.next iterator))))
+                 (node/add result (unpack (.next iterator))))
           result))
-      (treeduce/node (assoc data :content (-> node .getChars .unescape))))))
+      (node/node (assoc data :content (-> node .getChars .unescape))))))
 
 (defn parse
   ""

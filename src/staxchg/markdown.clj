@@ -3,7 +3,8 @@
   (:require [clojure.string :as string])
   (:require [clojure.set])
   (:require [staxchg.flexmark :as flexmark])
-  (:require [treeduce.core :as treeduce])
+  (:require [squirrel.tree :as tree])
+  (:require [squirrel.node :as node])
   (:require [staxchg.plot :as plot])
   (:require [staxchg.dev :as dev])
   (:gen-class))
@@ -24,8 +25,8 @@
 
 (defmethod normalize :link
   [node]
-  (let [url (treeduce/node {:tag :url
-                            :content (->> node :data :url (str " "))})]
+  (let [url (node/node {:tag :url
+                        :content (->> node :data :url (str " "))})]
     (update node :children conj url)))
 
 (defmethod normalize :link-ref
@@ -88,7 +89,7 @@
   [string]
   (->> string
        flexmark/parse
-       (treeduce/map normalize)))
+       (tree/map normalize)))
 
 (defn no-cache-plot
   "Returns a sequence of pairs -one for each character of the input string-
@@ -147,5 +148,5 @@
 (defn code-info
   ""
   [string]
-  (treeduce/reduce code-info-rf [] (ast string) :depth-first))
+  (tree/reduce code-info-rf [] (ast string) :depth-first))
 
