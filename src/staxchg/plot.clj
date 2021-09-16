@@ -7,29 +7,24 @@
 (def ontology (->
                 (make-hierarchy)
                 (derive :p :block)
-                (derive :blist :block)
-                (derive :olist :block)
-                (derive :fenced-code-block :block)
-                (derive :indented-code-block :block)
+                (derive :list :block)
+                (derive :ofcblk :block)
+                (derive :icblk :block)
                 (derive :html-block :block)
-                (derive :ref :block)
-                (derive :block-quot :block)
-                (derive :html-comment-block :block)
+                (derive :bq :block)
                 (derive :h :block)
-                (derive :blitem :list-item)
-                (derive :olitem :list-item)
                 (derive :txt :inline)
                 (derive :sbr :inline)
-                (derive :code :inline)
+                (derive :cs :inline)
                 (derive :strong :inline)
                 (derive :em :inline)
-                (derive :link :inline)
+                (derive :a :inline)
                 (derive :url :inline)
                 (derive :html-inline :inline)
-                (derive :link-ref :inline)
-                (derive :html-entity :inline)
-                (derive :fenced-code-block :code-block)
-                (derive :indented-code-block :code-block)
+                (derive :ofcblk :code-block)
+                (derive :icblk :code-block)
+                (derive :atxh :h)
+                (derive :stxh :h)
                 atom))
 
 (defn straight
@@ -82,7 +77,7 @@
     {:x 0
      :y (+ last-y (if (zero? level) 2 1))}))
 
-(defmethod next-at :list-item
+(defmethod next-at :li
   [_ plot {:keys [top] :or {top 0}}]
   {:x 0
    :y (-> plot last second second (- top) inc)})
@@ -91,23 +86,20 @@
   [_ _ _]
   {:x -1 :y -1})
 
-(defmulti list-item-decor (fn [tag _] tag) :hierarchy ontology)
-
-(defmethod list-item-decor :blitem
-  [_ {:keys [x y]}]
-  [[\+     [     x  y] {:traits #{:bullet}}]
-   [\space [(inc x) y]                     ]])
-
-(defmethod list-item-decor :olitem
+(defn list-item-decor
+  ""
   [_ {:keys [index level x y list-size]}]
-  (let [alphabetical-numeral #(-> % dec (+ (int \a)) char)
-        alpha? (odd? level)
-        figure-count (-> list-size Math/log10 Math/floor int inc)]
-    (->>
-      index
-      ((if alpha? alphabetical-numeral str))
-      (format (str "%" (if alpha? 1 figure-count) "s. "))
-      (straight x y))))
+  (if index
+    (let [alphabetical-numeral #(-> % dec (+ (int \a)) char)
+          alpha? (odd? level)
+          figure-count (-> list-size Math/log10 Math/floor int inc)]
+      (->>
+        index
+        ((if alpha? alphabetical-numeral str))
+        (format (str "%" (if alpha? 1 figure-count) "s. "))
+        (straight x y)))
+    [[\+     [     x  y] {:traits #{:bullet}}]
+     [\space [(inc x) y]                     ]]))
 
 (defn retag
   "Sets the markdown tag. Useful in forcing the node through a handler which
@@ -148,7 +140,7 @@
     (straight 0 y width \-)
     :horz))
 
-(defmethod ast :list-item
+(defmethod ast :li
   [node
    {:as options
     :keys [x y level width]
@@ -171,7 +163,7 @@
         inner (ast (untag node) inner-options)]
     (concat indent decor inner)))
 
-(defmethod ast :block-quot
+(defmethod ast :bq
   [node
    {:as options
     :keys [x y width]
@@ -236,14 +228,6 @@
   [node options]
   (-> node (retag :txt) (ast options) (decorate :standout)))
 
-(defmethod ast :link-ref
-  [node options]
-  (-> node (retag :txt) (ast options) (decorate :standout)))
-
-(defmethod ast :ref
-  [node options]
-  (-> node (retag :txt) (ast options) (decorate :standout)))
-
 (defmethod ast :url
   [node options]
   (-> node (retag :txt) (ast options) (decorate :standout)))
@@ -252,15 +236,7 @@
   [node options]
   (-> node (retag :txt) (ast options) (decorate :standout)))
 
-(defmethod ast :html-comment-block
-  [node options]
-  (-> node (retag :txt) (ast options) (decorate :comment)))
-
-(defmethod ast :html-entity
-  [node options]
-  (-> node (retag :txt) (ast options)))
-
-(defmethod ast :code
+(defmethod ast :cs
   [node options]
   (-> node untag (ast options) (decorate :standout)))
 
