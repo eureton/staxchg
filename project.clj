@@ -10,10 +10,11 @@
                  [cheshire "5.10.0"]
                  [com.googlecode.lanterna/lanterna "3.0.4"]
                  [org.jsoup/jsoup "1.11.2"]
-                 [com.vladsch.flexmark/flexmark-all "0.62.2"]
+                 [org.clojars.eureton/cljmd "0.1.0"]
                  [smachine "0.1.0"]
                  [org.clojars.eureton/squirrel "0.1.0"]
-                 [cookbook "0.1.0"]]
+                 [cookbook "0.1.0"]
+                 [org.flatland/useful "0.11.6"]]
   :java-source-paths ["./java"]
   :repositories {"releases" {:url "https://clojars.org/repo"
                              :username :env

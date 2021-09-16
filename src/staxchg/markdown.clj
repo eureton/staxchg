@@ -2,9 +2,10 @@
   (:require [clojure.core.cache.wrapped :as cache])
   (:require [clojure.string :as string])
   (:require [clojure.set])
-  (:require [staxchg.flexmark :as flexmark])
+  (:require [flatland.useful.fn :as ufn])
   (:require [squirrel.tree :as tree])
   (:require [squirrel.node :as node])
+  (:require [cljmd.ast])
   (:require [staxchg.plot :as plot])
   (:require [staxchg.dev :as dev])
   (:gen-class))
@@ -13,47 +14,22 @@
   "Markdown processing step for achieving a domain-specific canonical form.
    It is implemented as a multimethod and is intended to be called on markdown
    AST nodes. It dispatches on markdown tags."
-  (comp :tag :data)
-  :hierarchy plot/ontology)
+  (comp :tag :data))
 
-(defmethod normalize :olist
+(defmethod normalize :list
   [node]
   (let [indexer #(-> %2
                      (assoc-in [:data :index] (inc %1))
-                     (assoc-in [:data :list-size] (-> node :children count)))]
-    (update node :children #(map-indexed indexer %))))
+                     (assoc-in [:data :list-size] (node/fanout node)))
+        mapper #(map-indexed indexer %)
+        ordered? (comp #{"ordered"} :type :data)]
+    (ufn/fix node ordered? #(update % :children mapper))))
 
-(defmethod normalize :link
+(defmethod normalize :a
   [node]
-  (let [url (node/node {:tag :url
-                        :content (->> node :data :url (str " "))})]
+  (let [url (node/make {:tag :url
+                        :content (->> node :data :destination (str " "))})]
     (update node :children conj url)))
-
-(defmethod normalize :link-ref
-  [node]
-  (->
-    node
-    (assoc-in [:data :content] (str "[" (-> node :data :ref) "]"))
-    (dissoc :children)))
-
-(defmethod normalize :html-comment-block
-  [node]
-  (update-in node [:data :content] #(->> %
-                                         (re-find #"<!-- (.*) -->")
-                                         second)))
-
-(defmethod normalize :fenced-code-block
-  [node]
-  (assoc-in node [:data :content] (->> (:children node)
-                                       (map :data)
-                                       (filter (comp #{:txt} :tag))
-                                       (map :content)
-                                       string/join)))
-
-(defmethod normalize :indented-code-block
-  [node]
-  (update-in node [:data :content] (comp staxchg.string/append-missing-crlf
-                                         staxchg.string/trim-leading-indent)))
 
 (defmethod normalize :default
   [node]
@@ -88,7 +64,7 @@
   ""
   [string]
   (->> string
-       flexmark/parse
+       cljmd.ast/from-string
        (tree/map normalize)))
 
 (defn no-cache-plot
