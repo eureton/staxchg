@@ -149,27 +149,37 @@
       (-> doc (.select "div.highlight") .first some?) :pygments
       :else :highlight.js)))
 
+(defn wrap-in-code-tag
+  "Wrap the HTML in the standard <code> tag."
+  [html]
+  (format "<code class=\"sourceCode\">%s</code>" html))
+
 (defmulti normalize
-  "Returns html parsable by hilite/root-jsoup-elem, regardless of utility of origin."
+  "Returns html parsable by hilite/root-jsoup-elem, regardless of origin."
   normalize-df)
 
 (defmethod normalize :skylighting
   [html]
-  html)
+  (let [wrapped-lines (-> html root-jsoup-elem (.select "a.sourceLine"))]
+    (if (empty? wrapped-lines)
+      html
+      (->> wrapped-lines
+           (map #(.html %))
+           (string/join "\n")
+           wrap-in-code-tag))))
 
 (defmethod normalize :pygments
   [html]
-  (str "<code class=\"sourceCode\">"
-       (-> html
-           jsoup-document
-           (.select "div.highlight pre")
-           .first
-           .html)
-       "</code>"))
+  (-> html
+      jsoup-document
+      (.select "div.highlight pre")
+      .first
+      .html
+      wrap-in-code-tag))
 
 (defmethod normalize :highlight.js
   [html]
-  (str "<code class=\"sourceCode\">" html "</code>"))
+  (wrap-in-code-tag html))
 
 (defn parse
   ""
