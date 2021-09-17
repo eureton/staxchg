@@ -238,7 +238,7 @@
 
 (defmethod ast :cs
   [node options]
-  (-> node untag (ast options) (decorate :standout)))
+  (-> node (retag :txt) (ast options) (decorate :standout)))
 
 (defn cluster-rf
   ""
