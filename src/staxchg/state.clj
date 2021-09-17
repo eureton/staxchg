@@ -438,10 +438,9 @@
 (defn update-world
   ""
   [world input]
-  (if (some? input)
+  (when (some? input)
     (-> (reduce update-world-rf world input)
-        (assoc :previous world))
-    nil))
+        (assoc :previous world))))
 
 (defn dirty?
   "Returns true if a user-visible change has occurred, false otherwise."
