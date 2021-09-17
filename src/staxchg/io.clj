@@ -23,6 +23,7 @@
   (:import com.googlecode.lanterna.gui2.dialogs.MessageDialogButton)
   (:import com.googlecode.lanterna.gui2.dialogs.TextInputDialogBuilder)
   (:import com.googlecode.lanterna.gui2.dialogs.WaitingDialog)
+  (:import com.googlecode.lanterna.input.KeyType)
   (:import com.googlecode.lanterna.screen.Screen$RefreshType)
   (:import com.googlecode.lanterna.screen.TerminalScreen)
   ; TODO: restore this after it stops breaking native image builds
@@ -130,11 +131,21 @@
   {:function :poll-resize!
    :values [(.doResizeIfNecessary screen)]})
 
+(defn drain-keystroke-queue!
+  ""
+  [screen]
+  (while (some-> (.pollInput screen)
+                 .getKeyType
+                 (not= KeyType/EOF))
+    nil))
+
 (defn poll-key!
   ""
   [screen]
-  {:function :poll-key!
-   :values [(.pollInput screen)]})
+  (let [keystroke (.pollInput screen)]
+    (drain-keystroke-queue! screen)
+    {:function :poll-key!
+     :values [keystroke]}))
 
 (defn query!
   ""
