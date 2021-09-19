@@ -61,13 +61,19 @@
   [{:keys [raw]}]
   raw)
 
+(defmethod payload :characters
+  [{:keys [raw x y]}]
+  (map-indexed (fn [index [character extras]]
+                 [character [(+ x index) y] extras])
+               raw))
+
 (defmethod payload :markdown
   [{:keys [plot]}]
   plot)
 
 (defmulti line-count dispatch-fn-2)
 
-(defmethod line-count :string
+(defmethod line-count :default
   [_ _]
   1)
 
@@ -80,7 +86,7 @@
 
 (defmulti clip dispatch-fn-2)
 
-(defmethod clip :string
+(defmethod clip :default
   [{:as item :keys [x y raw]}
    rect]
   (assoc item :raw (if (within? x y rect) raw "")))
@@ -93,7 +99,7 @@
 
 (defmulti invisible? dispatch-fn-1)
 
-(defmethod invisible? :string
+(defmethod invisible? :default
   [{:keys [raw]}]
   (empty? raw))
 
@@ -103,7 +109,7 @@
 
 (defmulti translate dispatch-fn-2)
 
-(defmethod translate :string
+(defmethod translate :default
   [item
    {:keys [left top]}]
   (-> item

@@ -1,5 +1,6 @@
 (ns staxchg.presentation
   (:require [clojure.string :as string])
+  (:require [flatland.useful.fn :as ufn])
   (:require [staxchg.post :as post])
   (:require [staxchg.flow :as flow])
   (:require [staxchg.dev :as dev])
@@ -107,6 +108,11 @@
   ([world]
    (selected-answer (selected-question world) world)))
 
+(defn traitful-char-seq
+  ""
+  [token & traits]
+  (map vector (str token) (repeat {:traits (set traits)})))
+
 (defn format-date
   ""
   [unixtime]
@@ -125,27 +131,43 @@
   ""
   [{:as author
     :strs [display_name reputation]}]
-  (format "%s (%s)" display_name reputation))
+  (mapcat (ufn/ap traitful-char-seq)
+          [[display_name :frame]
+           [" (" :frame]
+           [reputation :frame :meta-reputation]
+           [")" :frame]]))
+
+(defn format-question-stats
+  ""
+  [{:strs [answer_count score view_count]}]
+  (let [divider ["/" :frame]]
+    (mapcat (ufn/ap traitful-char-seq)
+            [["A" :meta-answers] divider
+             ["S" :meta-score] divider
+             ["V" :meta-views] [": " :frame]
+             [answer_count :meta-answers] divider
+             [score :meta-score] divider
+             [view_count :meta-views]])))
 
 (defn format-question-meta
   ""
-  [{:strs [answer_count score view_count last_activity_date owner]}]
-  (format
-    "(A: %d) | (S: %d) | (V: %d) | %s | %s"
-    answer_count
-    score
-    view_count
-    (format-author owner)
-    (format-date last_activity_date)))
+  [{:as question :strs [last_activity_date owner]}]
+  (let [divider (traitful-char-seq " | " :frame)]
+    (concat (format-question-stats question)
+            divider
+            (format-author owner)
+            divider
+            (traitful-char-seq (format-date last_activity_date) :frame))))
 
 (defn format-answer-meta
   ""
   [{:as answer :strs [score last_activity_date owner]}]
-  (format
-    "%d | %s | %s"
-    score
-    (format-author owner)
-    (format-date last_activity_date)))
+  (let [divider (traitful-char-seq " | " :frame)]
+    (concat (traitful-char-seq score :frame)
+            divider
+            (format-author owner)
+            divider
+            (traitful-char-seq (format-date last_activity_date) :frame))))
 
 (defn format-comment-meta
   ""
@@ -153,7 +175,7 @@
   (format
     "%d | %s | %s"
     score
-    (format-author owner)
+    (->> owner format-author (map first) string/join)
     (format-date creation_date)))
 
 (defn format-question-list-item
@@ -286,10 +308,10 @@
 (defn answer-meta-flow
   ""
   [answer world zone]
-  (let [text (format-answer-meta answer)]
-    (flow/make {:type :string
-                :raw (format (str "%" (zone :width) "s") text)
-                :foreground-color TextColor$ANSI/YELLOW})))
+  (let [text (format-answer-meta answer)
+        filler (repeat (- (zone :width) (count text)) [\space #{}])]
+    (flow/make {:type :characters
+                :raw (concat filler text)})))
 
 (defn answer-acceptance-flow
   ""
@@ -378,7 +400,12 @@
                     :hilite-alert (comp bold-txt red-txt)
                     :hilite-error (comp bold-txt red-txt)
                     :comment cyan-txt
-                    :h (comp bold-txt magenta-txt)])
+                    :h (comp bold-txt yellow-txt)
+                    :frame yellow-txt
+                    :meta-answers (comp bold-txt yellow-txt)
+                    :meta-score (comp bold-txt green-txt)
+                    :meta-views (comp bold-txt white-txt)
+                    :meta-reputation bold-txt])
 
 (defn apply-markdown-traits
   ""
@@ -388,12 +415,12 @@
    extras])
 
 (def string-groomer (comp string/join
-                          (partial filter printable?)))
+                          #(filter printable? %)))
 
-(def markdown-groomer (partial eduction (comp (filter (comp printable? first))
-                                              (map replace-with-symbols)
-                                              (map convert-to-lanterna)
-                                              (map apply-markdown-traits))))
+(def plot-groomer (partial eduction (comp (filter (comp printable? first))
+                                          (map replace-with-symbols)
+                                          (map convert-to-lanterna)
+                                          (map apply-markdown-traits))))
 
 (defmulti groom-recipe-item :function)
 
@@ -401,9 +428,9 @@
   [item]
   (update-in item [:params 1] string-groomer))
 
-(defmethod groom-recipe-item :staxchg.io/put-markdown!
+(defmethod groom-recipe-item :staxchg.io/put-plot!
   [item]
-  (update-in item [:params 1] markdown-groomer))
+  (update-in item [:params 1] plot-groomer))
 
 (defmethod groom-recipe-item :default
   [item]
@@ -439,10 +466,9 @@
       (some? question) (assoc :question-body (flow/scroll-y
                                                (questions-body-flow question world zone)
                                                (- (line-offset question world)))
-                              :question-meta (flow/make {:type :string
+                              :question-meta (flow/make {:type :characters
                                                          :raw question-meta-text
-                                                         :x (- width (count question-meta-text))
-                                                         :foreground-color TextColor$ANSI/YELLOW}))
+                                                         :x (- width (count question-meta-text))}))
       (some? answer) (assoc :answer (flow/scroll-y
                                       (answers-body-flow answer world zone)
                                       (- (line-offset answer world)))

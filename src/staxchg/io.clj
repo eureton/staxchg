@@ -12,6 +12,7 @@
   (:require [staxchg.util :as util])
   (:require [clj-http.lite.client :as http])
   (:import com.googlecode.lanterna.TerminalSize)
+  (:import com.googlecode.lanterna.TextCharacter)
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:import com.googlecode.lanterna.bundle.LanternaThemes)
   (:import com.googlecode.lanterna.graphics.PropertyTheme)
@@ -92,9 +93,9 @@
       (.showDialog gui))
     return))
 
-(defn put-markdown!
+(defn put-plot!
   [graphics plot _]
-  (doseq [[character [x y] {:keys [traits]}] plot]
+  (doseq [[character [x y] t] plot]
     (.setCharacter graphics x y (decorate-with-current character graphics))))
 
 (defn put-string!

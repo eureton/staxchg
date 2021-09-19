@@ -69,7 +69,8 @@
   ""
   [flow zone item]
   {:function (case (item :type)
-               :markdown :staxchg.io/put-markdown!
+               :markdown :staxchg.io/put-plot!
+               :characters :staxchg.io/put-plot!
                :string :staxchg.io/put-string!)
    :params [(fx-graphics (flow/scroll-gap-rect flow zone) item)
             (flow.item/payload item)

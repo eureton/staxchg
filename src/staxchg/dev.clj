@@ -42,15 +42,15 @@
 
 (defmulti log-recipe-step :function :hierarchy recipe-step-hierarchy)
 
-(defmethod log-recipe-step :staxchg.io/put-markdown!
+(defmethod log-recipe-step :staxchg.io/put-plot!
   [{[_ plot _] :params}]
-  (->> [(str "[put-markdown] from: " (->> plot first second) ", "
-                              "to: " (->> plot last second) " BEGIN")
+  (->> [(str "[put-plot] from: " (->> plot first second) ", "
+                         "to: " (->> plot last second) " BEGIN")
         (->> plot
              (map #(update % 0 (memfn getCharacter)))
              plot/text
              decorate)
-        "[put-markdown] END"]
+        "[put-plot] END"]
        (string/join "\r\n")))
 
 (defmethod log-recipe-step :staxchg.io/put-string!
