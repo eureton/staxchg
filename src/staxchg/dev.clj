@@ -99,7 +99,7 @@
                               (has-keys? %&))]
     (cond
       (hash-with-keys? :context :recipes) :cookbook
-      (hash-with-keys? :raw :html :text) :hilite)))
+      (hash-with-keys? :raw :html :traits :text) :hilite)))
 
 (defmulti log-item
   "Abstraction layer for logging domain structures.

@@ -108,28 +108,14 @@
   "Returns a set of all detected syntax highlight classes for both node and its
    descendants."
   [node]
-  (let [mapper #(-> % .attributes (.get "class") keyword class-trait-map)]
+  (let [mapper #(-> % .attributes (.get "class") (string/split #" "))]
     (->> node
          ((juxt inner-hilite-nodes identity))
          (apply conj)
-         (map mapper)
+         (mapcat mapper)
+         (map (comp class-trait-map keyword))
+         (remove nil?)
          set)))
-
-(defn info
-  ""
-  [html]
-  (->> html
-       jsoup-document
-       outer-hilite-nodes
-       (map (juxt #(.wholeText %) #(.outerHtml %) classes))
-       (sort-by (comp - count second))
-       (map (fn [[text html classes]] {html [classes text]}))
-       (reduce merge)
-       (reduce-kv (fn [acc k [classes code]]
-                    (conj acc {:code code
-                               :classes classes
-                               :html k}))
-                  [])))
 
 (defn root-jsoup-elem
   "Expects skylighting shell output in HTML format.
@@ -181,60 +167,61 @@
   [html]
   (wrap-in-code-tag html))
 
+(defn demarcate
+  ""
+  [node]
+  (let [node-text (.wholeText node)]
+    (reduce (fn [acc x]
+              (let [text (.wholeText x)
+                    start (string/index-of node-text
+                                           text
+                                           (-> acc peek :end (or 0)))]
+                (conj acc {:start start
+                           :end (+ start (count text))
+                           :classes (classes x)})))
+            []
+            (outer-hilite-nodes node))))
+
+(defn traits-seq
+  ""
+  [html]
+  (let [root (jsoup-document html)
+        tags (demarcate root)]
+    (map-indexed (fn [index _]
+                   (->> tags
+                        (filter #(and (<= (:start %) index)
+                                      (< index (:end %))))
+                        first
+                        :classes
+                        set))
+                 (string/trim-newline (.wholeText root)))))
+
 (defn parse
   ""
   [sh-out]
-  (let [iron #(string/replace % #"[\r\n]" "")]
+  (let [iron #(string/replace % #"[\r\n]" "")
+        html #(iron (.html %))]
     (when (util/shell-output-ok? sh-out)
       (->> sh-out
            :out
            normalize
            root-jsoup-elem
-           ((juxt identity #(iron (.html %)) #(iron (.wholeText %))))
-           (zipmap [:raw :html :text])))))
-
-(defn match?
-  "Returns true if the text to which the plot corresponds is entirely contained
-   in the code which the highlight is derived from, false otherwise."
-  [highlight plot]
-  (string/includes? (:text highlight)
-                    (string/join (map first plot))))
-
-(defn index-of
-  "Returns the index at which the text to which the plot corresponds is found in
-   in the code which the highlight is derived from.
-   If it is not found, returns nil."
-  [highlight plot]
-  (string/index-of (:text highlight)
-                   (string/join (map first plot))))
+           ((juxt identity html (comp traits-seq html) #(iron (.wholeText %))))
+           (zipmap [:raw :html :traits :text])))))
 
 (defn annotate
   ""
-  [plot html]
-  (if (nil? html)
-    plot
-    (let [info (info html)]
-      (loop [html html
-             plot plot
-             result []]
-        (if (some empty? [plot html])
-          result
-          (let [out-of-tag-html (->> html
-                                     (re-find #"^(.*?)(?:<span class=\"|$)")
-                                     second)
-                out-of-tag-esc-html-size (count out-of-tag-html)
-                out-of-tag-unesc-html-size (count (util/unescape-html out-of-tag-html))
-                html-starts-with? #(string/starts-with? html %)]
-            (if (zero? out-of-tag-esc-html-size)
-              (let [tag (first (filter (comp html-starts-with? :html) info))
-                    token-size (count (:code tag))
-                    annotator #(update-in % [2 :traits] union (:classes tag))]
-                (recur
-                  (subs html (count (:html tag)))
-                  (drop token-size plot)
-                  (concat result (->> plot (take token-size) (map annotator)))))
-              (recur
-                (subs html out-of-tag-esc-html-size)
-                (drop out-of-tag-unesc-html-size plot)
-                (concat result (take out-of-tag-unesc-html-size plot))))))))))
+  [plot {:keys [traits] code-text :text}]
+  (let [plot-text (->> plot (map first) string/join)
+        code-offset (string/index-of code-text plot-text)
+        plot-offset (string/index-of plot-text code-text)]
+    (if (every? nil? [code-offset plot-offset])
+      plot
+      (let [[code-offset plot-offset] (map #(or % 0) [code-offset plot-offset])
+            annotated (map #(update-in %1 [2 :traits] clojure.set/union %2)
+                           (drop plot-offset plot)
+                           (drop code-offset traits))]
+        (concat (take plot-offset plot)
+                annotated
+                (drop (+ plot-offset (count annotated)) plot))))))
 

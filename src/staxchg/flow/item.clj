@@ -21,22 +21,14 @@
 (defn highlight-code
   ""
   [{:keys [plot highlights]}]
-  (reduce (fn [agg {:keys [from to] code-plot :plot}]
-            (if-some [highlight (->> highlights
-                                     (filter #(hilite/match? % code-plot))
-                                     first)]
-              (let [offset (hilite/index-of highlight code-plot)
-                    pad #(concat (repeat offset [\_ []]) %)
-                    trim #(drop offset %)
-                    hilit (try
-                            (-> code-plot
-                                pad
-                                (hilite/annotate (:html highlight))
-                                (plot/strip-traits :code)
-                                trim)
-                            (catch Exception _ code-plot))]
-                (concat (take from agg) hilit (drop to agg)))
-              agg))
+  (reduce (fn [acc {:keys [from to] code-plot :plot}]
+            (concat (take from acc)
+                    (reduce #(try (-> (hilite/annotate %1 %2)
+                                      (plot/strip-traits :code))
+                                  (catch Exception _ %1))
+                            code-plot
+                            highlights)
+                    (drop to acc)))
           plot
           (plot/cluster-by-trait plot :code)))
 
