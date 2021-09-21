@@ -1,8 +1,9 @@
 (ns staxchg.presentation
   (:require [clojure.string :as string])
-  (:require [flatland.useful.fn :as ufn])
-  (:require [staxchg.post :as post])
+  (:require [staxchg.presentation.common :refer :all])
   (:require [staxchg.flow :as flow])
+  (:require [staxchg.presentation.state :as state])
+  (:require [staxchg.presentation.flow :as presentation.flow])
   (:require [staxchg.dev :as dev])
   (:require [staxchg.markdown :as markdown])
   (:require [staxchg.recipe :as recipe])
@@ -13,16 +14,12 @@
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:gen-class))
 
-(def acceptance-text " ACCEPTED ")
-
-(def frame-color TextColor$ANSI/YELLOW)
-
-(def search-legend (clojure.string/join \newline ["         [tag] search within a tag"
-                                                  "     user:1234 seach by author"
-                                                  "  \"words here\" exact phrase"
-                                                  "     answers:0 unanswered questions"
-                                                  "       score:3 posts with a 3+ score"
-                                                  "isaccepted:yes seach within status"]))
+(def search-legend (string/join "\n" ["         [tag] search within a tag"
+                                      "     user:1234 seach by author"
+                                      "  \"words here\" exact phrase"
+                                      "     answers:0 unanswered questions"
+                                      "       score:3 posts with a 3+ score"
+                                      "isaccepted:yes seach within status"]))
 
 (defn zones
   ""
@@ -87,253 +84,6 @@
                    :height height
                    :clear? switched-pane?}}))
 
-(defn line-offset
-  ""
-  [post world]
-  (or (get-in world [:line-offsets (post/id post)])
-      0))
-
-(defn selected-question
-  ""
-  [{:as world
-    :keys [selected-question-index]}]
-  (get-in world [:questions selected-question-index]))
-
-(defn selected-answer
-  ([{:as question :strs [question_id answers]}
-    world]
-   (let [answer-id (or (get-in world [:selected-answers question_id])
-                       (-> answers (get 0) (get "answer_id")))]
-     (some
-       #(when (= answer-id (% "answer_id")) %)
-       answers)))
-  ([world]
-   (selected-answer (selected-question world) world)))
-
-(defn traitful-char-seq
-  ""
-  [token & traits]
-  (map vector (str token) (repeat {:traits (set traits)})))
-
-(defn format-date
-  ""
-  [unixtime]
-  (if (nil? unixtime)
-    nil
-    (let [datetime (java.time.LocalDateTime/ofEpochSecond unixtime 0 java.time.ZoneOffset/UTC)]
-      (format
-        "%4d-%02d-%02d %02d:%02d"
-        (.getYear datetime)
-        (.getValue (.getMonth datetime))
-        (.getDayOfMonth datetime)
-        (.getHour datetime)
-        (.getMinute datetime)))))
-
-(defn format-author
-  ""
-  [{:as author
-    :strs [display_name reputation]}]
-  (mapcat (ufn/ap traitful-char-seq)
-          [[display_name :frame]
-           [" (" :frame]
-           [reputation :frame :meta-reputation]
-           [")" :frame]]))
-
-(defn format-question-stats
-  ""
-  [{:strs [answer_count score view_count]}]
-  (let [divider ["/" :frame]]
-    (mapcat (ufn/ap traitful-char-seq)
-            [["A" :meta-answers] divider
-             ["S" :meta-score] divider
-             ["V" :meta-views] [": " :frame]
-             [answer_count :meta-answers] divider
-             [score :meta-score] divider
-             [view_count :meta-views]])))
-
-(defn format-question-meta
-  ""
-  [{:as question :strs [last_activity_date owner]}]
-  (let [divider (traitful-char-seq " | " :frame)]
-    (concat (format-question-stats question)
-            divider
-            (format-author owner)
-            divider
-            (traitful-char-seq (format-date last_activity_date) :frame))))
-
-(defn format-answer-meta
-  ""
-  [{:as answer :strs [score last_activity_date owner]}]
-  (let [divider (traitful-char-seq " | " :frame)]
-    (concat (traitful-char-seq score :frame)
-            divider
-            (format-author owner)
-            divider
-            (traitful-char-seq (format-date last_activity_date) :frame))))
-
-(defn format-comment-meta
-  ""
-  [{:as post :strs [owner score creation_date]}]
-  (format
-    "%d | %s | %s"
-    score
-    (->> owner format-author (map first) string/join)
-    (format-date creation_date)))
-
-(defn format-question-list-item
-  ""
-  [question width]
-  (format
-    (str "%-" width "s")
-    (question "title")))
-
-(defn format-questions-pane-separator
-  ""
-  [{:keys [question-list-size question-list-offset questions]}
-   {:keys [width]}]
-  (let [from (inc question-list-offset)
-        to (dec (+ from question-list-size))
-        hint (format "(%d-%d of %d)" from to (count questions))]
-    (format
-      "%s%s%s"
-      (apply str (repeat (- width (count hint) 1) Symbols/SINGLE_LINE_HORIZONTAL))
-      hint
-      (str Symbols/SINGLE_LINE_HORIZONTAL))))
-
-(defn format-answers-pane-separator
-  ""
-  [{:as question :strs [question_id answer_count answers]}
-   world
-   {:as zone :keys [width]}]
-  (let [{:strs [answer_id]} (selected-answer question world)
-        index (->>
-                answers
-                (map #(get % "answer_id"))
-                (map-indexed vector)
-                (some (fn [[i id]] (when (= id answer_id) i))))
-        hint (if (nil? index)
-               "(question has no answers)"
-               (format
-                 "(%d of %d)"
-                 (inc index)
-                 answer_count))]
-    (format
-      "%s%s%s"
-      (apply str (repeat (- width (count hint) 1) Symbols/SINGLE_LINE_HORIZONTAL))
-      hint
-      (str Symbols/SINGLE_LINE_HORIZONTAL))))
-
-(defn question-list-item-flow
-  ""
-  [question
-   index
-   {:as world
-    :keys [selected-question-index question-list-offset]}
-   {:as zone
-    :keys [width]}]
-  (let [x-offset 1
-        text (format-question-list-item question (- width (* x-offset 2)))
-        selected? (= index (- selected-question-index question-list-offset))]
-    (flow/make {:type :string
-                :raw text
-                :x x-offset
-                :modifiers (if selected? [SGR/REVERSE] [])})))
-
-(defn visible-questions
-  ""
-  [{:as world
-    :keys [questions question-list-size question-list-offset]}]
-  (subvec
-    questions
-    question-list-offset
-    (min (count questions) (+ question-list-offset question-list-size))))
-
-(def comments-left-margin 16)
-
-(defn comment-flow
-  ""
-  [{:as c
-    :strs [body_markdown]}
-   {:as zone
-    :keys [width]}]
-  (let [meta-text (format-comment-meta c)]
-    (flow/add
-      (flow/make {:type :markdown
-                  :raw body_markdown
-                  :sub-zone (->
-                              zone
-                              (assoc :left comments-left-margin)
-                              (update :width - comments-left-margin))
-                  :foreground-color TextColor$ANSI/BLUE})
-      (flow/make {:type :string
-                  :raw meta-text
-                  :x (- width (count meta-text))
-                  :foreground-color TextColor$ANSI/BLUE
-                  :modifiers [SGR/BOLD]}))))
-
-(defn comments-flow
-  ""
-  [{:as post
-    :strs [comments]}
-   world
-   zone]
-  (reduce
-    #(flow/add %1 flow/y-separator %2)
-    flow/zero
-    (map #(comment-flow % zone) comments)))
-
-(defn question-flow
-  ""
-  [{:as question
-    :strs [body_markdown question_id]}
-   world]
-  (flow/make {:type :markdown
-              :raw body_markdown
-              :scroll-delta (get-in world [:scroll-deltas question_id])
-              :highlights (get-in world [:highlights question_id])}))
-
-(defn answer-flow
-  ""
-  [{:as answer :strs [body_markdown answer_id]} world]
-  (flow/make {:type :markdown
-              :raw body_markdown
-              :scroll-delta (get-in world [:scroll-deltas answer_id])
-              :highlights (get-in world [:highlights answer_id])}))
-
-(defn questions-body-flow
-  ""
-  [question world zone]
-  (flow/add
-    (question-flow question world)
-    (comments-flow question world zone)))
-
-(defn answer-meta-flow
-  ""
-  [answer world zone]
-  (let [text (format-answer-meta answer)
-        filler (repeat (- (zone :width) (count text)) [\space #{}])]
-    (flow/make {:type :characters
-                :raw (concat filler text)})))
-
-(defn answer-acceptance-flow
-  ""
-  [{:as answer :strs [is_accepted]} world]
-  (let [base {:type :string :x 1}]
-    (flow/make (merge base (if is_accepted
-                             {:raw acceptance-text
-                              :foreground-color TextColor$ANSI/BLACK
-                              :background-color frame-color}
-                             {:raw (string/join (repeat (count acceptance-text) \space))
-                              :foreground-color TextColor$ANSI/DEFAULT
-                              :background-color TextColor$ANSI/DEFAULT})))))
-
-(defn answers-body-flow
-  ""
-  [answer world zone]
-  (flow/add
-    (answer-flow answer world)
-    (comments-flow answer world zone)))
-
 (defn printable?
   ""
   [character]
@@ -348,7 +98,7 @@
   [[character xy {:keys [traits] :as extras}]]
   (let [rewritten (cond
                     (contains? traits :bullet) Symbols/BULLET
-                    (contains? traits :horz) Symbols/SINGLE_LINE_HORIZONTAL
+                    (contains? traits :horz) horz-bar
                     :else character)]
     [rewritten xy extras]))
 
@@ -446,39 +196,19 @@
 
 (defn flows
   ""
-  [world
-   {:as zone
-    :keys [width]}]
-  (let [{:as question :strs [title]} (selected-question world)
-        {:as answer :strs [answer_id]} (selected-answer world)
-        question-meta-text (format-question-meta question)]
-    (cond-> {:questions-separator (flow/make {:type :string
-                                              :raw (format-questions-pane-separator world zone)
-                                              :foreground-color frame-color})
-             :questions-list (reduce
-                               flow/add
-                               flow/zero
-                               (map-indexed
-                                 #(question-list-item-flow %2 %1 world zone)
-                                 (visible-questions world)))
-             :answers-header (flow/make {:type :string
-                                         :raw title
-                                         :modifiers [SGR/REVERSE]})
-             :answers-separator (flow/make {:type :string
-                                            :raw (format-answers-pane-separator question world zone)
-                                            :foreground-color frame-color})
-             :empty {:scroll-offset 0 :items []}}
-      (some? question) (assoc :question-body (flow/scroll-y
-                                               (questions-body-flow question world zone)
-                                               (- (line-offset question world)))
-                              :question-meta (flow/make {:type :characters
-                                                         :raw question-meta-text
-                                                         :x (- width (count question-meta-text))}))
-      (some? answer) (assoc :answer (flow/scroll-y
-                                      (answers-body-flow answer world zone)
-                                      (- (line-offset answer world)))
-                            :answer-meta (answer-meta-flow answer world zone)
-                            :answer-acceptance (answer-acceptance-flow answer world)))))
+  [world zone]
+  (let [question (state/selected-question world)
+        answer (state/selected-answer world)]
+    (cond-> {:questions-separator (presentation.flow/questions-separator world zone)
+             :questions-list (presentation.flow/questions-list world zone)
+             :answers-header (presentation.flow/answers-header world zone)
+             :answers-separator (presentation.flow/answers-separator world zone)
+             :empty (presentation.flow/dummy world zone)}
+      question (assoc :question-body (presentation.flow/questions-body world zone)
+                      :question-meta (presentation.flow/question-meta world zone))
+      answer (assoc :answer (presentation.flow/answers-body world zone)
+                    :answer-meta (presentation.flow/answer-meta answer world zone)
+                    :answer-acceptance (presentation.flow/answer-acceptance answer world)))))
 
 (def consignments
   [{:pane :questions :flow-id :empty               :zone-id :full-screen}
@@ -507,7 +237,7 @@
   [question world]
   (let [zone (zone-for-flow-id :question-body world)]
     (flow/line-count
-      (questions-body-flow question world zone)
+      (presentation.flow/commented-post question world zone)
       zone)))
 
 (defn answer-line-count
@@ -515,7 +245,7 @@
   [answer world]
   (let [zone (zone-for-flow-id :answer world)]
     (flow/line-count
-      (answers-body-flow answer world zone)
+      (presentation.flow/commented-post answer world zone)
       zone)))
 
 (defn post-line-count

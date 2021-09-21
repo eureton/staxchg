@@ -1,5 +1,6 @@
 (ns staxchg.state
   (:require [staxchg.presentation :as presentation])
+  (:require [staxchg.presentation.state :as presentation.state])
   (:require [staxchg.api :as api])
   (:require [staxchg.markdown :as markdown])
   (:require [staxchg.hilite :as hilite])
@@ -58,7 +59,7 @@
        first
        first)))
   ([world]
-   (selected-answer-index (presentation/selected-question world) world)))
+   (selected-answer-index (presentation.state/selected-question world) world)))
 
 (defn fetch-answers?
   ""
@@ -91,7 +92,7 @@
   ""
   [world]
   (let [{:strs [question_id answers]
-         :as question} (presentation/selected-question world)
+         :as question} (presentation.state/selected-question world)
         index (selected-answer-index question world)]
     (cond-> world
       (some? index) (assoc-in
@@ -102,7 +103,7 @@
   ""
   [world]
   (let [{:strs [question_id answers]
-         :as question} (presentation/selected-question world)
+         :as question} (presentation.state/selected-question world)
         index (selected-answer-index question world)
         fetch? (fetch-answers? question world)
         increment? (and (not fetch?) (some? index))
@@ -139,13 +140,11 @@
   [scrollf
    {:as world :keys [active-pane]}]
   (let [post (case active-pane
-               :questions (presentation/selected-question world)
-               :answers (presentation/selected-answer world))
+               :questions (presentation.state/selected-question world)
+               :answers (presentation.state/selected-answer world))
         post-id (post/id post)
-        previous (presentation/line-offset post world)
+        previous (presentation.state/line-offset post world)
         current (clamp-line-offset (scrollf previous world) post world)]
-    (dev/log "scroll-delta[" post-id "]: " (- current previous))
-    (dev/log " line-offset[" post-id "]: " current)
     (->
       world
       (assoc-in [:scroll-deltas post-id] (- current previous))
@@ -202,8 +201,8 @@
 (defn mark-hilite-pending
   ""
   [{:as world :keys [active-pane]}]
-  (let [question (presentation/selected-question world)
-        answer (presentation/selected-answer question world)
+  (let [question (presentation.state/selected-question world)
+        answer (presentation.state/selected-answer question world)
         question? (and (= active-pane :questions)
                        (not (has-highlights? world question)))
         answer? (and (some? answer)
@@ -244,7 +243,7 @@
   ""
   [world]
   (let [{:as question
-         :strs [question_id]} (presentation/selected-question world)
+         :strs [question_id]} (presentation.state/selected-question world)
         fetch? (fetch-answers? question world)
         page (next-answers-page question)]
     (if fetch?
