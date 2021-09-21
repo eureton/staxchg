@@ -450,7 +450,8 @@
         {:as answer :strs [answer_id]} (selected-answer world)
         question-meta-text (format-question-meta question)]
     (cond-> {:questions-separator (flow/make {:type :string
-                                              :raw (format-questions-pane-separator world zone)})
+                                              :raw (format-questions-pane-separator world zone)
+                                              :foreground-color TextColor$ANSI/YELLOW})
              :questions-list (reduce
                                flow/add
                                flow/zero
@@ -461,7 +462,8 @@
                                          :raw title
                                          :modifiers [SGR/REVERSE]})
              :answers-separator (flow/make {:type :string
-                                            :raw (format-answers-pane-separator question world zone)})
+                                            :raw (format-answers-pane-separator question world zone)
+                                            :foreground-color TextColor$ANSI/YELLOW})
              :empty {:scroll-offset 0 :items []}}
       (some? question) (assoc :question-body (flow/scroll-y
                                                (questions-body-flow question world zone)
