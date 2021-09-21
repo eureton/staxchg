@@ -15,6 +15,8 @@
 
 (def acceptance-text " ACCEPTED ")
 
+(def frame-color TextColor$ANSI/YELLOW)
+
 (def search-legend (clojure.string/join \newline ["         [tag] search within a tag"
                                                   "     user:1234 seach by author"
                                                   "  \"words here\" exact phrase"
@@ -320,7 +322,7 @@
     (flow/make (merge base (if is_accepted
                              {:raw acceptance-text
                               :foreground-color TextColor$ANSI/BLACK
-                              :background-color TextColor$ANSI/YELLOW}
+                              :background-color frame-color}
                              {:raw (string/join (repeat (count acceptance-text) \space))
                               :foreground-color TextColor$ANSI/DEFAULT
                               :background-color TextColor$ANSI/DEFAULT})))))
@@ -364,6 +366,7 @@
 (def white-txt #(.withForegroundColor % TextColor$ANSI/WHITE))
 (def magenta-txt #(.withForegroundColor % TextColor$ANSI/MAGENTA))
 (def yellow-txt #(.withForegroundColor % TextColor$ANSI/YELLOW))
+(def frame-txt #(.withForegroundColor % frame-color))
 (def blue-txt #(.withForegroundColor % TextColor$ANSI/BLUE))
 (def trait-clauses [:strong bold-txt
                     :em reverse-txt
@@ -401,8 +404,8 @@
                     :hilite-error (comp bold-txt red-txt)
                     :comment cyan-txt
                     :h (comp bold-txt yellow-txt)
-                    :frame yellow-txt
-                    :meta-answers (comp bold-txt yellow-txt)
+                    :frame frame-txt
+                    :meta-answers (comp bold-txt frame-txt)
                     :meta-score (comp bold-txt green-txt)
                     :meta-views (comp bold-txt white-txt)
                     :meta-reputation bold-txt])
@@ -451,7 +454,7 @@
         question-meta-text (format-question-meta question)]
     (cond-> {:questions-separator (flow/make {:type :string
                                               :raw (format-questions-pane-separator world zone)
-                                              :foreground-color TextColor$ANSI/YELLOW})
+                                              :foreground-color frame-color})
              :questions-list (reduce
                                flow/add
                                flow/zero
@@ -463,7 +466,7 @@
                                          :modifiers [SGR/REVERSE]})
              :answers-separator (flow/make {:type :string
                                             :raw (format-answers-pane-separator question world zone)
-                                            :foreground-color TextColor$ANSI/YELLOW})
+                                            :foreground-color frame-color})
              :empty {:scroll-offset 0 :items []}}
       (some? question) (assoc :question-body (flow/scroll-y
                                                (questions-body-flow question world zone)
