@@ -71,25 +71,25 @@
 
 (defn answer-meta
   ""
-  [post world zone]
-  (let [text (render/answer-meta post)
-        filler (repeat (- (zone :width) (count text)) [\space #{}])]
+  [world zone]
+  (when-some [text (-> world state/selected-answer render/answer-meta)]
     (flow/make {:type :characters
-                :raw (concat filler text)})))
+                :raw (concat (repeat (- (zone :width) (count text))
+                                     [\space #{}])
+                             text)})))
 
 (defn answer-acceptance
   ""
-  [{:strs [is_accepted]} world]
-  (let [base {:type :string :x 1}
-        acceptance-text " ACCEPTED "]
-    (flow/make (merge base (if is_accepted
-                             {:raw acceptance-text
-                              :foreground-color TextColor$ANSI/BLACK
-                              :background-color frame-color}
-                             {:raw (string/join (repeat (count acceptance-text)
-                                                        \space))
-                              :foreground-color TextColor$ANSI/DEFAULT
-                              :background-color TextColor$ANSI/DEFAULT})))))
+  [world _]
+  (-> (if-some [{:strs [is_accepted]} (state/selected-answer world)]
+        {:raw acceptance-text
+         :foreground-color TextColor$ANSI/BLACK
+         :background-color frame-color}
+        {:raw (string/join (repeat (count acceptance-text) \space))
+         :foreground-color TextColor$ANSI/DEFAULT
+         :background-color TextColor$ANSI/DEFAULT})
+      (merge {:type :string :x 1})
+      flow/make))
 
 (defn questions-separator
   ""
@@ -142,14 +142,14 @@
 (defn questions-body
   ""
   [world zone]
-  (let [post (state/selected-question world)]
+  (when-some [post (state/selected-question world)]
     (flow/scroll-y (commented-post post world zone)
                    (- (state/line-offset post world)))))
 
 (defn question-meta
   ""
   [world zone]
-  (let [text (-> world state/selected-question render/question-meta)]
+  (when-some [text (-> world state/selected-question render/question-meta)]
     (flow/make {:type :characters
                 :raw text
                 :x (- (:width zone) (count text))})))
@@ -157,7 +157,7 @@
 (defn answers-body
   ""
   [world zone]
-  (let [post (state/selected-answer world)]
+  (when-some [post (state/selected-answer world)]
     (flow/scroll-y (commented-post post world zone)
                    (- (state/line-offset post world)))))
 

@@ -118,19 +118,11 @@
                        answers
                        (get "answer_id"))))))
 
-(defn active-pane-body-height
-  ""
-  [{:as world :keys [active-pane]}]
-  (->>
-    (presentation/zones world)
-    ((case active-pane :questions :questions-body :answers :answers-body))
-    :height))
-
 (defn clamp-line-offset
   ""
   [line-offset post world]
   (let [post-height (presentation/post-line-count post world)
-        container-height (active-pane-body-height world)]
+        container-height (presentation/active-pane-body-height world)]
     (min
       (max 0 (- post-height container-height))
       (max 0 line-offset))))
@@ -151,10 +143,10 @@
       (assoc-in [:line-offsets post-id] current))))
 
 (defn half-screen [world]
-  (quot (active-pane-body-height world) 2))
+  (quot (presentation/active-pane-body-height world) 2))
 
 (defn full-screen [world]
-  (dec (active-pane-body-height world)))
+  (dec (presentation/active-pane-body-height world)))
 
 (defn one-line-down [n _]
   (inc n))

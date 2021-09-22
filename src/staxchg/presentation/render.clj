@@ -46,24 +46,28 @@
              [score :meta-score] divider
              [view_count :meta-views]])))
 
+(def meta-divider
+  ""
+  (traitful-char-seq " | " :frame))
+
 (defn question-meta
   ""
-  [{:as question :strs [last_activity_date owner]}]
-  (let [divider (traitful-char-seq " | " :frame)]
+  [question]
+  (when-some [{:strs [last_activity_date owner]} question]
     (concat (question-stats question)
-            divider
+            meta-divider
             (author owner)
-            divider
+            meta-divider
             (traitful-char-seq (date last_activity_date) :frame))))
 
 (defn answer-meta
   ""
-  [{:as answer :strs [score last_activity_date owner]}]
-  (let [divider (traitful-char-seq " | " :frame)]
+  [answer]
+  (when-some [{:strs [score last_activity_date owner]} answer]
     (concat (traitful-char-seq score :frame)
-            divider
+            meta-divider
             (author owner)
-            divider
+            meta-divider
             (traitful-char-seq (date last_activity_date) :frame))))
 
 (defn comment-meta
