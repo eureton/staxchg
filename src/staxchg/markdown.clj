@@ -36,7 +36,7 @@
 
 (def plot-cache (cache/lru-cache-factory {} :threshold 8))
 
-(def cache-eligibility-limit 3000)
+(def cache-eligibility-limit 300)
 
 (defn cache-key
   ""

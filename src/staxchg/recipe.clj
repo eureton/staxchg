@@ -58,12 +58,10 @@
    {:as zone
     :keys [left top width height]}]
   (when (flow/scrolled? flow)
-    {:function :staxchg.io/clear!
-     :params [(sub-graphics (flow/scroll-gap-rect flow zone))
-              left
-              top
-              width
-              height]}))
+    (let [{:keys [left top width height]
+           :as subrect} (flow/scroll-gap-rect flow zone)]
+      {:function :staxchg.io/clear!
+       :params [(sub-graphics subrect) left top width height]})))
 
 (defn put-payload
   ""

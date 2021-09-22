@@ -412,7 +412,7 @@
                 :acquire-screen! update-for-screen
                 :resolve-highlighter! update-for-highlighter
                 :enable-screen! update-for-dimensions
-                :poll-key! update-for-keystroke
+                :await-key! update-for-keystroke
                 :poll-resize! update-for-resize
                 :query! update-for-search-term
                 :fetch-questions! update-for-questions-response
@@ -429,17 +429,21 @@
 (defn update-world
   ""
   [world input]
-  (when (some? input)
-    (-> (reduce update-world-rf world input)
-        (assoc :previous world))))
+  (when input
+    (let [updated (-> (reduce update-world-rf world input)
+                      (assoc :previous (dissoc world :previous)))]
+      (dev/log updated)
+      updated)))
+
+(def sanitize
+  (comp clear-marks
+        #(dissoc % :previous :io/context)))
 
 (defn dirty?
   "Returns true if a user-visible change has occurred, false otherwise."
   [world-before world-after]
-  (let [sanitize (comp clear-marks
-                       #(dissoc % :previous :io/context))]
-    (not= (sanitize world-before)
-          (sanitize world-after))))
+  (not= (sanitize world-before)
+        (sanitize world-after)))
 
 (defn render?
   "Returns true if both conditions are fulfilled, false otherwise:
@@ -449,21 +453,14 @@
    Condition (1) implies that preparatory I/O has been completed.
    Condition (2) implies that new, display-worthy information has arrived."
   [{:as world
-    :keys [active-pane switched-question? switched-answer?  width height]
+    :keys [active-pane switched-question? switched-answer? width height]
     pane? :switched-pane?}]
   (let [question? (and (= active-pane :questions) switched-question?)
-        answer? (and (= active-pane :answers) switched-answer?)
-        change? (dirty? (:previous world) world)
-        render? (and (some? width)
-                     (some? height)
-                     (or pane? question? answer? change?))]
-    (if render?
-      (do (when pane? (dev/log "[render?] switched pane"))
-          (when question? (dev/log "[render?] switched question"))
-          (when answer? (dev/log "[render?] switched answer"))
-          (when change? (dev/log "[render?] state change")))
-      (dev/log "[render?] none"))
-    render?))
+        answer? (and (= active-pane :answers) switched-answer?)]
+    (and width height (or pane?
+                          question?
+                          answer?
+                          (dirty? (:previous world) world)))))
 
 (comment
   (let [qid 12345678

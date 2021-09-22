@@ -197,18 +197,18 @@
     :keys [query? questions search-term fetch-answers no-questions no-answers
            fetch-failed snippets quit? width]
     {:keys [screen]} :io/context}]
-  (cond
-    (nil? screen) :initialize
-    (nil? width) :enable-screen
-    snippets :snippets
-    search-term :search-term
-    fetch-answers :fetch-answers
-    no-questions :no-questions
-    no-answers :no-answers
-    fetch-failed :fetch-failed
-    (or query? (empty? questions)) :query
-    quit? :quit
-    :else :poll-loop))
+  (cond (nil? screen)                  :initialize
+        (nil? width)                   :enable-screen
+        snippets                       :snippets
+        search-term                    :search-term
+        fetch-answers                  :fetch-answers
+        no-questions                   :no-questions
+        no-answers                     :no-answers
+        fetch-failed                   :fetch-failed
+        (or query? (empty? questions)) :query
+        (state/render? world)          :poll-resize
+        quit?                          :quit
+        :else                          :await-key))
 
 (defmulti input input-df)
 
@@ -276,13 +276,14 @@
   [[{:function :staxchg.io/quit!
      :params [:screen]}]])
 
-(defmethod input :poll-loop
+(defmethod input :poll-resize
   [_]
-  [[{:function :staxchg.io/sleep!
-     :params [poll-loop-latency]}
-    {:function :staxchg.io/poll-resize!
-     :params [:screen]}
-    {:function :staxchg.io/poll-key!
+  [[{:function :staxchg.io/poll-resize!
+     :params [:screen]}]])
+
+(defmethod input :await-key
+  [_]
+  [[{:function :staxchg.io/await-key!
      :params [:screen]}]])
 
 (defn output

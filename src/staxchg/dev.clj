@@ -59,10 +59,10 @@
 
 (defmethod log-recipe-step :staxchg.io/scroll!
   [{[_ top bottom distance] :params}]
-  (str "[scroll] at (" top ", " bottom ") by " distance))
+  (str "[scroll] at (" top "..." bottom ") by " distance))
 
 (defmethod log-recipe-step :staxchg.io/clear!
-  [{[graphics left top width height] :params}]
+  [{[_ left top width height] :params}]
   (str "[clear] rect [" width "x" height "] at (" left ", " top ")"))
 
 (defmethod log-recipe-step :staxchg.io/fetch-questions!
@@ -97,9 +97,9 @@
   (let [has-keys? #(every? (partial contains? item) %)
         hash-with-keys? #(and (map? item)
                               (has-keys? %&))]
-    (cond
-      (hash-with-keys? :context :recipes) :cookbook
-      (hash-with-keys? :raw :html :traits :text) :hilite)))
+    (cond (hash-with-keys? :io/context :questions) :world
+          (hash-with-keys? :context :recipes) :cookbook
+          (hash-with-keys? :raw :html :traits :text) :hilite)))
 
 (defmulti log-item
   "Abstraction layer for logging domain structures.
@@ -123,6 +123,31 @@
         (-> raw .html (string/replace #"\r" "") decorate)
         "HTML END"]
        (string/join "\r\n")))
+
+(defmethod log-item :world
+  [{:as world
+    :keys [active-pane switched-question? switched-answer? width height
+           snippets search-term fetch-answers no-questions no-answers
+           query? questions fetch-failed quit? previous]
+    pane? :switched-pane?
+    {:keys [screen]} :io/context}]
+  (let [question? (and (= active-pane :questions) switched-question?)
+        answer? (and (= active-pane :answers) switched-answer?)]
+    (->> (cond-> []
+           (nil? screen) (conj "[world] uninitialized screen")
+           (nil? width) (conj "[world] screen dimensions unknown")
+           no-questions (conj "[world] no questions")
+           no-answers (conj "[world] no answers")
+           fetch-failed (conj "[world] fetch failed")
+           (or query? (empty? questions)) (conj "[world] prompt query")
+           snippets (conj "[world] code snippets await highlighting")
+           search-term (conj "[world] search term submitted")
+           fetch-answers (conj "[world] answers requested")
+           pane? (conj "[world] switched pane")
+           question? (conj "[world] switched question")
+           answer? (conj "[world] switched answer")
+           quit? (conj "[world] quit"))
+         (string/join "\r\n"))))
 
 (defmethod log-item :default
   [item]
