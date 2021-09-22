@@ -12,25 +12,28 @@
 (defn printable?
   ""
   [character]
-  (->>
-    character
-    ((juxt #(TerminalTextUtils/isControlCharacter %)
-           #(Character/isHighSurrogate %)))
-    (every? false?)))
+  (->> character
+       ((juxt #(TerminalTextUtils/isControlCharacter %)
+              #(Character/isHighSurrogate %)))
+       (every? false?)))
+
+(defn transform-character
+  ""
+  [item f]
+  (update item 0 f (get-in item [2 :traits])))
 
 (defn replace-with-symbols
   ""
-  [[character xy {:keys [traits] :as extras}]]
-  (let [rewritten (cond
-                    (contains? traits :bullet) Symbols/BULLET
-                    (contains? traits :horz) horz-bar
-                    :else character)]
-    [rewritten xy extras]))
+  [item]
+  (transform-character item #(cond (contains? %2 :bullet) Symbols/BULLET
+                                   (contains? %2 :horz) horz-bar
+                                   :else %1)))
 
 (defn convert-to-lanterna
   ""
-  [plot-item]
-  (update plot-item 0 #(TextCharacter. %)))
+  [item]
+  (transform-character item (fn [character _]
+                              (TextCharacter. character))))
 
 ; helper variables for composing lanterna characters
 (def bold-txt #(.withModifier % SGR/BOLD))
@@ -86,15 +89,12 @@
                     :meta-reputation bold-txt})
 
 (defn decorate
-  [recipient traits]
-  (reduce #((get trait-clauses %2 identity) %1)
-          recipient
-          traits))
-
-(defn apply-traits
   ""
   [item]
-  (update item 0 decorate (get-in item [2 :traits])))
+  (transform-character item (fn [character traits]
+                              (reduce #((get trait-clauses %2 identity) %1)
+                                      character
+                                      traits))))
 
 (def string-groomer (comp string/join
                           #(filter printable? %)))
@@ -102,7 +102,7 @@
 (def plot-groomer (partial eduction (comp (filter (comp printable? first))
                                           (map replace-with-symbols)
                                           (map convert-to-lanterna)
-                                          (map apply-traits))))
+                                          (map decorate))))
 
 (defmulti groom-item :function)
 
