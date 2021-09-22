@@ -2,7 +2,6 @@
   (:require [clojure.string :as string])
   (:require [staxchg.presentation.common :refer :all])
   (:require [staxchg.dev :as dev])
-  (:require [staxchg.markdown :as markdown])
   (:import com.googlecode.lanterna.SGR)
   (:import com.googlecode.lanterna.Symbols)
   (:import com.googlecode.lanterna.TerminalTextUtils)
@@ -44,7 +43,7 @@
 (def yellow-txt #(.withForegroundColor % TextColor$ANSI/YELLOW))
 (def frame-txt #(.withForegroundColor % frame-color))
 (def blue-txt #(.withForegroundColor % TextColor$ANSI/BLUE))
-(def trait-clauses [:strong bold-txt
+(def trait-clauses {:strong bold-txt
                     :em reverse-txt
                     :code green-txt
                     :standout green-txt
@@ -84,14 +83,18 @@
                     :meta-answers (comp bold-txt frame-txt)
                     :meta-score (comp bold-txt green-txt)
                     :meta-views (comp bold-txt white-txt)
-                    :meta-reputation bold-txt])
+                    :meta-reputation bold-txt})
+
+(defn decorate
+  [recipient traits]
+  (reduce #((get trait-clauses %2 identity) %1)
+          recipient
+          traits))
 
 (defn apply-traits
   ""
-  [[character xy {:keys [traits] :as extras}]]
-  [(apply markdown/decorate character traits trait-clauses)
-   xy
-   extras])
+  [item]
+  (update item 0 decorate (get-in item [2 :traits])))
 
 (def string-groomer (comp string/join
                           #(filter printable? %)))

@@ -1,7 +1,6 @@
 (ns staxchg.markdown
   (:require [clojure.core.cache.wrapped :as cache])
   (:require [clojure.string :as string])
-  (:require [clojure.set])
   (:require [flatland.useful.fn :as ufn])
   (:require [squirrel.tree :as tree])
   (:require [squirrel.node :as node])
@@ -34,20 +33,6 @@
 (defmethod normalize :default
   [node]
   node)
-
-(defn decorate [recipient traits & clauses]
-  (let [effect-map (apply
-                     zipmap
-                     (map
-                       (fn [f]
-                         (map
-                           second
-                           (filter #(->> % first f) (map-indexed vector clauses))))
-                       [even? odd?]))]
-    (reduce
-      (fn [aggregator trait] ((effect-map trait) aggregator))
-      recipient
-      (clojure.set/intersection (set (keys effect-map)) traits))))
 
 (def plot-cache (cache/lru-cache-factory {} :threshold 8))
 
