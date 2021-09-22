@@ -1,17 +1,11 @@
 (ns staxchg.presentation
   (:require [clojure.string :as string])
-  (:require [staxchg.presentation.common :refer :all])
   (:require [staxchg.flow :as flow])
   (:require [staxchg.presentation.state :as state])
   (:require [staxchg.presentation.flow :as presentation.flow])
+  (:require [staxchg.presentation.recipe :as presentation.recipe])
   (:require [staxchg.dev :as dev])
-  (:require [staxchg.markdown :as markdown])
   (:require [staxchg.recipe :as recipe])
-  (:import com.googlecode.lanterna.SGR)
-  (:import com.googlecode.lanterna.Symbols)
-  (:import com.googlecode.lanterna.TerminalTextUtils)
-  (:import com.googlecode.lanterna.TextCharacter)
-  (:import com.googlecode.lanterna.TextColor$ANSI)
   (:gen-class))
 
 (def search-legend (string/join "\n" ["         [tag] search within a tag"
@@ -84,116 +78,6 @@
                    :height height
                    :clear? switched-pane?}}))
 
-(defn printable?
-  ""
-  [character]
-  (->>
-    character
-    ((juxt #(TerminalTextUtils/isControlCharacter %)
-           #(Character/isHighSurrogate %)))
-    (every? false?)))
-
-(defn replace-with-symbols
-  ""
-  [[character xy {:keys [traits] :as extras}]]
-  (let [rewritten (cond
-                    (contains? traits :bullet) Symbols/BULLET
-                    (contains? traits :horz) horz-bar
-                    :else character)]
-    [rewritten xy extras]))
-
-(defn convert-to-lanterna
-  ""
-  [plot-item]
-  (update plot-item 0 #(TextCharacter. %)))
-
-; helper variables for composing lanterna characters
-(def bold-txt #(.withModifier % SGR/BOLD))
-(def reverse-txt #(.withModifier % SGR/REVERSE))
-(def green-txt #(.withForegroundColor % TextColor$ANSI/GREEN))
-(def cyan-txt #(.withForegroundColor % TextColor$ANSI/CYAN))
-(def red-txt #(.withForegroundColor % TextColor$ANSI/RED))
-(def white-txt #(.withForegroundColor % TextColor$ANSI/WHITE))
-(def magenta-txt #(.withForegroundColor % TextColor$ANSI/MAGENTA))
-(def yellow-txt #(.withForegroundColor % TextColor$ANSI/YELLOW))
-(def frame-txt #(.withForegroundColor % frame-color))
-(def blue-txt #(.withForegroundColor % TextColor$ANSI/BLUE))
-(def trait-clauses [:strong bold-txt
-                    :em reverse-txt
-                    :code green-txt
-                    :standout green-txt
-                    :hilite-comment cyan-txt
-                    :hilite-built-in red-txt
-                    :hilite-function (comp bold-txt white-txt)
-                    :hilite-documentation cyan-txt
-                    :hilite-keyword (comp bold-txt green-txt)
-                    :hilite-data-type (comp bold-txt white-txt)
-                    :hilite-dec-val (comp bold-txt magenta-txt)
-                    :hilite-base-n (comp bold-txt magenta-txt)
-                    :hilite-float (comp bold-txt magenta-txt)
-                    :hilite-constant (comp bold-txt magenta-txt)
-                    :hilite-char (comp bold-txt yellow-txt)
-                    :hilite-special-char (comp bold-txt red-txt)
-                    :hilite-string (comp bold-txt green-txt)
-                    :hilite-verbatim-string (comp bold-txt green-txt)
-                    :hilite-special-string (comp bold-txt green-txt)
-                    :hilite-import red-txt
-                    :hilite-annotation yellow-txt
-                    :hilite-comment-var (comp bold-txt white-txt)
-                    :hilite-other blue-txt
-                    :hilite-variable white-txt
-                    :hilite-control-flow red-txt
-                    :hilite-operator yellow-txt
-                    :hilite-extension blue-txt
-                    :hilite-preprocessor red-txt
-                    :hilite-attribute (comp bold-txt blue-txt)
-                    :hilite-region-marker yellow-txt
-                    :hilite-information (comp bold-txt green-txt)
-                    :hilite-warning (comp bold-txt yellow-txt)
-                    :hilite-alert (comp bold-txt red-txt)
-                    :hilite-error (comp bold-txt red-txt)
-                    :comment cyan-txt
-                    :h (comp bold-txt yellow-txt)
-                    :frame frame-txt
-                    :meta-answers (comp bold-txt frame-txt)
-                    :meta-score (comp bold-txt green-txt)
-                    :meta-views (comp bold-txt white-txt)
-                    :meta-reputation bold-txt])
-
-(defn apply-markdown-traits
-  ""
-  [[character xy {:keys [traits] :as extras}]]
-  [(apply markdown/decorate character traits trait-clauses)
-   xy
-   extras])
-
-(def string-groomer (comp string/join
-                          #(filter printable? %)))
-
-(def plot-groomer (partial eduction (comp (filter (comp printable? first))
-                                          (map replace-with-symbols)
-                                          (map convert-to-lanterna)
-                                          (map apply-markdown-traits))))
-
-(defmulti groom-recipe-item :function)
-
-(defmethod groom-recipe-item :staxchg.io/put-string!
-  [item]
-  (update-in item [:params 1] string-groomer))
-
-(defmethod groom-recipe-item :staxchg.io/put-plot!
-  [item]
-  (update-in item [:params 1] plot-groomer))
-
-(defmethod groom-recipe-item :default
-  [item]
-  item)
-
-(defn groom-recipe
-  ""
-  [recipe]
-  (map groom-recipe-item recipe))
-
 (defn flows
   ""
   [world zone]
@@ -256,9 +140,6 @@
      (contains? post "question_id") question-line-count
      :else (constantly 0)) post world))
 
-(def refresh-recipe [{:function :staxchg.io/refresh!
-                      :params [:screen]}])
-
 (defn recipes
   ""
   [{:as world
@@ -273,6 +154,6 @@
                                 (map inflate-input)
                                 (remove (comp nil? :flow))
                                 (map recipe/make)
-                                (map groom-recipe))]
-    (concat backbuffer-recipes [refresh-recipe])))
+                                (map presentation.recipe/groom))]
+    (concat backbuffer-recipes [presentation.recipe/refresh])))
 
