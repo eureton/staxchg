@@ -140,12 +140,12 @@
                  (not= KeyType/EOF))
     nil))
 
-(defn await-key!
+(defn poll-key!
   ""
   [screen]
-  (let [keystroke (.readInput screen)]
+  (let [keystroke (.pollInput screen)]
     (drain-keystroke-queue! screen)
-    {:function :await-key!
+    {:function :poll-key!
      :values [keystroke]}))
 
 (defn query!

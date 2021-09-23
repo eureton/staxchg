@@ -412,7 +412,7 @@
                 :acquire-screen! update-for-screen
                 :resolve-highlighter! update-for-highlighter
                 :enable-screen! update-for-dimensions
-                :await-key! update-for-keystroke
+                :poll-key! update-for-keystroke
                 :poll-resize! update-for-resize
                 :query! update-for-search-term
                 :fetch-questions! update-for-questions-response
