@@ -185,7 +185,8 @@
 (defn traits-seq
   ""
   [html]
-  (let [root (jsoup-document html)
+  (let [bag #(format "<div>%s</div>" %)
+        root (->> html bag jsoup-document)
         tags (demarcate root)]
     (map-indexed (fn [index _]
                    (->> tags
