@@ -87,12 +87,3 @@
    :height (inc answers-separator-height)
    :clear? switched-pane?})
 
-(defn full-screen
-  ""
-  [{:keys [width height switched-pane?]}]
-  {:left 0
-   :top 0
-   :width width
-   :height height
-   :clear? switched-pane?})
-

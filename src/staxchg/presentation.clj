@@ -18,12 +18,10 @@
                                       "isaccepted:yes seach within status"]))
 
 (def consignments
-  [{:pane :questions :flow-id :dummy               :zone-id :full-screen}
-   {:pane :questions :flow-id :questions-separator :zone-id :questions-separator}
+  [{:pane :questions :flow-id :questions-separator :zone-id :questions-separator}
    {:pane :questions :flow-id :questions-list      :zone-id :questions-header}
    {:pane :questions :flow-id :questions-body      :zone-id :questions-body}
    {:pane :questions :flow-id :question-meta       :zone-id :questions-footer}
-   {:pane   :answers :flow-id :dummy               :zone-id :full-screen}
    {:pane   :answers :flow-id :answers-separator   :zone-id :answers-separator}
    {:pane   :answers :flow-id :answers-body        :zone-id :answers-body}
    {:pane   :answers :flow-id :answer-meta         :zone-id :answers-footer-right}
