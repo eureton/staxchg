@@ -1,7 +1,6 @@
 (ns staxchg.io
   (:require [clojure.core.async :as async :refer [>!! <!! thread close!]])
   (:require [clojure.java.shell])
-  (:require [staxchg.api :as api])
   (:require [staxchg.dev :as dev])
   (:require [staxchg.util :as util])
   (:require [clj-http.lite.client :as http])
@@ -28,7 +27,13 @@
   (:gen-class))
 
 (defn decorate-with-current
-  ""
+  "Decorates TextCharacter object with attributes read from TextGraphics object:
+     1. foreground color
+     2. background color
+     3. modifiers
+
+   If character has any of the above set to a non-default value, the latter is
+   not modified."
   [character graphics]
   (let [fg-color (.getForegroundColor character)
         bg-color (.getBackgroundColor character)
@@ -42,7 +47,7 @@
            (not-empty current-modifiers)) (.withModifiers current-modifiers))))
 
 (defn themed-gui
-  ""
+  "Creates an instance of TextGUI and configures it with the \"staxchg\" theme."
   [screen]
   (let [theme (LanternaThemes/getRegisteredTheme "staxchg")
         size (.getTerminalSize screen)
@@ -54,6 +59,8 @@
     gui))
 
 (defmacro block-till-done!
+  "Renders a spinning widget while body executes. The widget takes up the entire
+   terminal. All input is ignored while the widget spins."
   [screen & body]
   `(let [gui# (themed-gui ~screen)
          dialog# (WaitingDialog/createDialog "" "Fetching...")
@@ -72,7 +79,8 @@
        (finally (async/close! channel#)))))
 
 (defn show-message!
-  ""
+  "Displays a modal dialog with the given title and text. The dialog comes with
+   a single OK button."
   [screen
    {:keys [title text] :or {title ""}}
    return]
@@ -88,12 +96,15 @@
     return))
 
 (defn put-plot!
+  "Renders plot, one character at a time using the given TextGraphics object.
+   Decorates characters with the attributes of graphics, unless they have
+   already been decorated. See staxchg.io/decorate-with-current for more."
   [graphics plot _]
   (doseq [[character [x y] t] plot]
     (.setCharacter graphics x y (decorate-with-current character graphics))))
 
 (defn put-string!
-  ""
+  "Renders string using the given TextGraphics object. Starts at (x, y)."
   [graphics
    string
    {:keys [x y]
@@ -101,33 +112,37 @@
   (.putString graphics x y string))
 
 (defn scroll!
-  ""
+  "Scrolls the terminal content by distance rows, starting at top (inclusive)
+   and ending at bottom (exclusive). Positive distance values scroll upwards,
+   negative values, scroll downwards."
   [screen top bottom distance]
   (.scrollLines screen top bottom distance))
 
 (defn clear!
-  ""
+  "Fills the terminal subrect which graphics has been configured for with
+   undecorated space characters."
   [graphics _ _ _ _]
   (.fill graphics \space))
 
 (defn refresh!
-  ""
+  "Commits the changes recorded so far in screen to the terminal."
   [screen]
   (.refresh screen)) ; TODO provide refresh type according to outgoing recipes
 
 (defn sleep!
-  ""
+  "Pauses the application main thread for interval milliseconds."
   [interval]
   (Thread/sleep interval))
 
 (defn poll-resize!
-  ""
+  "Checks whether the terminal has been resized by the user. If so, provides the
+   new dimensions of the terminal."
   [screen]
   {:function :poll-resize!
    :values [(.doResizeIfNecessary screen)]})
 
 (defn drain-keystroke-queue!
-  ""
+  "Pops and discards all keystroke event off the lanterna event queue."
   [screen]
   (while (some-> (.pollInput screen)
                  .getKeyType
@@ -135,7 +150,10 @@
     nil))
 
 (defn poll-key!
-  ""
+  "First polls the lanterna event queue for keystroke events, then drains it.
+   Consequently, if multiple keystrokes occur between successive calls to
+   poll-key!, the application acts on the first and ignores the rest.
+   The purpose of this policy is to throttle event processing on long-press."
   [screen]
   (let [keystroke (.pollInput screen)]
     (drain-keystroke-queue! screen)
@@ -143,7 +161,8 @@
      :values [keystroke]}))
 
 (defn query!
-  ""
+  "Renders a modal dialog which prompts the user to submit a query. The dialog
+   comes with OK and Cancel buttons."
   [screen legend]
   (let [gui (themed-gui screen)
         dialog-width (-> screen .getTerminalSize .getColumns (* 0.8) int)
@@ -158,34 +177,44 @@
      :values [(.showDialog dialog gui)]}))
 
 (defn try-request!
-  ""
-  [url method query-params]
+  "Dispatches an HTTP request to url with the given method and parameters. If
+   all goes well, returns the results of clj-http.lite.client/request.
+   Otherwise, returns error-response."
+  [url method query-params error-response]
   (try
     (http/request {:url url
                    :cookie-policy :standard
                    :method method
                    :query-params query-params})
-    (catch Exception _ api/error-response)))
+    (catch Exception _ error-response)))
 
 (defn blocking-fetch!
-  ""
-  [url query-params screen]
+  "Dispatches an HTTP request and blocks user input while waiting for the
+   result. See staxchg.io/try-request! for details about the parameters."
+  [url query-params error-response screen]
   (->>
-    (try-request! url "get" query-params)
+    (try-request! url "get" query-params error-response)
     (block-till-done! screen)))
 
 (defn fetch-questions!
-  [screen url query-params]
+  "Blocks and waits for questions to be fetched. See staxchg.io/try-request! for
+   details about the parameters."
+  [screen url query-params error-response]
   {:function :fetch-questions!
-   :values [(blocking-fetch! url query-params screen)]})
+   :values [(blocking-fetch! url query-params error-response screen)]})
 
 (defn fetch-answers!
-  [screen url query-params question-id]
+  "Blocks and waits for answers to be fetched. See staxchg.io/try-request! for
+   details about the parameters."
+  [screen url query-params error-response question-id]
   {:function :fetch-answers!
-   :values [(blocking-fetch! url query-params screen) question-id]})
+   :values [(blocking-fetch! url query-params error-response screen)
+            question-id]})
 
 (defn run-skylighting!
-  ""
+  "Forks a shell process attempting to run the skylighting tool. The command is
+   configured to format the results in HTML and use the given syntax on the
+   given code. Returns the shell output of clojure.java.shell/sh as is."
   [code syntax question-id answer-id]
   (let [sh-out (try
                  (clojure.java.shell/sh
@@ -198,7 +227,8 @@
      :values [sh-out question-id answer-id]}))
 
 (defn run-highlight.js!
-  ""
+  "Forks a shell process attempting to run the runhljs script. Returns the shell
+   output of clojure.java.shell/sh as is."
   [code syntaxes question-id answer-id]
   (let [sh-out (try
                  (apply clojure.java.shell/sh
@@ -208,26 +238,33 @@
     {:function :highlight-code!
      :values [sh-out question-id answer-id]}))
 
-(def request-channel (async/chan))
+(def request-channel
+  "Channel to write I/O requests to."
+  (async/chan))
 
-(def response-channel (async/chan))
+(def response-channel
+  "Channel to read responses to I/O requests from."
+  (async/chan))
 
 (defn quit!
-  ""
+  "Performs application shutdown tasks."
   [screen]
   (close! request-channel)
   (close! response-channel)
   (.stopScreen screen))
 
 (defn register-theme!
-  ""
+  "Registers the theme whose description is filename with lanterna, under the
+   name theme-name. Registering in this way must be done before any attempt to
+   style a lanterna GUI with a theme."
   [theme-name filename]
   (LanternaThemes/registerTheme
     theme-name
     (PropertyTheme. (util/read-resource-properties filename) false)))
 
 (defn acquire-screen!
-  ""
+  "Checks the terminal which the application is run in for suitability. If
+   successful, returns a lanterna Screen object."
   []
   (let [terminal (UnixTerminal.
                    System/in
@@ -240,13 +277,14 @@
      :values [(TerminalScreen. terminal)]}))
 
 (defn resolve-highlighter!
-  ""
+  "Searches the user's configuration file for a syntax-highlighting tool entry."
   []
   {:function :resolve-highlighter!
    :values [((util/config-hash) "HIGHLIGHTER")]})
 
 (defn enable-screen!
-  ""
+  "Puts the terminal which the application is run in into private mode. See the
+   lanterna documentation for more details."
   [screen]
   (.startScreen screen)
   {:function :enable-screen!

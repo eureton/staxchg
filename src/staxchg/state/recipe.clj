@@ -237,7 +237,8 @@
   [[{:function :staxchg.io/fetch-questions!
      :params [:screen
               (api/questions-url)
-              (api/questions-query-params search-term)]}]])
+              (api/questions-query-params search-term)
+              api/error-response]}]])
 
 (defmethod input :fetch-answers
   [{:keys [fetch-answers]}]
@@ -245,6 +246,7 @@
      :params [:screen
               (api/answers-url (fetch-answers :question-id))
               (api/answers-query-params (fetch-answers :page))
+              api/error-response
               (fetch-answers :question-id)]}]])
 
 (defmethod input :no-questions
