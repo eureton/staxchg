@@ -8,12 +8,18 @@
   (:gen-class))
 
 (defn traitful-char-seq
-  ""
+  "Sequence of characters in the string representation of token, each coupled
+   with traits. Coupling is done via a vector. traits is packaged as a set and
+   nested within a hash under the :traits key.
+
+   For example:
+     => (traitful-char-seq 42 :abc :xyz)
+     ([\\4 {:traits #{:abc :xyz}}] [\\2 {:traits #{:abc :xyz}}])"
   [token & traits]
   (map vector (str token) (repeat {:traits (set traits)})))
 
 (defn date
-  ""
+  "Formats Unix timestamps to a human-readable string."
   [unixtime]
   (when unixtime
     (let [datetime (LocalDateTime/ofEpochSecond unixtime 0 ZoneOffset/UTC)]
@@ -25,7 +31,7 @@
               (.getMinute datetime)))))
 
 (defn author
-  ""
+  "Formats post owner structures to a human-readable string."
   [{:as author
     :strs [display_name reputation]}]
   (mapcat (ufn/ap traitful-char-seq)
@@ -35,7 +41,7 @@
            [")" :frame]]))
 
 (defn question-stats
-  ""
+  "Formats question statistics to a concise, human-readable string."
   [{:strs [answer_count score view_count]}]
   (let [divider ["/" :frame]]
     (mapcat (ufn/ap traitful-char-seq)
@@ -47,11 +53,11 @@
              [view_count :meta-views]])))
 
 (def meta-divider
-  ""
+  "Sequence suitable for diving concatenated pieces of text."
   (traitful-char-seq " | " :frame))
 
 (defn question-meta
-  ""
+  "Sequence representing the meta-information of question."
   [question]
   (when-some [{:strs [last_activity_date owner]} question]
     (concat (question-stats question)
@@ -61,7 +67,7 @@
             (traitful-char-seq (date last_activity_date) :frame))))
 
 (defn answer-meta
-  ""
+  "Sequence representing the meta-information of answer."
   [answer]
   (when-some [{:strs [score last_activity_date owner]} answer]
     (concat (traitful-char-seq score :frame)
@@ -71,7 +77,7 @@
             (traitful-char-seq (date last_activity_date) :frame))))
 
 (defn comment-meta
-  ""
+  "String representing the meta-information of post, where post is a comment."
   [{:as post :strs [owner score creation_date]}]
   (format
     "%d | %s | %s"
@@ -80,13 +86,14 @@
     (date creation_date)))
 
 (defn question-list-item
-  ""
+  "Single-line string summary of question using a maximum of width columns."
   [question width]
   (format (str "%-" width "s")
           (question "title")))
 
 (defn separator
-  ""
+  "String for separating the header from the body in a pane. Uses width columns
+   and incorporates the hint string at the end of the right side."
   [width hint]
   (format "%s%s%s"
           (string/join (repeat (- width (count hint) 1) horz-bar))
@@ -94,7 +101,7 @@
           (str horz-bar)))
 
 (defn questions-separator
-  ""
+  "String for separating the header from the body in the questions pane."
   [{:keys [question-list-size question-list-offset questions]}
    {:keys [width]}]
   (let [from (inc question-list-offset)
@@ -103,7 +110,7 @@
     (separator width hint)))
 
 (defn answers-separator
-  ""
+  "String for separating the header from the body in the answers pane."
   [{:as question :strs [answer_count answers]}
    {:strs [answer_id]}
    {:as zone :keys [width]}]

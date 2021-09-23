@@ -3,12 +3,13 @@
   (:gen-class))
 
 (defn selected-question
-  ""
+  "Currently selected question."
   [{:as world
     :keys [selected-question-index]}]
   (get-in world [:questions selected-question-index]))
 
 (defn selected-answer
+  "Currently selected answer."
   ([{:strs [question_id answers]}
     world]
    (let [answer-id (or (get-in world [:selected-answers question_id])
@@ -19,7 +20,7 @@
    (selected-answer (selected-question world) world)))
 
 (defn line-offset
-  ""
+  "Vertical scroll offset at which post was last viewed."
   [post world]
   (or (get-in world [:line-offsets (post/id post)])
       0))

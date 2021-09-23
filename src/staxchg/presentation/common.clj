@@ -27,3 +27,5 @@
 
 (def answers-header-left 1)
 
+(def comments-left-margin 16)
+
