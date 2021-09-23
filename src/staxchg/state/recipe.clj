@@ -269,7 +269,7 @@
 (defmethod input :query
   [_]
   [[{:function :staxchg.io/query!
-     :params [:screen]}]])
+     :params [:screen presentation/search-legend]}]])
 
 (defmethod input :quit
   [_]

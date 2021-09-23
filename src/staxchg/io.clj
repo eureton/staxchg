@@ -1,12 +1,6 @@
 (ns staxchg.io
   (:require [clojure.core.async :as async :refer [>!! <!! thread close!]])
   (:require [clojure.java.shell])
-  (:require [staxchg.markdown :as markdown])
-  (:require [staxchg.state :as state])
-  (:require [staxchg.state.recipe :as state.recipe])
-  (:require [staxchg.presentation :as presentation])
-  (:require [staxchg.flow :as flow])
-  (:require [staxchg.recipe :as recipe])
   (:require [staxchg.api :as api])
   (:require [staxchg.dev :as dev])
   (:require [staxchg.util :as util])
@@ -150,13 +144,13 @@
 
 (defn query!
   ""
-  [screen]
+  [screen legend]
   (let [gui (themed-gui screen)
         dialog-width (-> screen .getTerminalSize .getColumns (* 0.8) int)
         dialog (->
                  (TextInputDialogBuilder.)
                  (.setTitle "")
-                 (.setDescription presentation/search-legend)
+                 (.setDescription legend)
                  (.setTextBoxSize (TerminalSize. dialog-width 1))
                  (.setExtraWindowHints #{Window$Hint/CENTERED})
                  (.build))]
