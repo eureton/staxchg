@@ -161,7 +161,7 @@
     (get valid translated)))
 
 (defn highlight-code-step-df
-  "Dispatch function for highlight-code-step."
+  "Dispatch function for staxchg.state.recipe/highlight-code-step"
   [_ highlighter]
   highlighter)
 
@@ -192,7 +192,7 @@
   (highlight-code-step snippet :skylighting))
 
 (defn input-df
-  ""
+  "Dispatch function for staxchg.state.recipe/input"
   [{:as world
     :keys [query? questions search-term fetch-answers no-questions no-answers
            fetch-failed snippets quit? width]
@@ -210,7 +210,9 @@
         quit?              :quit
         :else              :sleep))
 
-(defmulti input input-df)
+(defmulti input
+  "Recipes for requesting input, as required by world."
+  input-df)
 
 (defmethod input :initialize
   [_]
@@ -286,17 +288,20 @@
      :params [:screen]}]])
 
 (defn output
-  ""
+  "Recipes for requesting output, as required by world."
   [world]
   (if (state/render? world)
     (presentation/recipes world)
     []))
 
-(def all (comp (partial apply concat)
-               (juxt output input)))
+(def all
+  "Recipes requests, as required by world. First come the output, then the
+   output recipes."
+  (comp (partial apply concat)
+        (juxt output input)))
 
 (defn request
-  ""
+  "Packages recipes in the format smachine expects."
   [world]
   {:recipes (all world)
    :context (:io/context world)})

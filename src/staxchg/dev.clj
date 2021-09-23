@@ -4,17 +4,6 @@
   (:require [staxchg.util :as util])
   (:gen-class))
 
-(defn truncate
-  [x]
-  (if-let [_ (string? x)]
-    (let [length (count x)
-          truncation-limit 128
-          context 32]
-      (if (> length truncation-limit)
-        (str (subs x 0 context) " [...] " (subs x (- length context) length))
-        x))
-    x))
-
 (defn decorate
   "Helps a block of text stand out by:
     1. indenting
@@ -35,12 +24,17 @@
   ([string]
    (decorate string {})))
 
-(def recipe-step-hierarchy (-> (make-hierarchy)
-                               (derive :staxchg.io/run-highlight.js! :staxchg.io/highlight-code!)
-                               (derive :staxchg.io/run-skylighting! :staxchg.io/highlight-code!)
-                               atom))
+(def recipe-step-hierarchy
+  "Hierarchy meant for use in staxchg.dev/log-recipe-step"
+  (-> (make-hierarchy)
+      (derive :staxchg.io/run-highlight.js! :staxchg.io/highlight-code!)
+      (derive :staxchg.io/run-skylighting! :staxchg.io/highlight-code!)
+      atom))
 
-(defmulti log-recipe-step :function :hierarchy recipe-step-hierarchy)
+(defmulti log-recipe-step
+  "String representation of the steps of domain-specific recipes."
+  :function
+  :hierarchy recipe-step-hierarchy)
 
 (defmethod log-recipe-step :staxchg.io/put-plot!
   [{[_ plot _] :params}]
@@ -92,7 +86,7 @@
 (defmethod log-recipe-step :default [_])
 
 (defn log-item-df
-  "Dispatch function for dev/log-item."
+  "Dispatch function for staxchg.dev/log-item"
   [item]
   (let [has-keys? #(every? (partial contains? item) %)
         hash-with-keys? #(and (map? item)
@@ -154,6 +148,12 @@
   item)
 
 (defn log
+  "Writes string representations of items to the log, if the conditions below
+   are met:
+
+     1. user has a configuration file
+     2. configuration file contains a LOGFILE entry
+     3. LOGFILE entry contains a pathname which may be written to"
   [& items]
   (when-let [pathname (util/config-hash "LOGFILE")]
     (with-open [writer (clojure.java.io/writer pathname :append true)]

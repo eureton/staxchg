@@ -10,14 +10,14 @@
   (:gen-class))
 
 (defn run-request-loop
-  ""
+  "Wires up the given core.async channels with cookbook."
   [in-channel out-channel]
   (loop []
     (cookbook/route {:from in-channel :to out-channel :log-fn dev/log})
     (recur)))
 
 (defn -main
-  "I don't do a whole lot ... yet."
+  "Application entry point."
   [& args]
   (thread (run-request-loop io/request-channel io/response-channel))
   (smachine/run {:s-init (state/make)

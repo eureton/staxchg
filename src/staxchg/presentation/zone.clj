@@ -4,12 +4,12 @@
   (:gen-class))
 
 (defn answers-footer-left-width
-  ""
+  "Implementation detail - do not call directly."
   [width]
   (quot width 3))
 
 (defn questions-header
-  ""
+  "Zone for the header of the questions pane."
   [{:keys [width switched-pane?]}]
   {:left question-list-left
    :top 0
@@ -18,7 +18,7 @@
    :clear? switched-pane?})
 
 (defn questions-separator
-  ""
+  "Zone for the separator of the questions pane."
   [{:keys [width]}]
   {:left 0
    :top question-list-size
@@ -26,7 +26,7 @@
    :height 1})
 
 (defn questions-body
-  ""
+  "Zone for the body of the questions pane."
   [{:keys [width height switched-pane? switched-question?]}]
   {:left questions-body-left
    :top questions-body-top
@@ -35,7 +35,7 @@
    :clear? (or switched-pane? switched-question?)})
 
 (defn questions-footer
-  ""
+  "Zone for the footer of the questions pane."
   [{:keys [width height switched-pane? switched-question?]}]
   {:left 0
    :top (dec height)
@@ -44,7 +44,7 @@
    :clear? (or switched-pane? switched-question?)})
 
 (defn answers-body
-  ""
+  "Zone for the body of the answers pane."
   [{:keys [width height switched-pane? switched-answer?]}]
   {:left answer-body-left
    :top answer-body-top
@@ -53,7 +53,7 @@
    :clear? (or switched-pane? switched-answer?)})
 
 (defn answers-footer-left
-  ""
+  "Zone for the left part of the footer of the questions pane."
   [{:keys [width height switched-pane? switched-answer?]}]
   {:left 0
    :top (dec height)
@@ -62,7 +62,7 @@
    :clear? (or switched-pane? switched-answer?)})
 
 (defn answers-footer-right
-  ""
+  "Zone for the right part of the footer of the questions pane."
   [{:keys [width height switched-pane? switched-answer?]}]
   {:left (answers-footer-left-width width)
    :top (dec height)
@@ -71,7 +71,7 @@
    :clear? (or switched-pane? switched-answer?)})
 
 (defn answers-header
-  ""
+  "Zone for the header of the answers pane."
   [{:keys [width]}]
   {:left answers-header-left
    :top 0
@@ -79,7 +79,7 @@
    :height answers-header-height})
 
 (defn answers-separator
-  ""
+  "Zone for the separator of the answers pane."
   [{:keys [width switched-pane?]}]
   {:left 0
    :top answers-header-height

@@ -3,12 +3,12 @@
   (:import com.googlecode.lanterna.TextColor$ANSI)
   (:gen-class))
 
-(def zero {:items []})
-
-(def y-rhythm 1)
+(def zero
+  "Identity element of staxchg.flow/add"
+  {:items []})
 
 (defn make
-  ""
+  "Creates a hash representing a flow."
   [{:as args
     :keys [type x y raw foreground-color background-color modifiers scroll-delta
            scroll-offset sub-zone highlights]
@@ -30,9 +30,8 @@
             :background-color background-color
             :modifiers modifiers}]})
 
-(def y-separator (make {}))
-
 (defn scrolled?
+  "True if the flow has been scrolled, false otherwise."
   [{:keys [items scroll-delta]}]
   (boolean
     (and
@@ -41,12 +40,12 @@
       ((complement zero?) scroll-delta))))
 
 (defn scroll-y
-  ""
+  "Scrolls the flow vertically by delta rows."
   [flow delta]
   (assoc flow :scroll-offset (- delta)))
 
 (defn line-count
-  ""
+  "Number of lines which flow spans within zone."
   [{:as flow
     :keys [items]}
    zone]
@@ -55,7 +54,8 @@
     (map #(item/line-count % zone) items)))
 
 (defn add
-  ""
+  "Concatenates flows into another flow. Associative. Identity element is
+   staxchg.flow/zero"
   ([]
    zero)
   ([flow]
@@ -69,7 +69,8 @@
    (reduce add (add flow1 flow2) more)))
 
 (defn scroll-gap-rect
-  ""
+  "If flow has been scrolled, a rect representing the vacated area within zone.
+   Otherwise, equal to zone."
   [{:as flow
     :keys [scroll-delta]}
    {:as zone
@@ -84,7 +85,7 @@
      :height (if gap-filler? (Math/abs scroll-delta) height)}))
 
 (defn y-layout-transducer
-  ""
+  "Stateful transducer for vertically laying out the items within flow."
   [{:as flow
     :keys [scroll-offset]
     :or {scroll-offset 0}}
@@ -100,7 +101,8 @@
            (rf acc (update x :y + previous (- scroll-offset)))))))))
 
 (defn adjust
-  ""
+  "Adjusts flow to zone by plotting, translating clipping and filtering as
+   necessary."
   [flow zone]
   (let [viewport (scroll-gap-rect flow zone)
         xform (comp (map #(assoc % :plot (item/plot-markdown zone %)))

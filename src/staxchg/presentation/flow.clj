@@ -53,7 +53,7 @@
    world
    zone]
   (reduce
-    #(flow/add %1 flow/y-separator %2)
+    #(flow/add %1 (flow/make {}) %2)
     flow/zero
     (map #(single-comment % zone) comments)))
 

@@ -13,72 +13,75 @@
   "Set containing keyword IDs of all supported syntax highlighting tools."
   #{:skylighting :highlight.js :pygments})
 
-(def class-trait-map {; skylighting
-                      :kw :hilite-keyword
-                      :dt :hilite-data-type
-                      :dv :hilite-dec-val
-                      :bn :hilite-base-n
-                      :fl :hilite-float
-                      :cn :hilite-constant
-                      :ch :hilite-char
-                      :sc :hilite-special-char
-                      :st :hilite-string
-                      :vs :hilite-verbatim-string
-                      :ss :hilite-special-string
-                      :im :hilite-import
-                      :co :hilite-comment
-                      :do :hilite-documentation
-                      :an :hilite-annotation
-                      :cv :hilite-comment-var
-                      :ot :hilite-other
-                      :fu :hilite-function
-                      :va :hilite-variable
-                      :cf :hilite-control-flow
-                      :op :hilite-operator
-                      :bu :hilite-built-in
-                      :ex :hilite-extension
-                      :pp :hilite-preprocessor
-                      :at :hilite-attribute
-                      :re :hilite-region-marker
-                      :in :hilite-information
-                      :wa :hilite-warning
-                      :al :hilite-alert
-                      :er :hilite-error
-                      ; highlight.js
-                      :hljs-keyword :hilite-keyword
-                      :hljs-class :hilite-keyword
-                      :hljs-type :hilite-data-type
-                      :hljs-number :hilite-dec-val
-                      :hljs-name :hilite-title
-                      :hljs-title :hilite-title
-                      :hljs-params :hilite-params
-                      :hljs-symbol :hilite-constant
-                      :hljs-regexp :hilite-constant
-                      :hljs-literal :hilite-constant
-                      :hljs-string :hilite-string
-                      :hljs-meta-keyword :hilite-import
-                      :hljs-comment :hilite-comment
-                      :hljs-doctag :hilite-documentation
-                      :hljs-function :hilite-function
-                      :hljs-variable :hilite-variable
-                      :hljs-operator :hilite-operator
-                      :hljs-built_in :hilite-built-in
-                      :hljs-builtin-name :hilite-built-in
-                      :hljs-meta :hilite-preprocessor
-                      :hljs-meta-string :hilite-preprocessor
-                      :hljs-attr :hilite-attribute
-                      :hljs-attribute :hilite-attribute
-                      :hljs-sub-attribute :hilite-attribute
-                      :hljs-section :hilite-region-marker
-                      :hljs-tag :hilite-tag
-                      :hljs-selector-tag :hilite-css-selector-tag
-                      :hljs-selector-id :hilite-css-selector-id
-                      :hljs-selector-class :hilite-css-selector-class
-                      :hljs-selector-attr :hilite-css-selector-attr
-                      :hljs-selector-pseudo :hilite-css-selector-pseudo})
+(def class-trait-map
+  "Hash mapping tool-specific highlight classes to the generic trait symbols
+   used in the presentation layer."
+  {; skylighting
+   :kw :hilite-keyword
+   :dt :hilite-data-type
+   :dv :hilite-dec-val
+   :bn :hilite-base-n
+   :fl :hilite-float
+   :cn :hilite-constant
+   :ch :hilite-char
+   :sc :hilite-special-char
+   :st :hilite-string
+   :vs :hilite-verbatim-string
+   :ss :hilite-special-string
+   :im :hilite-import
+   :co :hilite-comment
+   :do :hilite-documentation
+   :an :hilite-annotation
+   :cv :hilite-comment-var
+   :ot :hilite-other
+   :fu :hilite-function
+   :va :hilite-variable
+   :cf :hilite-control-flow
+   :op :hilite-operator
+   :bu :hilite-built-in
+   :ex :hilite-extension
+   :pp :hilite-preprocessor
+   :at :hilite-attribute
+   :re :hilite-region-marker
+   :in :hilite-information
+   :wa :hilite-warning
+   :al :hilite-alert
+   :er :hilite-error
+   ; highlight.js
+   :hljs-keyword :hilite-keyword
+   :hljs-class :hilite-keyword
+   :hljs-type :hilite-data-type
+   :hljs-number :hilite-dec-val
+   :hljs-name :hilite-title
+   :hljs-title :hilite-title
+   :hljs-params :hilite-params
+   :hljs-symbol :hilite-constant
+   :hljs-regexp :hilite-constant
+   :hljs-literal :hilite-constant
+   :hljs-string :hilite-string
+   :hljs-meta-keyword :hilite-import
+   :hljs-comment :hilite-comment
+   :hljs-doctag :hilite-documentation
+   :hljs-function :hilite-function
+   :hljs-variable :hilite-variable
+   :hljs-operator :hilite-operator
+   :hljs-built_in :hilite-built-in
+   :hljs-builtin-name :hilite-built-in
+   :hljs-meta :hilite-preprocessor
+   :hljs-meta-string :hilite-preprocessor
+   :hljs-attr :hilite-attribute
+   :hljs-attribute :hilite-attribute
+   :hljs-sub-attribute :hilite-attribute
+   :hljs-section :hilite-region-marker
+   :hljs-tag :hilite-tag
+   :hljs-selector-tag :hilite-css-selector-tag
+   :hljs-selector-id :hilite-css-selector-id
+   :hljs-selector-class :hilite-css-selector-class
+   :hljs-selector-attr :hilite-css-selector-attr
+   :hljs-selector-pseudo :hilite-css-selector-pseudo})
 
 (defn jsoup-document
-  "Returns the org.jsoup.nodes.Document which holds the given HTML, properly
+  "The org.jsoup.nodes.Document object which holds the given HTML, properly
    configured to work well with the app."
   [html]
   (-> html
@@ -86,13 +89,13 @@
       (.outputSettings (.prettyPrint (Document$OutputSettings.) false))))
 
 (defn outer-hilite-nodes
-  "Returns Jsoup nodes which denote a syntax highlight. In case of multiple
-   nested nodes, only the outermost are returned."
+  "Jsoup nodes which denote a syntax highlight. In case of multiple nested
+   nodes, only the outermost are returned."
   [doc]
   (.select doc "span[class]:not(span[class] > span[class])"))
 
 (defn inner-hilite-nodes
-  "Returns Jsoup nodes within node which denote a syntax highlight."
+  "Jsoup nodes within node which denote a syntax highlight."
   [node]
   (loop [node node
          result []]
@@ -105,8 +108,7 @@
       result)))
 
 (defn classes
-  "Returns a set of all detected syntax highlight classes for both node and its
-   descendants."
+  "Set of syntax highlight classes for both node and its descendants."
   [node]
   (let [mapper #(-> % .attributes (.get "class") (string/split #" "))]
     (->> node
@@ -127,7 +129,7 @@
       .first))
 
 (defn normalize-df
-  "Dispatch function for hilite/normalize. Returns a keyword."
+  "Dispatch function for staxchg.hilite/normalize"
   [html]
   (let [doc (jsoup-document html)]
     (cond
@@ -136,12 +138,12 @@
       :else :highlight.js)))
 
 (defn wrap-in-code-tag
-  "Wrap the HTML in the standard <code> tag."
+  "Wraps the HTML in the standard <code> tag."
   [html]
   (format "<code class=\"sourceCode\">%s</code>" html))
 
 (defmulti normalize
-  "Returns html parsable by hilite/root-jsoup-elem, regardless of origin."
+  "Make html parsable by staxchg.hilite/root-jsoup-elem, regardless of origin."
   normalize-df)
 
 (defmethod normalize :skylighting
@@ -168,7 +170,11 @@
   (wrap-in-code-tag html))
 
 (defn demarcate
-  ""
+  "Vector of hashes, one for each syntax highlight tag within node. Each hash
+   contains:
+     * the start index (inclusive) within the original text
+     * the end index (exclusive) within the original text
+     * set of the syntax highlight classes"
   [node]
   (let [node-text (.wholeText node)]
     (reduce (fn [acc x]
@@ -183,7 +189,10 @@
             (outer-hilite-nodes node))))
 
 (defn traits-seq
-  ""
+  "Per-character sequence of sets of syntax highlight classes. Example:
+
+     => (traits-seq \"a <span class=\"kw\">bc<span> d\")
+     (#{} #{} #{:hilite-keyword} #{:hilite-keyword} #{} #{})"
   [html]
   (let [bag #(format "<div>%s</div>" %)
         root (->> html bag jsoup-document)
@@ -193,12 +202,12 @@
                         (filter #(and (<= (:start %) index)
                                       (< index (:end %))))
                         first
-                        :classes
-                        set))
+                        :classes))
                  (string/trim-newline (.wholeText root)))))
 
 (defn parse
-  ""
+  "Parse the shell output of staxchg.io/run-skylighting! and
+   staxchg.io/run-highlight.js!"
   [sh-out]
   (let [iron #(string/replace % #"[\r\n]" "")
         html #(iron (.html %))]
@@ -211,7 +220,7 @@
            (zipmap [:raw :html :traits :text])))))
 
 (defn annotate
-  ""
+  "Decorates the :traits sets within plot with syntax highlight keywords."
   [plot {:keys [traits] code-text :text}]
   (let [plot-text (->> plot (map first) string/join)
         code-offset (string/index-of code-text plot-text)
