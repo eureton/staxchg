@@ -2,6 +2,7 @@
   (:require [clojure.string :as string])
   (:require [flatland.useful.fn :as ufn])
   (:require [staxchg.flow :as flow])
+  (:require [staxchg.post :as post])
   (:require [staxchg.presentation.state :as state])
   (:require [staxchg.presentation.flow :as presentation.flow])
   (:require [staxchg.presentation.zone :as zone])
@@ -10,14 +11,17 @@
   (:require [staxchg.recipe :as recipe])
   (:gen-class))
 
-(def search-legend (string/join "\n" ["         [tag] search within a tag"
-                                      "     user:1234 seach by author"
-                                      "  \"words here\" exact phrase"
-                                      "     answers:0 unanswered questions"
-                                      "       score:3 posts with a 3+ score"
-                                      "isaccepted:yes seach within status"]))
+(def search-legend
+  "Usage guide for querying StackExchange."
+  (string/join "\n" ["         [tag] search within a tag"
+                     "     user:1234 seach by author"
+                     "  \"words here\" exact phrase"
+                     "     answers:0 unanswered questions"
+                     "       score:3 posts with a 3+ score"
+                     "isaccepted:yes seach within status"]))
 
 (def consignments
+  "Associates flows to zones."
   [{:pane :questions :flow-id :questions-separator :zone-id :questions-separator}
    {:pane :questions :flow-id :questions-list      :zone-id :questions-header}
    {:pane :questions :flow-id :questions-body      :zone-id :questions-body}
@@ -29,7 +33,7 @@
    {:pane   :answers :flow-id :answers-header      :zone-id :answers-header}])
 
 (defn zone-by-id
-  ""
+  "Zone info for the given id."
   [id world]
   (->> id
        name
@@ -39,7 +43,7 @@
        (ufn/thrush world)))
 
 (defn flow-by-id
-  ""
+  "Flow info for the given id."
   [id world zone]
   (->> id
        name
@@ -49,41 +53,20 @@
        ufn/ap
        (ufn/thrush [world zone])))
 
-(defn zone-by-flow-id
-  ""
-  [id world]
-  (zone-by-id (->> consignments
-                   (filter (comp #{id} :flow-id))
-                   first
-                   :zone-id)
-              world))
-
-(defn question-line-count
-  ""
-  [question world]
-  (let [zone (zone-by-flow-id :questions-body world)]
-    (flow/line-count
-      (presentation.flow/commented-post question world zone)
-      zone)))
-
-(defn answer-line-count
-  ""
-  [answer world]
-  (let [zone (zone-by-flow-id :answers-body world)]
-    (flow/line-count
-      (presentation.flow/commented-post answer world zone)
-      zone)))
-
 (defn post-line-count
-  ""
+  "Number of lines post spans, when rendered into the body of the appropriate
+   pane. Assumes that horizontal and vertical offsets are zero."
   [post world]
-  ((cond
-     (contains? post "answer_id") answer-line-count
-     (contains? post "question_id") question-line-count
-     :else (constantly 0)) post world))
+  (if-some [zone (zone-by-id (cond (post/answer? post)   :answers-body
+                                   (post/question? post) :questions-body)
+                             world)]
+    (flow/line-count (presentation.flow/commented-post post world zone)
+                     zone)
+    0))
 
 (def active-pane-body-height
-  ""
+  "Number of lines the body of the currently active pane (either questions pane
+   or answers pane) spans."
   (comp :height
         (ufn/ap zone-by-id)
         (juxt (comp #(case % :questions :questions-body :answers :answers-body)
@@ -91,18 +74,17 @@
               identity)))
 
 (defn recipes
-  ""
+  "Sequence of recipes for rendering world."
   [{:as world
     :keys [active-pane]}]
-  (let [inflate-input (fn [{:keys [flow-id zone-id]}]
-                        (let [zone (zone-by-id zone-id world)]
-                          {:flow (flow-by-id flow-id world zone)
-                           :zone zone}))
+  (let [inflate (fn [{:keys [flow-id zone-id]}]
+                  (let [zone (zone-by-id zone-id world)]
+                    [(flow-by-id flow-id world zone) zone]))
         backbuffer-recipes (->> consignments
                                 (filter (comp (partial = active-pane) :pane))
-                                (map inflate-input)
-                                (remove (comp nil? :flow))
-                                (map recipe/make)
+                                (map inflate)
+                                (remove (comp nil? first))
+                                (map (ufn/ap recipe/make))
                                 (map presentation.recipe/groom))]
     (concat backbuffer-recipes [presentation.recipe/refresh])))
 

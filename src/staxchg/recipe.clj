@@ -32,8 +32,8 @@
    :screen])
 
 (defn clear-whole
-  ""
-  [flow
+  "Recipe step for clearing every cell in zone."
+  [_
    {:as zone
     :keys [left top width height]}]
   (when (zone :clear?)
@@ -41,7 +41,7 @@
      :params [(sub-graphics zone) left top width height]}))
 
 (defn scroll
-  ""
+  "Recipe step for scrolling existing lines within zone."
   [flow
    {:as zone
     :keys [top height]}]
@@ -53,7 +53,8 @@
               (flow :scroll-delta)]}))
 
 (defn clear-scroll-gap
-  ""
+  "Recipe step for clearing that part of zone which is vacated by scrolling its
+   existing lines. nil if no scrolling has occurred."
   [flow
    {:as zone
     :keys [left top width height]}]
@@ -64,24 +65,22 @@
        :params [(sub-graphics subrect) left top width height]})))
 
 (defn put-payload
-  ""
-  [flow zone item]
-  {:function (case (item :type)
-               :markdown :staxchg.io/put-plot!
-               :characters :staxchg.io/put-plot!
-               :string :staxchg.io/put-string!)
-   :params [(fx-graphics (flow/scroll-gap-rect flow zone) item)
-            (flow.item/payload item)
-            (select-keys item [:x :y])]})
+  "Recipe step for rendering the contents of flow into zone."
+  [flow zone]
+  (let [flow (flow/adjust flow zone)]
+    (map (fn [item]
+           {:function (case (item :type)
+                        :markdown :staxchg.io/put-plot!
+                        :characters :staxchg.io/put-plot!
+                        :string :staxchg.io/put-string!)
+            :params [(fx-graphics (flow/scroll-gap-rect flow zone) item)
+                     (flow.item/payload item)
+                     (select-keys item [:x :y])]})
+         (:items flow))))
 
-(defn make
-  ""
-  [{:keys [flow zone]}]
-  (let [visible-flow (flow/adjust flow zone)
-        item-processor (partial put-payload visible-flow zone)]
-    (->>
-      (concat
-        ((juxt clear-whole scroll clear-scroll-gap) flow zone)
-        (map item-processor (visible-flow :items)))
-      (remove nil?))))
+(def make
+  "Recipe for rendering the contents of flow into zone."
+  (comp #(remove nil? %)
+        flatten
+        (juxt clear-whole scroll clear-scroll-gap put-payload)))
 

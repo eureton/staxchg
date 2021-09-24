@@ -1,10 +1,10 @@
 (ns staxchg.hilite
-  (:require [staxchg.util :as util])
-  (:require [staxchg.dev :as dev])
-  (:require [clojure.pprint])
   (:require [clojure.string :as string])
   (:require [clojure.set :refer [union]])
   (:require [cheshire.core])
+  (:require [staxchg.plot.item :as plot.item])
+  (:require [staxchg.util :as util])
+  (:require [staxchg.dev :as dev])
   (:import (org.jsoup Jsoup))
   (:import org.jsoup.nodes.Document$OutputSettings)
   (:gen-class))
@@ -228,7 +228,7 @@
     (if (every? nil? [code-offset plot-offset])
       plot
       (let [[code-offset plot-offset] (map #(or % 0) [code-offset plot-offset])
-            annotated (map #(update-in %1 [2 :traits] clojure.set/union %2)
+            annotated (map plot.item/decorate
                            (drop plot-offset plot)
                            (drop code-offset traits))]
         (concat (take plot-offset plot)

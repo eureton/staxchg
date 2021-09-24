@@ -3,7 +3,8 @@
   (:gen-class))
 
 (defn truncate
-  ""
+  "If word is longer than width, excess characters plus one are replaced by a
+   single ellipsis (…) character."
   [word width]
   (let [length (count word)]
     (if (<= length width)
@@ -11,7 +12,7 @@
       (str (subs word 0 (max 0 (dec width))) \…))))
 
 (defn truncated?
-  ""
+  "True if a word has been truncated, false otherwise."
   [word]
   (some #{\…} word))
 

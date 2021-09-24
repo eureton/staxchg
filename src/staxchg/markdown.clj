@@ -34,19 +34,25 @@
   [node]
   node)
 
-(def plot-cache (cache/lru-cache-factory {} :threshold 8))
+(def plot-cache
+  "Instance of clojure.core.cache.wrapped for caching hard-won plots."
+  (cache/lru-cache-factory {} :threshold 8))
 
-(def cache-eligibility-limit 300)
+(def cache-eligibility-limit
+  "Minimum number of characters for eligibility to be cached."
+  300)
 
 (defn cache-key
-  ""
+  "Collapses all plotting parameter which distinguish one plot from another
+   into a single value."
   [string
    {:keys [x y left top width height]
     :or {x 0 y 0 left 0 top 0}}]
   (hash [string x y left top width height]))
 
 (defn ast
-  ""
+  "Transforms CommonMark contained in string to an AST suitable for use by the
+   application."
   [string]
   (->> string
        cljmd.ast/from-string
@@ -61,7 +67,7 @@
   (plot/ast (ast string) options))
 
 (defn through-cache-plot
-  ""
+  "Implementation detail. Do not call directly."
   [string options]
   (let [digest (cache-key string options)
         preview (subs string 0 (min (count string) 32))]
@@ -76,13 +82,17 @@
         (no-cache-plot string options)))))
 
 (defn plot
-  ""
+  "Plots string with the given options. See staxchg.plot/ast for more details on
+   the latter. Caches generated plots. Checks the cache before attempting to
+   generate a plot."
   [string options]
   ((if (>= (count string) cache-eligibility-limit)
      through-cache-plot
      no-cache-plot) string options))
 
 (defn line-count
+  "Number of full lines the Markdown contained in string spans. Assumes lines
+   are width columns wide."
   [string width]
   (->>
     (plot string {:width width})
@@ -93,6 +103,7 @@
     inc))
 
 (defmulti code-info-rf
+  "Reducer for staxchg.markdown/code-info"
   (fn [_ {:keys [tag]}] tag)
   :hierarchy plot/ontology)
 
@@ -107,7 +118,10 @@
   acc)
 
 (defn code-info
-  ""
+  "Vector containing one hash for each code block Markdown element within
+   string. Each hash contains the contents of the code block under :string. In
+   the case of fenced code blocks, the info string -when available- is added
+   under :info."
   [string]
   (tree/reduce code-info-rf [] (ast string) :depth-first))
 

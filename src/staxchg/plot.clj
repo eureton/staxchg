@@ -1,34 +1,38 @@
 (ns staxchg.plot
   (:require [clojure.string :as string])
+  (:require [clojure.set])
+  (:require [staxchg.plot.item :as item])
   (:require [staxchg.code :as code])
   (:require [staxchg.string])
   (:gen-class))
 
-(def ontology (->
-                (make-hierarchy)
-                (derive :p :block)
-                (derive :list :block)
-                (derive :ofcblk :block)
-                (derive :icblk :block)
-                (derive :html-block :block)
-                (derive :bq :block)
-                (derive :h :block)
-                (derive :txt :inline)
-                (derive :sbr :inline)
-                (derive :cs :inline)
-                (derive :strong :inline)
-                (derive :em :inline)
-                (derive :a :inline)
-                (derive :url :inline)
-                (derive :html-inline :inline)
-                (derive :ofcblk :code-block)
-                (derive :icblk :code-block)
-                (derive :atxh :h)
-                (derive :stxh :h)
-                atom))
+(def ontology
+  "Hierarchy depiciting abstractions useful for multimethods in this namespace."
+  (-> (make-hierarchy)
+      (derive :p :block)
+      (derive :list :block)
+      (derive :ofcblk :block)
+      (derive :icblk :block)
+      (derive :html-block :block)
+      (derive :bq :block)
+      (derive :h :block)
+      (derive :txt :inline)
+      (derive :sbr :inline)
+      (derive :cs :inline)
+      (derive :strong :inline)
+      (derive :em :inline)
+      (derive :a :inline)
+      (derive :url :inline)
+      (derive :html-inline :inline)
+      (derive :ofcblk :code-block)
+      (derive :icblk :code-block)
+      (derive :atxh :h)
+      (derive :stxh :h)
+      atom))
 
 (defn straight
-  ""
+  "The [string] variant plots the string on a single row, starting at (x, y).
+   The [n character] variant does the same for character, n consecutive times."
   ([x y n character]
    (straight x y (repeat n character)))
   ([x y string]
@@ -41,14 +45,23 @@
      (map vector (seq string)))))
 
 (defn decorate
+  "Applies traits throughout plot."
   [plot & traits]
-  (map
-    #(apply update % 2 update :traits (comp set conj) traits)
-    plot))
+  (map #(item/decorate % traits) plot))
 
-(defn ast-dispatch-fn [node & _] (-> node :data :tag))
+(defn ast-dispatch-fn
+  "Dispatch function for multimethods in this namespace."
+  [node & _]
+  (-> node :data :tag))
 
-(defmulti next-at ast-dispatch-fn :hierarchy ontology)
+(defmulti next-at
+  "Coordinates at which to plot the next character of node, given:
+     * what has been plotted so far
+     * the rectangle within which to plot
+
+   Packs results within a hash under keys :x and :y."
+  ast-dispatch-fn
+  :hierarchy ontology)
 
 (defmethod next-at :inline
   [_
@@ -87,7 +100,7 @@
   {:x -1 :y -1})
 
 (defn list-item-decor
-  ""
+  "Plot suitable for decorating list items. Meant to be prepended to the text."
   [_ {:keys [index level x y list-size]}]
   (if index
     (let [alphabetical-numeral #(-> % dec (+ (int \a)) char)
@@ -113,7 +126,33 @@
   [node]
   (retag node :default))
 
-(defmulti ast ast-dispatch-fn :hierarchy ontology)
+(defmulti ast
+  "Plots the AST whose root is node, given the following parameters:
+        top: y coordinate of the top edge of rect
+       left: x coordinate of the left edge of rect
+      width: width of rect
+     height: height of rect
+          x: number of columns to indent the first line of the plot by
+          y: number of rows to vertically offset the plot by
+   where rect is the rectangle to plot into.
+
+   In addition:
+     * top, left, x and y must belong to the same coordinate space
+     * the coordinate space must be absolute, i.e. same as that of the canvas
+
+   Packs the characters of node into a sequence. Each character is represented
+   by a vector consisting of:
+     * the character itself
+     * a tuple of coordinates in the same space as the target canvas
+     * a hash for collecting meta information, e.g. visual effects
+
+   For example:
+     => (ast {:data {:tag :cs :content \"abc\"}} {:left 5 :width 10})
+     ([\\a (5 0) {:traits #{:standout}}]
+      [\\b (6 0) {:traits #{:standout}}]
+      [\\c (7 0) {:traits #{:standout}}])"
+  ast-dispatch-fn
+  :hierarchy ontology)
 
 (defmethod ast :txt
   [node
@@ -241,7 +280,7 @@
   (-> node (retag :txt) (ast options) (decorate :standout)))
 
 (defn cluster-rf
-  ""
+  "Reducer for staxchg.plot/cluster-by."
   [agg [index plot-item]]
   (let [previous (dec index)]
     (-> agg
@@ -263,7 +302,7 @@
     * corresponding plot
     * value of (f item)
 
-   The hashes are returned in a sequence, sorted by :from ascending."
+   Returns hashes in a sequence, sorted by :from ascending."
   [f plot]
   (->> plot
        (map-indexed vector)
@@ -278,9 +317,9 @@
        (sort-by :from)))
 
 (defn strip-traits
-  ""
+  "Removes traits from all items of plot."
   [plot & traits]
-  (map #(update-in % [2 :traits] (partial apply disj) traits) plot))
+  (map #(item/strip % traits) plot))
 
 (defn cluster-by-trait
   "Clusters adjunct plot items which share the given trait.
@@ -294,8 +333,8 @@
        (map #(dissoc % :value))))
 
 (defn string
-  "Returns a string consisting of the characters in the plot. Honors whitespace.
-   Joins lines using the given separator."
+  "String consisting of the characters in the plot. Honors whitespace. Joins
+   lines using the given separator."
   [separator plot]
   (let [cluster-to-line (comp string/join
                               #(map first %)
