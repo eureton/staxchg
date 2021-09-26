@@ -11,13 +11,18 @@
       word
       (str (subs word 0 (max 0 (dec width))) \…))))
 
-(defn truncated?
+(def truncated?
   "True if a word has been truncated, false otherwise."
-  [word]
-  (some #{\…} word))
+  (comp #{\…} last))
 
 (defn pack
-  ""
+  "Splits string into a vector of strings, none of which is longer than width.
+   Splitting is done by the following rules:
+     * only whitespace characters are considered as points for splitting
+     * the split replaces a single whitespace character
+     * if no split yields parts of appropriate length, string is truncated
+
+   When provided, x denotes an indentation applicable to the first line only."
   ([width string]
    (if (->> string count (>= width))
      [string]
@@ -35,28 +40,31 @@
           result []
           index 0]
      (let [top? (zero? index)
-           packed (pack (- width (if top? x 0)) string)
+           packed (-> (cond-> width
+                        top? (- x))
+                      (pack string))
            packed (if (and top? (truncated? (first packed)))
                     ["" (string/triml string)]
                     packed)]
        (if (= (count packed) 1)
-         (concat result packed)
-         (recur
-           (string/join \space (remove string/blank? (rest packed)))
-           (conj result (first packed))
-           (inc index)))))))
+         (vec (concat result packed))
+         (recur (->> packed rest (remove string/blank?) (string/join \space))
+                (conj result (first packed))
+                (inc index)))))))
 
 (defn reflow
-  ""
+  "Introduces line breaks into string so that no line is longer than width. The
+   line break sequence is \r\n by default, but may be overridden via :separator.
+   Keyword :x denotes the number of spaces to indent the first line by (default
+   is zero)."
   [string
-   {:keys [x width]
-    :or {x 0}}]
-  (->>
-    string
-    string/split-lines
-    (map (partial pack x width))
-    flatten
-    (string/join "\r\n")))
+   {:keys [x width separator]
+    :or {x 0 separator "\r\n"}}]
+  (->> string
+       string/split-lines
+       (map #(pack x width %))
+       flatten
+       (string/join separator)))
 
 (defn trim-leading-indent
   "Trims the following off each line of the given string:
