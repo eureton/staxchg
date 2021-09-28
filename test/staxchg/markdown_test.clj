@@ -297,16 +297,11 @@
                (= (xys s opts)
                   [[0 0] [1 0] [2 0] [0 2] [1 2] [2 2]])))))
   (testing "html comment block"
-    (let [s "<!-- xyz -->"
-          opts {:width 100}]
-      (is (and (= (cs s opts)
-                  [\x \y \z])
-               (= (xys s opts)
-                  [[0 0] [1 0] [2 0]])))))
+    (is (= (cs "<!-- xyz -->" {:width 100})
+           [\< \! \- \- \space \x \y \z \space \- \- \>])))
   (testing "html comment block: bottom margin"
-    (is (= (xys "<!-- 12 -->\r\n\r\n34" {:width 100})
-           [[0 0] [1 0]
-            [0 2] [1 2]])))
+    (is (= (drop 10 (xys "<!-- x -->\r\n\r\nyz" {:width 100}))
+           [[0 2] [1 2]])))
 
   (testing "tab expansion"
     (testing "indented code block"
