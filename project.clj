@@ -10,7 +10,7 @@
                  [cheshire "5.10.0"]
                  [com.googlecode.lanterna/lanterna "3.0.4"]
                  [org.jsoup/jsoup "1.11.2"]
-                 [org.clojars.eureton/cljmd "0.1.0"]
+                 [org.clojars.eureton/cljmd "0.1.1"]
                  [smachine "0.1.0"]
                  [org.clojars.eureton/squirrel "0.1.0"]
                  [cookbook "0.1.0"]
