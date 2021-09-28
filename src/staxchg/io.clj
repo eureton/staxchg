@@ -182,6 +182,7 @@
    Otherwise, returns error-response."
   [url method query-params error-response]
   (try
+;   (http/request {:url "123"
     (http/request {:url url
                    :cookie-policy :standard
                    :method method
