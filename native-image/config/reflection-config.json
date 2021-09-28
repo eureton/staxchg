@@ -1,7 +1,4 @@
 [
-	{	"name": "java.lang.reflect.AccessibleObject",
-		"methods" : [{"name":"canAccess"}]
-	},
 	{
 		"name" : "java.lang.String",
 		"allDeclaredConstructors" : true,
