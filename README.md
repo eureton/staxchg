@@ -4,7 +4,7 @@ A [Stack Exchange](https://stackexchange.com) client for the terminal.
 
 ## Installation
 
-* Download the [latest release binaries](https://github.com/eureton/staxchg/releases/download/v0.1.1/staxchg-0.1.1-standalone.jar).
+* Download the [latest release binaries](https://github.com/eureton/staxchg/releases/tag/v0.1.1).
 
 ## Configuration
 
