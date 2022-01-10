@@ -1,8 +1,9 @@
 (ns staxchg.io
   (:require [clojure.core.async :as async :refer [>!! <!! thread close!]])
   (:require [clojure.java.shell])
+  (:require [clojure.java.io :as io])
+  (:require [staxchg.io.config :as config])
   (:require [staxchg.dev :as dev])
-  (:require [staxchg.util :as util])
   (:require [clj-http.lite.client :as http])
   (:import com.googlecode.lanterna.TerminalSize)
   (:import com.googlecode.lanterna.TextCharacter)
@@ -261,7 +262,7 @@
   [theme-name filename]
   (LanternaThemes/registerTheme
     theme-name
-    (PropertyTheme. (util/read-resource-properties filename) false)))
+    (PropertyTheme. (->> filename io/resource config/read-properties) false)))
 
 (defn acquire-screen!
   "Checks the terminal which the application is run in for suitability. If
@@ -281,7 +282,7 @@
   "Searches the user's configuration file for a syntax-highlighting tool entry."
   []
   {:function :resolve-highlighter!
-   :values [((util/config-hash) "HIGHLIGHTER")]})
+   :values [(config/fetch "HIGHLIGHTER")]})
 
 (defn enable-screen!
   "Puts the terminal which the application is run in into private mode. See the
@@ -290,4 +291,10 @@
   (.startScreen screen)
   {:function :enable-screen!
    :values []})
+
+(defn read-config!
+  "Reads the configuration file."
+  []
+  {:function :read-config!
+   :values [(config/fetch)]})
 

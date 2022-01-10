@@ -1,7 +1,7 @@
 (ns staxchg.state.recipe
   (:require [clojure.string :as string])
   (:require [staxchg.api :as api])
-  (:require [staxchg.state :as state :refer [MAX_QUESTION_LIST_SIZE]])
+  (:require [staxchg.state :as state :refer [MAX_QUESTIONS_LIST_SIZE]])
   (:require [staxchg.presentation :as presentation])
   (:gen-class))
 
@@ -233,19 +233,21 @@
   (list (map highlight-code-step snippets (repeat (get context :highlighter)))))
 
 (defmethod input :search-term
-  [{:keys [search-term]}]
+  [{:keys [search-term] :config/keys [site]}]
   [[{:function :staxchg.io/fetch-questions!
      :params [:screen
               (api/questions-url)
-              (api/questions-query-params search-term MAX_QUESTION_LIST_SIZE)
+              (api/questions-query-params site
+                                          search-term
+                                          MAX_QUESTIONS_LIST_SIZE)
               api/error-response]}]])
 
 (defmethod input :fetch-answers
-  [{:keys [fetch-answers]}]
+  [{:keys [fetch-answers] :config/keys [site]}]
   [[{:function :staxchg.io/fetch-answers!
      :params [:screen
               (api/answers-url (fetch-answers :question-id))
-              (api/answers-query-params (fetch-answers :page))
+              (api/answers-query-params site (fetch-answers :page))
               api/error-response
               (fetch-answers :question-id)]}]])
 

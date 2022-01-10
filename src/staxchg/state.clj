@@ -9,9 +9,9 @@
   (:require [staxchg.dev :as dev])
   (:gen-class))
 
-(def ^:const MIN_QUESTION_LIST_SIZE 1)
+(def ^:const MIN_QUESTIONS_LIST_SIZE 1)
 
-(def ^:const MAX_QUESTION_LIST_SIZE 12)
+(def ^:const MAX_QUESTIONS_LIST_SIZE 12)
 
 (def mark-keys
   "Set of keys used in the world hash to mark requirement for change of state."
@@ -27,8 +27,8 @@
       :selected-question-index 0
       :question-list-size (-> questions
                               count
-                              (min MAX_QUESTION_LIST_SIZE)
-                              (max MIN_QUESTION_LIST_SIZE))
+                              (min MAX_QUESTIONS_LIST_SIZE)
+                              (max MIN_QUESTIONS_LIST_SIZE))
       :question-list-offset 0
       :questions questions
       :active-pane :questions
@@ -452,6 +452,14 @@
         (update-in [:highlights post-id]
                    (comp vec #(remove nil? %) conj)
                    hilite))))
+
+(defn update-for-config
+  "Applies the result of staxchg.io/read-config! to world."
+  [world config]
+  (let [{:strs [SITE MAX_QUESTIONS_LIST_SIZE LOGFILE]} config]
+    (assoc world :config/site SITE
+                 :config/max-questions-list-size MAX_QUESTIONS_LIST_SIZE
+                 :config/logfile LOGFILE)))
 
 (defn update-world-rf
   "Reducer for use with staxchg.state/update-world"
