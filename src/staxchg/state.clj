@@ -9,6 +9,10 @@
   (:require [staxchg.dev :as dev])
   (:gen-class))
 
+(def ^:const MIN_QUESTION_LIST_SIZE 1)
+
+(def ^:const MAX_QUESTION_LIST_SIZE 12)
+
 (def mark-keys
   "Set of keys used in the world hash to mark requirement for change of state."
   #{:scroll-deltas :query? :quit? :search-term :fetch-answers :no-questions
@@ -21,7 +25,10 @@
    (let [question-ids (map #(% "question_id") questions)]
      {:line-offsets (zipmap question-ids (repeat 0))
       :selected-question-index 0
-      :question-list-size 2
+      :question-list-size (-> questions
+                              count
+                              (min MAX_QUESTION_LIST_SIZE)
+                              (max MIN_QUESTION_LIST_SIZE))
       :question-list-offset 0
       :questions questions
       :active-pane :questions
@@ -365,9 +372,12 @@
    question has been fetched."
   [{:keys [width height io/context]}
    questions]
-  (-> (make questions)
-      (assoc :io/context context :width width :height height)
-      (assoc :switched-question? true)
+  (-> questions
+      make
+      (assoc :io/context context
+             :width width
+             :height height
+             :switched-question? true)
       mark-hilite-pending))
 
 (defn update-for-questions-response
