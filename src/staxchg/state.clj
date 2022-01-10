@@ -456,10 +456,11 @@
 (defn update-for-config
   "Applies the result of staxchg.io/read-config! to world."
   [world config]
-  (let [{:strs [SITE MAX_QUESTIONS_LIST_SIZE LOGFILE]} config]
+  (let [{:strs [SITE MAX_QUESTIONS_LIST_SIZE HIGHLIGHTER]} config
+        list-size (Integer/parseInt MAX_QUESTIONS_LIST_SIZE)]
     (assoc world :config/site SITE
-                 :config/max-questions-list-size MAX_QUESTIONS_LIST_SIZE
-                 :config/logfile LOGFILE)))
+                 :config/max-questions-list-size list-size
+                 :config/highlighter HIGHLIGHTER)))
 
 (defn update-world-rf
   "Reducer for use with staxchg.state/update-world"
@@ -478,6 +479,7 @@
                 :no-answers! update-for-no-posts
                 :fetch-failed! update-for-no-posts
                 :highlight-code! update-for-highlights
+                :read-config! update-for-config
                 nil)]
     (do (dev/log "[update-world-rf] " function)
         (apply f world values))
