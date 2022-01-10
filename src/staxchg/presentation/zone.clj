@@ -10,7 +10,7 @@
 
 (defn questions-header
   "Zone for the header of the questions pane."
-  [{:keys [width switched-pane?]}]
+  [{:keys [width question-list-size switched-pane?]}]
   {:left question-list-left
    :top 0
    :width (- width (* question-list-left 2))
@@ -19,7 +19,7 @@
 
 (defn questions-separator
   "Zone for the separator of the questions pane."
-  [{:keys [width]}]
+  [{:keys [width question-list-size]}]
   {:left 0
    :top question-list-size
    :width width
@@ -27,12 +27,13 @@
 
 (defn questions-body
   "Zone for the body of the questions pane."
-  [{:keys [width height switched-pane? switched-question?]}]
-  {:left questions-body-left
-   :top questions-body-top
-   :width (- width (* questions-body-left 2))
-   :height (- height questions-body-top 1)
-   :clear? (or switched-pane? switched-question?)})
+  [{:keys [width height question-list-size switched-pane? switched-question?]}]
+  (let [questions-body-top (inc question-list-size)]
+    {:left questions-body-left
+     :top questions-body-top
+     :width (- width (* questions-body-left 2))
+     :height (- height questions-body-top 1)
+     :clear? (or switched-pane? switched-question?)}))
 
 (defn questions-footer
   "Zone for the footer of the questions pane."
