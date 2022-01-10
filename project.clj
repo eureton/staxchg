@@ -27,6 +27,7 @@
                                   "-Dclojure.compiler.direct-linking=true"]
                        :native-image {:jvm-opts ["-Djava.awt.headless=true"
                                                  "-Dclojure.compiler.direct-linking=true"]}}}
+  :jvm-opts ["-Djava.awt.headless=true"]
   :plugins [[io.taylorwood/lein-native-image "0.3.1"]]
   :native-image {:name "staxchg"
                  :opts ["--initialize-at-build-time"
