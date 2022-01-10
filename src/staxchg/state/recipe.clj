@@ -1,7 +1,7 @@
 (ns staxchg.state.recipe
   (:require [clojure.string :as string])
   (:require [staxchg.api :as api])
-  (:require [staxchg.state :as state])
+  (:require [staxchg.state :as state :refer [MAX_QUESTION_LIST_SIZE]])
   (:require [staxchg.presentation :as presentation])
   (:gen-class))
 
@@ -237,7 +237,7 @@
   [[{:function :staxchg.io/fetch-questions!
      :params [:screen
               (api/questions-url)
-              (api/questions-query-params search-term)
+              (api/questions-query-params search-term MAX_QUESTION_LIST_SIZE)
               api/error-response]}]])
 
 (defmethod input :fetch-answers

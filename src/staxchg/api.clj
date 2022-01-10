@@ -11,8 +11,6 @@
 
 (def default-site "stackoverflow")
 
-(def questions-page-size 4)
-
 (def answers-page-size 5)
 
 (def error-wrapper-object {"items" [{"title" "title 1"
@@ -247,14 +245,14 @@
 
 (defn questions-query-params
   ""
-  [term]
+  [term page-size]
   (let [[tags user accepted
          score title] (map
                         (partial query-params-match term)
                         query-params-patterns)
         q (query-freeform term)
         base {:page 1
-              :pagesize questions-page-size
+              :pagesize page-size
               :order "desc"
               :sort "relevance"
               :site ((util/config-hash) "SITE" default-site)
