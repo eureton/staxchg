@@ -9,6 +9,10 @@
   (:require [staxchg.dev :as dev])
   (:gen-class))
 
+(def ^:const MIN_QUESTIONS_LIST_SIZE 1)
+
+(def ^:const MAX_QUESTIONS_LIST_SIZE 12)
+
 (def mark-keys
   "Set of keys used in the world hash to mark requirement for change of state."
   #{:scroll-deltas :query? :quit? :search-term :fetch-answers :no-questions
@@ -21,7 +25,10 @@
    (let [question-ids (map #(% "question_id") questions)]
      {:line-offsets (zipmap question-ids (repeat 0))
       :selected-question-index 0
-      :question-list-size 2
+      :question-list-size (-> questions
+                              count
+                              (min MAX_QUESTIONS_LIST_SIZE)
+                              (max MIN_QUESTIONS_LIST_SIZE))
       :question-list-offset 0
       :questions questions
       :active-pane :questions
@@ -309,14 +316,6 @@
   [world screen]
   (update world :io/context assoc :screen screen))
 
-(defn update-for-highlighter
-  "Applies the result of staxchg.io/resolve-highlighter! to world."
-  [world value]
-  (let [highlighter (or (-> value keyword hilite/tools)
-                        :skylighting)]
-    (dev/log "[update-for-highlighter] '" value "' -> " highlighter)
-    (update world :io/context assoc :highlighter highlighter)))
-
 (defn update-for-dimensions
   "Applies the result of staxchg.io/enable-screen! to world."
   [world]
@@ -363,11 +362,18 @@
 (defn update-for-new-questions
   "Applies the result of staxchg.io/fetch-questions! to world, if more than one
    question has been fetched."
-  [{:keys [width height io/context]}
+  [{:keys [width height io/context]
+    :config/keys [site max-questions-list-size highlighter]}
    questions]
-  (-> (make questions)
-      (assoc :io/context context :width width :height height)
-      (assoc :switched-question? true)
+  (-> questions
+      make
+      (assoc :io/context context
+             :config/site site
+             :config/max-questions-list-size max-questions-list-size
+             :config/highlighter highlighter
+             :width width
+             :height height
+             :switched-question? true)
       mark-hilite-pending))
 
 (defn update-for-questions-response
@@ -443,13 +449,23 @@
                    (comp vec #(remove nil? %) conj)
                    hilite))))
 
+(defn update-for-config
+  "Applies the result of staxchg.io/read-config! to world."
+  [world config]
+  (let [{:strs [SITE MAX_QUESTIONS_LIST_SIZE HIGHLIGHTER]} config
+        list-size (Integer/parseInt MAX_QUESTIONS_LIST_SIZE)
+        highlighter (or (-> HIGHLIGHTER keyword hilite/tools)
+                        :skylighting)]
+    (assoc world :config/site SITE
+                 :config/max-questions-list-size list-size
+                 :config/highlighter highlighter)))
+
 (defn update-world-rf
   "Reducer for use with staxchg.state/update-world"
   [world
    {:keys [function values]}]
   (if-some [f (case function
                 :acquire-screen! update-for-screen
-                :resolve-highlighter! update-for-highlighter
                 :enable-screen! update-for-dimensions
                 :poll-key! update-for-keystroke
                 :poll-resize! update-for-resize
@@ -460,6 +476,7 @@
                 :no-answers! update-for-no-posts
                 :fetch-failed! update-for-no-posts
                 :highlight-code! update-for-highlights
+                :read-config! update-for-config
                 nil)]
     (do (dev/log "[update-world-rf] " function)
         (apply f world values))

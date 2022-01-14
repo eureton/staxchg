@@ -1,5 +1,6 @@
 (ns staxchg.state.recipe
   (:require [clojure.string :as string])
+  (:require [staxchg.dev :as dev])
   (:require [staxchg.api :as api])
   (:require [staxchg.state :as state])
   (:require [staxchg.presentation :as presentation])
@@ -219,8 +220,6 @@
   [[{:function :staxchg.io/register-theme!
      :params ["staxchg" "lanterna-theme.properties"]}
     {:function :staxchg.io/acquire-screen!
-     :params []}
-    {:function :staxchg.io/resolve-highlighter!
      :params []}]])
 
 (defmethod input :enable-screen
@@ -229,23 +228,25 @@
      :params [:screen]}]])
 
 (defmethod input :snippets
-  [{:io/keys [context] :keys [snippets]}]
-  (list (map highlight-code-step snippets (repeat (get context :highlighter)))))
+  [{:config/keys [highlighter] :keys [snippets]}]
+  (list (map highlight-code-step snippets (repeat highlighter))))
 
 (defmethod input :search-term
-  [{:keys [search-term]}]
+  [{:keys [search-term] :config/keys [site max-questions-list-size]}]
   [[{:function :staxchg.io/fetch-questions!
      :params [:screen
               (api/questions-url)
-              (api/questions-query-params search-term)
+              (api/questions-query-params site
+                                          search-term
+                                          max-questions-list-size)
               api/error-response]}]])
 
 (defmethod input :fetch-answers
-  [{:keys [fetch-answers]}]
+  [{:keys [fetch-answers] :config/keys [site]}]
   [[{:function :staxchg.io/fetch-answers!
      :params [:screen
               (api/answers-url (fetch-answers :question-id))
-              (api/answers-query-params (fetch-answers :page))
+              (api/answers-query-params site (fetch-answers :page))
               api/error-response
               (fetch-answers :question-id)]}]])
 
@@ -273,7 +274,9 @@
 (defmethod input :query
   [_]
   [[{:function :staxchg.io/query!
-     :params [:screen presentation/search-legend]}]])
+     :params [:screen presentation/search-legend]}
+    {:function :staxchg.io/read-config!
+     :params []}]])
 
 (defmethod input :quit
   [_]

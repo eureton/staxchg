@@ -1,7 +1,7 @@
 (ns staxchg.dev
   (:require [clojure.string :as string])
+  (:require [clojure.java.io :as io])
   (:require [staxchg.plot :as plot])
-  (:require [staxchg.util :as util])
   (:gen-class))
 
 (defn decorate
@@ -148,14 +148,10 @@
   item)
 
 (defn log
-  "Writes string representations of items to the log, if the conditions below
-   are met:
-
-     1. user has a configuration file
-     2. configuration file contains a LOGFILE entry
-     3. LOGFILE entry contains a pathname which may be written to"
+  "Writes string representations of items to the log, if the LOGFILE environment
+   variable has been set."
   [& items]
-  (when-let [pathname (util/config-hash "LOGFILE")]
-    (with-open [writer (clojure.java.io/writer pathname :append true)]
+  (when-let [pathname (System/getenv "LOGFILE")]
+    (with-open [writer (io/writer pathname :append true)]
       (.write writer (str (apply str (map log-item items)) "\n")))))
 

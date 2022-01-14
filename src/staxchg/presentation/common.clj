@@ -11,10 +11,6 @@
 
 (def question-list-left 0)
 
-(def question-list-size 2)
-
-(def questions-body-top (inc question-list-size))
-
 (def questions-body-left 1)
 
 (def answer-body-left 1)
