@@ -278,12 +278,6 @@
     {:function :acquire-screen!
      :values [(TerminalScreen. terminal)]}))
 
-(defn resolve-highlighter!
-  "Searches the user's configuration file for a syntax-highlighting tool entry."
-  []
-  {:function :resolve-highlighter!
-   :values [(config/fetch "HIGHLIGHTER")]})
-
 (defn enable-screen!
   "Puts the terminal which the application is run in into private mode. See the
    lanterna documentation for more details."

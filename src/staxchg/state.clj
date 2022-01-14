@@ -316,14 +316,6 @@
   [world screen]
   (update world :io/context assoc :screen screen))
 
-(defn update-for-highlighter
-  "Applies the result of staxchg.io/resolve-highlighter! to world."
-  [world value]
-  (let [highlighter (or (-> value keyword hilite/tools)
-                        :skylighting)]
-    (dev/log "[update-for-highlighter] '" value "' -> " highlighter)
-    (update world :io/context assoc :highlighter highlighter)))
-
 (defn update-for-dimensions
   "Applies the result of staxchg.io/enable-screen! to world."
   [world]
@@ -370,11 +362,15 @@
 (defn update-for-new-questions
   "Applies the result of staxchg.io/fetch-questions! to world, if more than one
    question has been fetched."
-  [{:keys [width height io/context]}
+  [{:keys [width height io/context]
+    :config/keys [site max-questions-list-size highlighter]}
    questions]
   (-> questions
       make
       (assoc :io/context context
+             :config/site site
+             :config/max-questions-list-size max-questions-list-size
+             :config/highlighter highlighter
              :width width
              :height height
              :switched-question? true)
@@ -457,10 +453,12 @@
   "Applies the result of staxchg.io/read-config! to world."
   [world config]
   (let [{:strs [SITE MAX_QUESTIONS_LIST_SIZE HIGHLIGHTER]} config
-        list-size (Integer/parseInt MAX_QUESTIONS_LIST_SIZE)]
+        list-size (Integer/parseInt MAX_QUESTIONS_LIST_SIZE)
+        highlighter (or (-> HIGHLIGHTER keyword hilite/tools)
+                        :skylighting)]
     (assoc world :config/site SITE
                  :config/max-questions-list-size list-size
-                 :config/highlighter HIGHLIGHTER)))
+                 :config/highlighter highlighter)))
 
 (defn update-world-rf
   "Reducer for use with staxchg.state/update-world"
@@ -468,7 +466,6 @@
    {:keys [function values]}]
   (if-some [f (case function
                 :acquire-screen! update-for-screen
-                :resolve-highlighter! update-for-highlighter
                 :enable-screen! update-for-dimensions
                 :poll-key! update-for-keystroke
                 :poll-resize! update-for-resize

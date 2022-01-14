@@ -1,5 +1,6 @@
 (ns staxchg.state.recipe
   (:require [clojure.string :as string])
+  (:require [staxchg.dev :as dev])
   (:require [staxchg.api :as api])
   (:require [staxchg.state :as state])
   (:require [staxchg.presentation :as presentation])
@@ -219,8 +220,6 @@
   [[{:function :staxchg.io/register-theme!
      :params ["staxchg" "lanterna-theme.properties"]}
     {:function :staxchg.io/acquire-screen!
-     :params []}
-    {:function :staxchg.io/resolve-highlighter!
      :params []}]])
 
 (defmethod input :enable-screen
@@ -229,8 +228,8 @@
      :params [:screen]}]])
 
 (defmethod input :snippets
-  [{:io/keys [context] :keys [snippets]}]
-  (list (map highlight-code-step snippets (repeat (get context :highlighter)))))
+  [{:config/keys [highlighter] :keys [snippets]}]
+  (list (map highlight-code-step snippets (repeat highlighter))))
 
 (defmethod input :search-term
   [{:keys [search-term] :config/keys [site max-questions-list-size]}]
