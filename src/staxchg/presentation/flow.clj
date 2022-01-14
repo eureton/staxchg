@@ -79,7 +79,7 @@
 (defn answer-acceptance
   "Denotes wether the currently selected answer has been accepted."
   [world _]
-  (-> (if-some [{:strs [is_accepted]} (state/selected-answer world)]
+  (-> (if (-> world state/selected-answer (get "is_accepted"))
         {:raw acceptance-text
          :foreground-color TextColor$ANSI/BLACK
          :background-color frame-color}
