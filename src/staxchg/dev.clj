@@ -33,11 +33,11 @@
 
 (defmulti log-recipe-step
   "String representation of the steps of domain-specific recipes."
-  :function
+  first
   :hierarchy recipe-step-hierarchy)
 
 (defmethod log-recipe-step :staxchg.io/put-plot!
-  [{[_ plot _] :params}]
+  [[_ _ plot _]]
   (->> [(str "[put-plot] from: " (->> plot first second) ", "
                          "to: " (->> plot last second) " BEGIN")
         (->> plot
@@ -48,29 +48,29 @@
        (string/join "\r\n")))
 
 (defmethod log-recipe-step :staxchg.io/put-string!
-  [{[_ string {:keys [x y]}] :params}]
+  [[_ _ string {:keys [x y]}]]
   (str "[put-string] " [x y] " |>"  string "<|"))
 
 (defmethod log-recipe-step :staxchg.io/scroll!
-  [{[_ top bottom distance] :params}]
+  [[_ _ top bottom distance]]
   (str "[scroll] at (" top "..." bottom ") by " distance))
 
 (defmethod log-recipe-step :staxchg.io/clear!
-  [{[_ left top width height] :params}]
+  [[_ _ left top width height]]
   (str "[clear] rect [" width "x" height "] at (" left ", " top ")"))
 
 (defmethod log-recipe-step :staxchg.io/fetch-questions!
-  [{[_ url query-params] :params}]
+  [[_ _ url query-params]]
   (str "[fetch-questions] url: " url ", query-params: " query-params))
 
 (defmethod log-recipe-step :staxchg.io/fetch-answers!
-  [{[_ url query-params question-id] :params}]
+  [[_ _ url query-params question-id]]
   (str "[fetch-answers] url: " url ", "
        "query-params: " query-params ", "
        "question-id: " question-id))
 
 (defmethod log-recipe-step :staxchg.io/highlight-code!
-  [{[code syntaxes question-id answer-id] :params}]
+  [[_ code syntaxes question-id answer-id]]
   (->> [(cond-> (str "[highlight-code] BEGIN syntax: ")
           true (str (cond->> syntaxes (coll? syntaxes) (string/join " ")) ", ")
           answer-id (str "answer-id: " answer-id ", ")
@@ -80,10 +80,18 @@
        (string/join "\r\n")))
 
 (defmethod log-recipe-step :staxchg.io/register-theme!
-  [{[theme-name filename] :params}]
+  [[_ theme-name filename]]
   (str "[register-theme] name: " theme-name ", filename: " filename))
 
 (defmethod log-recipe-step :default [_])
+
+(defn log-recipe
+  "String representation of recipe."
+  [recipe]
+  (->> recipe
+       (map log-recipe-step)
+       (remove nil?)
+       (string/join "\r\n")))
 
 (defn log-item-df
   "Dispatch function for staxchg.dev/log-item"
@@ -103,11 +111,11 @@
 (defmethod log-item :cookbook
   [{:keys [recipes timing]}]
   (->> [[(str " /^^^ " (count recipes) " recipe(s)")]
-        (map #(str "|----- " (string/join ", " (map :function %1)) " ---- " %2)
+        (map #(str "|----- " (string/join ", " (map first %1)) " ---- " %2)
              recipes
              (map (comp second #(re-find #"(\d*.\d* msecs)" %)) timing))
         [" \\___ Complete"]
-        (->> recipes flatten (map log-recipe-step) (remove nil?))]
+        (mapv log-recipe recipes)]
        (reduce concat)
        (string/join "\r\n")))
 

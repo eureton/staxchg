@@ -105,21 +105,19 @@
 
 (defmulti groom-item
   "Post-processing hook for presentation logic on plot items."
-  :function)
+  first)
 
 (defmethod groom-item :staxchg.io/put-string!
   [item]
-  (update-in item [:params 1] (comp string/join
-                                    #(filter printable? %))))
+  (update item 2 (comp string/join
+                       #(filter printable? %))))
 
 (defmethod groom-item :staxchg.io/put-plot!
   [item]
-  (update-in item
-             [:params 1]
-             (partial eduction (comp (filter (comp printable? first))
-                                     (map replace-with-symbols)
-                                     (map convert-to-lanterna)
-                                     (map decorate)))))
+  (update item 2 (partial eduction (comp (filter (comp printable? first))
+                                         (map replace-with-symbols)
+                                         (map convert-to-lanterna)
+                                         (map decorate)))))
 
 (defmethod groom-item :default
   [item]
@@ -132,6 +130,5 @@
 
 (def refresh
   "Recipe for refreshing the lanterna screen."
-  [{:function :staxchg.io/refresh!
-    :params [:screen]}])
+  [[:staxchg.io/refresh! :screen]])
 

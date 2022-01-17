@@ -1,5 +1,6 @@
 (ns staxchg.state.recipe
   (:require [clojure.string :as string])
+  (:require [flatland.useful.fn :as ufn])
   (:require [staxchg.dev :as dev])
   (:require [staxchg.api :as api])
   (:require [staxchg.state :as state])
@@ -176,8 +177,7 @@
                           (map sanitize-syntax (repeat :skylighting))
                           (remove nil?)
                           first)]
-    {:function :staxchg.io/run-skylighting!
-     :params [string syntax question-id answer-id]}))
+    [:staxchg.io/run-skylighting! string syntax question-id answer-id]))
 
 (defmethod highlight-code-step :highlight.js
   [{:keys [string syntax question-id answer-id]} _]
@@ -185,8 +185,7 @@
                           (map sanitize-syntax (repeat :highlight.js))
                           (remove nil?)
                           set)]
-    {:function :staxchg.io/run-highlight.js!
-     :params [string syntax question-id answer-id]}))
+    [:staxchg.io/run-highlight.js! string syntax question-id answer-id]))
 
 (defmethod highlight-code-step :pygments
   [snippet _]
@@ -217,15 +216,12 @@
 
 (defmethod input :initialize
   [_]
-  [[{:function :staxchg.io/register-theme!
-     :params ["staxchg" "lanterna-theme.properties"]}
-    {:function :staxchg.io/acquire-screen!
-     :params []}]])
+  [[[:staxchg.io/register-theme! "staxchg" "lanterna-theme.properties"]
+    [:staxchg.io/acquire-screen!]]])
 
 (defmethod input :enable-screen
   [_]
-  [[{:function :staxchg.io/enable-screen!
-     :params [:screen]}]])
+  [[[:staxchg.io/enable-screen! :screen]]])
 
 (defmethod input :snippets
   [{:config/keys [highlighter] :keys [snippets]}]
@@ -233,64 +229,55 @@
 
 (defmethod input :search-term
   [{:keys [search-term] :config/keys [site max-questions-list-size]}]
-  [[{:function :staxchg.io/fetch-questions!
-     :params [:screen
-              (api/questions-url)
-              (api/questions-query-params site
-                                          search-term
-                                          max-questions-list-size)
-              api/error-response]}]])
+  [[[:staxchg.io/fetch-questions!
+     :screen
+     (api/questions-url)
+     (api/questions-query-params site
+                                 search-term
+                                 max-questions-list-size)
+     api/error-response]]])
 
 (defmethod input :fetch-answers
   [{:keys [fetch-answers] :config/keys [site]}]
-  [[{:function :staxchg.io/fetch-answers!
-     :params [:screen
-              (api/answers-url (fetch-answers :question-id))
-              (api/answers-query-params site (fetch-answers :page))
-              api/error-response
-              (fetch-answers :question-id)]}]])
+  [[[:staxchg.io/fetch-answers!
+     :screen
+     (api/answers-url (fetch-answers :question-id))
+     (api/answers-query-params site (fetch-answers :page))
+     api/error-response
+     (fetch-answers :question-id)]]])
 
 (defmethod input :no-questions
   [_]
-  [[{:function :staxchg.io/show-message!
-     :params [:screen
-              {:text "No matches found"}
-              {:function :no-questions! :values []}]}]])
+  [[[:staxchg.io/show-message! :screen
+                               {:text "No matches found"}
+                               {:function :no-questions! :values []}]]])
 
 (defmethod input :no-answers
   [_]
-  [[{:function :staxchg.io/show-message!
-     :params [:screen
-              {:text "Question has no answers"}
-              {:function :no-answers! :values []}]}]])
+  [[[:staxchg.io/show-message! :screen
+                               {:text "Question has no answers"}
+                               {:function :no-answers! :values []}]]])
 
 (defmethod input :fetch-failed
   [_]
-  [[{:function :staxchg.io/show-message!
-     :params [:screen
-              {:title "Error" :text "Could not fetch data"}
-              {:function :fetch-failed! :values []}]}]])
+  [[[:staxchg.io/show-message! :screen
+                               {:title "Error" :text "Could not fetch data"}
+                               {:function :fetch-failed! :values []}]]])
 
 (defmethod input :query
   [_]
-  [[{:function :staxchg.io/query!
-     :params [:screen presentation/search-legend]}
-    {:function :staxchg.io/read-config!
-     :params []}]])
+  [[[:staxchg.io/query! :screen presentation/search-legend]
+    [:staxchg.io/read-config!]]])
 
 (defmethod input :quit
   [_]
-  [[{:function :staxchg.io/quit!
-     :params [:screen]}]])
+  [[[:staxchg.io/quit! :screen]]])
 
 (defmethod input :sleep
   [_]
-  [[{:function :staxchg.io/sleep!
-     :params [poll-loop-latency]}
-    {:function :staxchg.io/poll-resize!
-     :params [:screen]}
-    {:function :staxchg.io/poll-key!
-     :params [:screen]}]])
+  [[[:staxchg.io/sleep! poll-loop-latency]
+    [:staxchg.io/poll-resize! :screen]
+    [:staxchg.io/poll-key! :screen]]])
 
 (defn output
   "Recipes for requesting output, as required by world."
@@ -300,9 +287,9 @@
     []))
 
 (def all
-  "Recipes requests, as required by world. First come the output, then the
+  "Recipe requests, as required by world. First come the output, then the
    output recipes."
-  (comp (partial apply concat)
+  (comp (ufn/ap concat)
         (juxt output input)))
 
 (defn request

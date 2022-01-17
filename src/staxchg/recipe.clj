@@ -1,4 +1,5 @@
 (ns staxchg.recipe
+  (:require [flatland.useful.fn :as ufn])
   (:require [staxchg.flow :as flow])
   (:require [staxchg.flow.item :as flow.item])
   (:require [staxchg.dev :as dev])
@@ -37,8 +38,7 @@
    {:as zone
     :keys [left top width height]}]
   (when (zone :clear?)
-    {:function :staxchg.io/clear!
-     :params [(sub-graphics zone) left top width height]}))
+    [[:staxchg.io/clear! (sub-graphics zone) left top width height]]))
 
 (defn scroll
   "Recipe step for scrolling existing lines within zone."
@@ -46,11 +46,10 @@
    {:as zone
     :keys [top height]}]
   (when (flow/scrolled? flow)
-    {:function :staxchg.io/scroll!
-     :params [:screen
-              top
-              (+ top (dec height))
-              (flow :scroll-delta)]}))
+    [[:staxchg.io/scroll! :screen
+                          top
+                          (+ top (dec height))
+                          (flow :scroll-delta)]]))
 
 (defn clear-scroll-gap
   "Recipe step for clearing that part of zone which is vacated by scrolling its
@@ -61,26 +60,25 @@
   (when (flow/scrolled? flow)
     (let [{:keys [left top width height]
            :as subrect} (flow/scroll-gap-rect flow zone)]
-      {:function :staxchg.io/clear!
-       :params [(sub-graphics subrect) left top width height]})))
+      [[:staxchg.io/clear! (sub-graphics subrect) left top width height]])))
 
 (defn put-payload
   "Recipe step for rendering the contents of flow into zone."
   [flow zone]
   (let [flow (flow/adjust flow zone)]
     (map (fn [item]
-           {:function (case (item :type)
-                        :markdown :staxchg.io/put-plot!
-                        :characters :staxchg.io/put-plot!
-                        :string :staxchg.io/put-string!)
-            :params [(fx-graphics (flow/scroll-gap-rect flow zone) item)
-                     (flow.item/payload item)
-                     (select-keys item [:x :y])]})
+           [(case (item :type)
+              :markdown :staxchg.io/put-plot!
+              :characters :staxchg.io/put-plot!
+              :string :staxchg.io/put-string!)
+            (fx-graphics (flow/scroll-gap-rect flow zone) item)
+            (flow.item/payload item)
+            (select-keys item [:x :y])])
          (:items flow))))
 
 (def make
   "Recipe for rendering the contents of flow into zone."
-  (comp #(remove nil? %)
-        flatten
+  (comp #(remove (some-fn empty? nil?) %)
+        (ufn/ap concat)
         (juxt clear-whole scroll clear-scroll-gap put-payload)))
 
