@@ -11,6 +11,8 @@
 
 (def ^:const MIN_QUESTIONS_LIST_SIZE 1)
 
+(def ^:const DEFAULT_QUESTIONS_LIST_SIZE 4)
+
 (def ^:const MAX_QUESTIONS_LIST_SIZE 12)
 
 (def mark-keys
@@ -452,7 +454,8 @@
 (defn update-for-config
   "Applies the result of staxchg.io/read-config! to world."
   [world config]
-  (let [{:strs [SITE MAX_QUESTIONS_LIST_SIZE HIGHLIGHTER]} config
+  (let [{:strs [SITE MAX_QUESTIONS_LIST_SIZE HIGHLIGHTER]
+         :or {MAX_QUESTIONS_LIST_SIZE (str DEFAULT_QUESTIONS_LIST_SIZE)}} config
         list-size (Integer/parseInt MAX_QUESTIONS_LIST_SIZE)
         highlighter (or (-> HIGHLIGHTER keyword hilite/tools)
                         :skylighting)]
