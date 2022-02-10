@@ -11,7 +11,7 @@
 (defn sub-graphics
   "Precursor to a lanterna TextGraphics object, which corresponds to the
    given terminal area.
-   Returns a cookbook.step inflation tuple and expects a lanterna Screen."
+   Returns a cookbook.recipe inflation tuple and expects a lanterna Screen."
   [{:keys [left top width height]}]
   [#(-> %
         .newTextGraphics
@@ -23,7 +23,7 @@
   "Precursor to a lanterna TextGraphics object, which corresponds to the
    given terminal area. The object is further configured with the given colors
    and modifiers.
-   Returns a cookbook.step inflation tuple and expects a lanterna Screen."
+   Returns a cookbook.recipe inflation tuple and expects a lanterna Screen."
   [dimensions
    {:keys [foreground-color background-color modifiers]}]
   [#(-> ((first (sub-graphics dimensions)) %)

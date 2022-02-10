@@ -463,10 +463,11 @@
                  :config/max-questions-list-size list-size
                  :config/highlighter highlighter)))
 
-(defn update-world-rf
-  "Reducer for use with staxchg.state/update-world"
+(defn update-world
+  "Applies I/O response to world."
   [world
-   {:keys [function values]}]
+   {:as result {:keys [function values]} :out}]
+  (dev/log result)
   (if-some [f (case function
                 :acquire-screen! update-for-screen
                 :enable-screen! update-for-dimensions
@@ -481,18 +482,9 @@
                 :highlight-code! update-for-highlights
                 :read-config! update-for-config
                 nil)]
-    (do (dev/log "[update-world-rf] " function)
-        (apply f world values))
+    (-> (apply f world values)
+        (assoc :previous (dissoc world :previous)))
     world))
-
-(defn update-world
-  "Applies I/O responses to world."
-  [world input]
-  (when input
-    (let [updated (-> (reduce update-world-rf world input)
-                      (assoc :previous (dissoc world :previous)))]
-      (dev/log updated)
-      updated)))
 
 (def sanitize
   "Purges world of keys which don't reflect state."

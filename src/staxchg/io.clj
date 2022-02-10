@@ -240,19 +240,9 @@
     {:function :highlight-code!
      :values [sh-out question-id answer-id]}))
 
-(def request-channel
-  "Channel to write I/O requests to."
-  (async/chan))
-
-(def response-channel
-  "Channel to read responses to I/O requests from."
-  (async/chan))
-
 (defn quit!
   "Performs application shutdown tasks."
   [screen]
-  (close! request-channel)
-  (close! response-channel)
   (.stopScreen screen))
 
 (defn register-theme!

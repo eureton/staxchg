@@ -11,9 +11,8 @@
                  [com.googlecode.lanterna/lanterna "3.0.4"]
                  [org.jsoup/jsoup "1.11.2"]
                  [org.clojars.eureton/cljmd "0.1.1"]
-                 [smachine "0.1.0"]
+                 [smachine "0.2.0"]
                  [org.clojars.eureton/squirrel "0.1.0"]
-                 [cookbook "0.2.0"]
                  [org.flatland/useful "0.11.6"]]
   :java-source-paths ["./java"]
   :repositories {"releases" {:url "https://clojars.org/repo"

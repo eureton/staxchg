@@ -1,6 +1,7 @@
 (ns staxchg.dev
   (:require [clojure.string :as string])
   (:require [clojure.java.io :as io])
+  (:require [flatland.useful.fn :as ufn])
   (:require [staxchg.plot :as plot])
   (:gen-class))
 
@@ -31,67 +32,57 @@
       (derive :staxchg.io/run-skylighting! :staxchg.io/highlight-code!)
       atom))
 
-(defmulti log-recipe-step
-  "String representation of the steps of domain-specific recipes."
+(defmulti log-recipe
+  "String representation of circum recipe."
   first
   :hierarchy recipe-step-hierarchy)
 
-(defmethod log-recipe-step :staxchg.io/put-plot!
+(defmethod log-recipe :staxchg.io/put-plot!
   [[_ _ plot _]]
-  (->> [(str "[put-plot] from: " (->> plot first second) ", "
-                         "to: " (->> plot last second) " BEGIN")
+  (->> [(str "from: " (->> plot first second) ", "
+             "to: " (->> plot last second) " BEGIN")
         (->> plot
              (map #(update % 0 (memfn getCharacter)))
              plot/text
              decorate)
-        "[put-plot] END"]
+        "END"]
        (string/join "\r\n")))
 
-(defmethod log-recipe-step :staxchg.io/put-string!
+(defmethod log-recipe :staxchg.io/put-string!
   [[_ _ string {:keys [x y]}]]
-  (str "[put-string] " [x y] " |>"  string "<|"))
+  (str [x y] " |>"  string "<|"))
 
-(defmethod log-recipe-step :staxchg.io/scroll!
+(defmethod log-recipe :staxchg.io/scroll!
   [[_ _ top bottom distance]]
-  (str "[scroll] at (" top "..." bottom ") by " distance))
+  (str "at (" top "..." bottom ") by " distance))
 
-(defmethod log-recipe-step :staxchg.io/clear!
+(defmethod log-recipe :staxchg.io/clear!
   [[_ _ left top width height]]
-  (str "[clear] rect [" width "x" height "] at (" left ", " top ")"))
+  (str "rect [" width "x" height "] at (" left ", " top ")"))
 
-(defmethod log-recipe-step :staxchg.io/fetch-questions!
-  [[_ _ url query-params]]
-  (str "[fetch-questions] url: " url ", query-params: " query-params))
+(defmethod log-recipe :staxchg.io/fetch-questions!
+  [[_ _ url _]]
+  url)
 
-(defmethod log-recipe-step :staxchg.io/fetch-answers!
-  [[_ _ url query-params question-id]]
-  (str "[fetch-answers] url: " url ", "
-       "query-params: " query-params ", "
-       "question-id: " question-id))
+(defmethod log-recipe :staxchg.io/fetch-answers!
+  [[_ _ url _ question-id]]
+  (str url ", " question-id))
 
-(defmethod log-recipe-step :staxchg.io/highlight-code!
+(defmethod log-recipe :staxchg.io/highlight-code!
   [[_ code syntaxes question-id answer-id]]
-  (->> [(cond-> (str "[highlight-code] BEGIN syntax: ")
+  (->> [(cond-> (str "BEGIN syntax: ")
           true (str (cond->> syntaxes (coll? syntaxes) (string/join " ")) ", ")
           answer-id (str "answer-id: " answer-id ", ")
           true (str "question-id: " question-id))
         (decorate code)
-        "[highlight-code] END"]
+        "END"]
        (string/join "\r\n")))
 
-(defmethod log-recipe-step :staxchg.io/register-theme!
+(defmethod log-recipe :staxchg.io/register-theme!
   [[_ theme-name filename]]
-  (str "[register-theme] name: " theme-name ", filename: " filename))
+  (str theme-name " @ " filename))
 
-(defmethod log-recipe-step :default [_])
-
-(defn log-recipe
-  "String representation of recipe."
-  [recipe]
-  (->> recipe
-       (map log-recipe-step)
-       (remove nil?)
-       (string/join "\r\n")))
+(defmethod log-recipe :default [_])
 
 (defn log-item-df
   "Dispatch function for staxchg.dev/log-item"
@@ -100,7 +91,7 @@
         hash-with-keys? #(and (map? item)
                               (has-keys? %&))]
     (cond (hash-with-keys? :io/context :questions) :world
-          (hash-with-keys? :context :recipes) :cookbook
+          (hash-with-keys? :in :out :wrappers/time) :circum
           (hash-with-keys? :raw :html :traits :text) :hilite)))
 
 (defmulti log-item
@@ -108,16 +99,17 @@
    Returns a string suitable for writing to a file."
   log-item-df)
 
-(defmethod log-item :cookbook
-  [{:keys [recipes timing]}]
-  (->> [[(str " /^^^ " (count recipes) " recipe(s)")]
-        (map #(str "|----- " (string/join ", " (map first %1)) " ---- " %2)
-             recipes
-             (map (comp second #(re-find #"(\d*.\d* msecs)" %)) timing))
-        [" \\___ Complete"]
-        (mapv log-recipe recipes)]
-       (reduce concat)
-       (string/join "\r\n")))
+(defmethod log-item :circum
+  [x]
+  (let [fsym (-> x :in first)]
+    (when-not (contains? #{:staxchg.io/poll-resize!
+                           :staxchg.io/poll-key!
+                           :staxchg.io/refresh!
+                           :staxchg.io/sleep!} fsym)
+      (format "[%s][%s] %s"
+              (name fsym)
+              (->> x :wrappers/time (re-find #"\d*.\d{2}"))
+              (log-recipe (:in x))))))
 
 (defmethod log-item :hilite
   [{:keys [raw]}]
@@ -161,5 +153,8 @@
   [& items]
   (when-let [pathname (System/getenv "LOGFILE")]
     (with-open [writer (io/writer pathname :append true)]
-      (.write writer (str (apply str (map log-item items)) "\n")))))
+      (.write writer
+              (ufn/fix (->> items (map log-item) (remove nil?) string/join)
+                       (complement string/blank?)
+                       #(str % "\n"))))))
 
