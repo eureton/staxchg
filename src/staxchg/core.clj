@@ -11,5 +11,5 @@
   (smachine/run {:init (state/make)
                  :req-fn state.recipe/request
                  :trans-fn state/update-world
-                 :term-fn nil?}))
+                 :term-fn state/quit?}))
 

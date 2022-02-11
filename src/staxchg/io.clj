@@ -1,5 +1,5 @@
 (ns staxchg.io
-  (:require [clojure.core.async :as async :refer [>!! <!! thread close!]])
+  (:require [clojure.core.async :refer [chan >!! <!! thread close!]])
   (:require [clojure.java.shell])
   (:require [clojure.java.io :as io])
   (:require [staxchg.io.config :as config])
@@ -65,7 +65,7 @@
   [screen & body]
   `(let [gui# (themed-gui ~screen)
          dialog# (WaitingDialog/createDialog "" "Fetching...")
-         channel# (async/chan)]
+         channel# (chan)]
      (.setHints dialog# #{Window$Hint/CENTERED Window$Hint/MODAL})
      (.showDialog dialog# gui# false)
      (thread
@@ -77,7 +77,7 @@
      (.waitUntilClosed dialog#)
      (try
        (<!! channel#)
-       (finally (async/close! channel#)))))
+       (finally (close! channel#)))))
 
 (defn show-message!
   "Displays a modal dialog with the given title and text. The dialog comes with
@@ -131,7 +131,7 @@
   (.refresh screen)) ; TODO provide refresh type according to outgoing recipes
 
 (defn sleep!
-  "Pauses the application main thread for interval milliseconds."
+  "Pauses the main thread for interval milliseconds."
   [interval]
   (Thread/sleep interval))
 

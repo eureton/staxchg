@@ -514,3 +514,8 @@
                           answer?
                           (dirty? (:previous world) world)))))
 
+(defn quit?
+  "True if user has asked to quit, false otherwise."
+  [world]
+  (:quit? world))
+
