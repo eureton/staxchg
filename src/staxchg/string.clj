@@ -3,17 +3,37 @@
   (:gen-class))
 
 (defn truncate
-  "If word is longer than width, excess characters plus one are replaced by a
-   single ellipsis (…) character."
-  [word width]
-  (let [length (count word)]
+  "If string is longer than width, excess characters plus one are replaced by a
+   single ellipses (…) character."
+  [string width]
+  (let [length (count string)]
     (if (<= length width)
-      word
-      (str (subs word 0 (max 0 (dec width))) \…))))
+      string
+      (str (subs string 0 (max 0 (dec width))) \…))))
 
-(def truncated?
-  "True if a word has been truncated, false otherwise."
-  (comp #{\…} last))
+(defn bite
+  "Breaks off the beginning of string such that it is:
+     * width characters at most
+     * either followed by a space or no longer than width
+   Should the above be impossible, policy comes into effect:
+     * :truncate   fragment is (width - 1) characters followed by an
+                   ellipses character (…)
+     * :float      fragment is an empty string
+   The fragment and the remainder are returned in a vector. The space character
+   following the fragment is not included in the remainder."
+  [width string policy]
+  (when-not (contains? #{:truncate :float} policy)
+    (throw (IllegalArgumentException. (str "Unsupported policy: " policy))))
+  (loop [string string
+         result nil]
+    (let [[head tail] (string/split string #" " 2)
+          joined (->> [result head] (remove nil?) (string/join " "))
+          fits? (<= (count joined) width)]
+      (cond (and fits? tail)        (recur tail joined)
+            (and fits? (nil? tail)) [joined]
+            (not-empty result)      [result string]
+            (= :truncate policy)    [(truncate head width) tail]
+            (= :float policy)       ["" string]))))
 
 (defn pack
   "Splits string into a vector of strings, none of which is longer than width.
@@ -23,34 +43,21 @@
      * if no split yields parts of appropriate length, string is truncated
 
    When provided, x denotes an indentation applicable to the first line only."
-  ([width string]
-   (if (->> string count (>= width))
-     [string]
-     (reduce
-       (fn [aggregator word]
-         (let [previous (peek aggregator)
-               popped (if-not (empty? aggregator) (pop aggregator) aggregator)]
-           (if (<= (+ (count previous) (count word) 1) width)
-             (conj popped (string/join \space (remove nil? [previous word])))
-             (conj aggregator (truncate word width)))))
-       []
-       (string/split string #"(?<!^\s*)\s(?!\s|$)"))))
-  ([x width string]
-   (loop [string string
-          result []
-          index 0]
-     (let [top? (zero? index)
-           packed (-> (cond-> width
-                        top? (- x))
-                      (pack string))
-           packed (if (and top? (truncated? (first packed)))
-                    ["" (string/triml string)]
-                    packed)]
-       (if (= (count packed) 1)
-         (vec (concat result packed))
-         (recur (->> packed rest (remove string/blank?) (string/join \space))
-                (conj result (first packed))
-                (inc index)))))))
+  [x width string]
+  (loop [string string
+         result []
+         index 0]
+    (let [top? (zero? index)
+          [bit remainder] (bite (cond-> width
+                                  top? (- x))
+                                string
+                                (if top? :float :truncate))
+          result (conj result bit)]
+      (if (nil? remainder)
+        result
+        (recur remainder
+               result
+               (inc index))))))
 
 (defn reflow
   "Introduces line breaks into string so that no line is longer than width. The
