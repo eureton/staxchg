@@ -3,13 +3,13 @@
   (:gen-class))
 
 (defn truncate
-  "If word is longer than width, excess characters plus one are replaced by a
-   single ellipsis (…) character."
-  [word width]
-  (let [length (count word)]
+  "If string is longer than width, excess characters plus one are replaced by a
+   single ellipses (…) character."
+  [string width]
+  (let [length (count string)]
     (if (<= length width)
-      word
-      (str (subs word 0 (max 0 (dec width))) \…))))
+      string
+      (str (subs string 0 (max 0 (dec width))) \…))))
 
 (defn bite
   "Breaks off the beginning of string such that it is:
