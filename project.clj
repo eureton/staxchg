@@ -6,6 +6,11 @@
   :dependencies [[org.clojure/clojure "1.10.3"]
                  [org.clojure/core.async "1.3.610"]
                  [org.clojure/test.check "0.10.0"]
+                 [org.clojure/tools.logging "1.2.4"]
+                 [ch.qos.logback/logback-classic "1.2.11"]
+                 [ch.qos.logback.contrib/logback-jackson "0.1.5"]
+                 [ch.qos.logback.contrib/logback-json-classic "0.1.5"]
+                 [org.apache.logging.log4j/log4j-to-slf4j "2.18.0"]
                  [org.martinklepsch/clj-http-lite "0.4.3"]
                  [cheshire "5.10.0"]
                  [com.googlecode.lanterna/lanterna "3.0.4"]
@@ -26,7 +31,8 @@
                                   "-Dclojure.compiler.direct-linking=true"]
                        :native-image {:jvm-opts ["-Djava.awt.headless=true"
                                                  "-Dclojure.compiler.direct-linking=true"]}}}
-  :jvm-opts ["-Djava.awt.headless=true"]
+  :jvm-opts ["-Djava.awt.headless=true"
+             "-Dclojure.tools.logging.factory=clojure.tools.logging.impl/slf4j-factory"]
   :plugins [[io.taylorwood/lein-native-image "0.3.1"]]
   :native-image {:name "staxchg"
                  :opts ["--initialize-at-build-time"
