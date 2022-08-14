@@ -1,5 +1,6 @@
 (ns staxchg.api
   (:require [clojure.string :as string]
+            [clojure.tools.logging :as log]
             [cheshire.core]
             [staxchg.presentation :as presentation]
             [staxchg.util :as util])
@@ -108,9 +109,8 @@
 (defn parse-response
   ""
   [response]
-  (->
-    response
-    :body
-    cheshire.core/parse-string
-    (update "items" (partial mapv scrub))))
+  (-> (or (System/getenv "DEBUG_RESPONSE")
+          (:body response))
+      cheshire.core/parse-string
+      (update "items" (partial mapv scrub))))
 
