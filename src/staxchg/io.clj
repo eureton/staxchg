@@ -236,7 +236,8 @@
 (defn quit!
   "Performs application shutdown tasks."
   [screen]
-  (.stopScreen screen))
+  (.stopScreen screen)
+  {:function :quit! :values []})
 
 (defn register-theme!
   "Registers the theme whose description is filename with lanterna, under the
