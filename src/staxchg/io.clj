@@ -7,8 +7,7 @@
   (:import [com.googlecode.lanterna TerminalSize TextCharacter TextColor$ANSI]
            [com.googlecode.lanterna.bundle LanternaThemes]
            [com.googlecode.lanterna.graphics PropertyTheme]
-           [com.googlecode.lanterna.gui2 DefaultWindowManager MultiWindowTextGUI
-                                         SameTextGUIThread$Factory Window$Hint]
+           [com.googlecode.lanterna.gui2 MultiWindowTextGUI Window$Hint]
            [com.googlecode.lanterna.gui2.dialogs MessageDialogBuilder
                                                  MessageDialogButton
                                                  TextInputDialogBuilder
@@ -46,10 +45,7 @@
   [screen]
   (let [theme (LanternaThemes/getRegisteredTheme "staxchg")
         size (.getTerminalSize screen)
-        gui (MultiWindowTextGUI.
-              (SameTextGUIThread$Factory.)
-              screen
-              (DefaultWindowManager. size))]
+        gui (MultiWindowTextGUI. screen)]
     (.setTheme gui theme)
     gui))
 
