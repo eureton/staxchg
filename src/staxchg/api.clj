@@ -98,7 +98,7 @@
    :filter "!WWsokPk3Vh*T_kIP2MV(bQNcR1w-GRejyamhb31"})
 
 (defn scrub
-  ""
+  "Unescapes HTML recursively."
   [item]
   (cond-> item
     (contains? item "title") (update "title" util/unescape-html)
@@ -107,7 +107,7 @@
     (contains? item "comments") (update "comments" (partial mapv scrub))))
 
 (defn parse-response
-  ""
+  "Transform the raw response into a format suited for the app."
   [response]
   (-> (or (System/getenv "DEBUG_RESPONSE")
           (:body response))
