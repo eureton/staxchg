@@ -1,12 +1,11 @@
 (ns staxchg.hilite
-  (:require [clojure.string :as string])
-  (:require [clojure.set :refer [union]])
-  (:require [cheshire.core])
-  (:require [staxchg.plot.item :as plot.item])
-  (:require [staxchg.util :as util])
-  (:require [staxchg.dev :as dev])
-  (:import (org.jsoup Jsoup))
-  (:import org.jsoup.nodes.Document$OutputSettings)
+  (:require [clojure.set :refer [union]]
+            [clojure.string :as string]
+            [cheshire.core]
+            [staxchg.plot.item :as plot.item]
+            [staxchg.util :as util])
+  (:import [org.jsoup Jsoup]
+           [org.jsoup.nodes Document$OutputSettings])
   (:gen-class))
 
 (def tools

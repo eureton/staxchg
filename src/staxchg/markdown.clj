@@ -1,12 +1,12 @@
 (ns staxchg.markdown
-  (:require [clojure.core.cache.wrapped :as cache])
-  (:require [clojure.string :as string])
-  (:require [clojure.tools.logging :as log])
-  (:require [flatland.useful.fn :as ufn])
-  (:require [squirrel.tree :as tree])
-  (:require [squirrel.node :as node])
-  (:require [cljmd.ast])
-  (:require [staxchg.plot :as plot])
+  (:require [clojure.core.cache.wrapped :as cache]
+            [clojure.string :as string]
+            [clojure.tools.logging :as log]
+            [flatland.useful.fn :as ufn]
+            [squirrel.node :as node]
+            [squirrel.tree :as tree]
+            [cljmd.ast]
+            [staxchg.plot :as plot])
   (:gen-class))
 
 (defmulti normalize

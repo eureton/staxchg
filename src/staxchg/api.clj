@@ -1,8 +1,8 @@
 (ns staxchg.api
-  (:require [clojure.string :as string])
-  (:require [cheshire.core])
-  (:require [staxchg.presentation :as presentation])
-  (:require [staxchg.util :as util])
+  (:require [clojure.string :as string]
+            [cheshire.core]
+            [staxchg.presentation :as presentation]
+            [staxchg.util :as util])
   (:gen-class))
 
 (def client-id "19510")

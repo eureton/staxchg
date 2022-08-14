@@ -1,30 +1,24 @@
 (ns staxchg.io
-  (:require [clojure.core.async :refer [chan >!! <!! thread close!]])
-  (:require [clojure.java.shell])
-  (:require [clojure.java.io :as io])
-  (:require [staxchg.io.config :as config])
-  (:require [staxchg.dev :as dev])
-  (:require [clj-http.lite.client :as http])
-  (:import com.googlecode.lanterna.TerminalSize)
-  (:import com.googlecode.lanterna.TextCharacter)
-  (:import com.googlecode.lanterna.TextColor$ANSI)
-  (:import com.googlecode.lanterna.bundle.LanternaThemes)
-  (:import com.googlecode.lanterna.graphics.PropertyTheme)
-  (:import com.googlecode.lanterna.gui2.DefaultWindowManager)
-  (:import com.googlecode.lanterna.gui2.MultiWindowTextGUI)
-  (:import com.googlecode.lanterna.gui2.SameTextGUIThread$Factory)
-  (:import com.googlecode.lanterna.gui2.Window$Hint)
-  (:import com.googlecode.lanterna.gui2.dialogs.MessageDialogBuilder)
-  (:import com.googlecode.lanterna.gui2.dialogs.MessageDialogButton)
-  (:import com.googlecode.lanterna.gui2.dialogs.TextInputDialogBuilder)
-  (:import com.googlecode.lanterna.gui2.dialogs.WaitingDialog)
-  (:import com.googlecode.lanterna.input.KeyType)
-  (:import com.googlecode.lanterna.screen.Screen$RefreshType)
-  (:import com.googlecode.lanterna.screen.TerminalScreen)
-  ; TODO: restore this after it stops breaking native image builds
-  ; (:import com.googlecode.lanterna.terminal.DefaultTerminalFactory)
-  (:import com.googlecode.lanterna.terminal.ansi.UnixTerminal)
-  (:import com.googlecode.lanterna.terminal.ansi.UnixLikeTerminal$CtrlCBehaviour)
+  (:require [clojure.core.async :refer [chan >!! <!! thread close!]]
+            [clojure.java.io :as io]
+            [clojure.java.shell]
+            [clj-http.lite.client :as http]
+            [staxchg.io.config :as config])
+  (:import [com.googlecode.lanterna TerminalSize TextCharacter TextColor$ANSI]
+           [com.googlecode.lanterna.bundle LanternaThemes]
+           [com.googlecode.lanterna.graphics PropertyTheme]
+           [com.googlecode.lanterna.gui2 DefaultWindowManager MultiWindowTextGUI
+                                         SameTextGUIThread$Factory Window$Hint]
+           [com.googlecode.lanterna.gui2.dialogs MessageDialogBuilder
+                                                 MessageDialogButton
+                                                 TextInputDialogBuilder
+                                                 WaitingDialog]
+           [com.googlecode.lanterna.input KeyType]
+           [com.googlecode.lanterna.screen Screen$RefreshType TerminalScreen]
+         ; TODO: restore this after it stops breaking native image builds
+         ; [com.googlecode.lanterna.terminal DefaultTerminalFactory]
+           [com.googlecode.lanterna.terminal.ansi UnixLikeTerminal$CtrlCBehaviour
+                                                  UnixTerminal])
   (:gen-class))
 
 (defn decorate-with-current

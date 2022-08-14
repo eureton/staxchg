@@ -1,12 +1,8 @@
 (ns staxchg.presentation.recipe
-  (:require [clojure.string :as string])
-  (:require [staxchg.presentation.common :refer :all])
-  (:require [staxchg.dev :as dev])
-  (:import com.googlecode.lanterna.SGR)
-  (:import com.googlecode.lanterna.Symbols)
-  (:import com.googlecode.lanterna.TerminalTextUtils)
-  (:import com.googlecode.lanterna.TextCharacter)
-  (:import com.googlecode.lanterna.TextColor$ANSI)
+  (:require [clojure.string :as string]
+            [staxchg.presentation.common :refer :all])
+  (:import [com.googlecode.lanterna SGR Symbols TerminalTextUtils TextCharacter
+                                    TextColor$ANSI])
   (:gen-class))
 
 (defn printable?

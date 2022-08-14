@@ -1,8 +1,8 @@
 (ns staxchg.dev
-  (:require [clojure.string :as string])
-  (:require [clojure.java.io :as io])
-  (:require [flatland.useful.fn :as ufn])
-  (:require [staxchg.plot :as plot])
+  (:require [clojure.java.io :as io]
+            [clojure.string :as string]
+            [flatland.useful.fn :as ufn]
+            [staxchg.plot :as plot])
   (:import [java.io Writer])
   (:gen-class))
 

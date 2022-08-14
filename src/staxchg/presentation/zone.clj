@@ -1,6 +1,5 @@
 (ns staxchg.presentation.zone
   (:require [staxchg.presentation.common :refer :all])
-  (:require [staxchg.dev :as dev])
   (:gen-class))
 
 (defn answers-footer-left-width

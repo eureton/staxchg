@@ -1,9 +1,9 @@
 (ns staxchg.core
-  (:require [smachine.core :as smachine])
-  (:require [staxchg.dev])
-  (:require [staxchg.io :as io])
-  (:require [staxchg.state :as state])
-  (:require [staxchg.state.recipe :as state.recipe])
+  (:require [smachine.core :as smachine]
+            [staxchg.dev]
+            [staxchg.io :as io]
+            [staxchg.state :as state]
+            [staxchg.state.recipe :as state.recipe])
   (:gen-class))
 
 (defn -main

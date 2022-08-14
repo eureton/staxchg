@@ -1,10 +1,8 @@
 (ns staxchg.presentation.render
-  (:require [clojure.string :as string])
-  (:require [flatland.useful.fn :as ufn])
-  (:require [staxchg.presentation.common :refer :all])
-  (:require [staxchg.dev :as dev])
-  (:import java.time.LocalDateTime)
-  (:import java.time.ZoneOffset)
+  (:require [clojure.string :as string]
+            [flatland.useful.fn :as ufn]
+            [staxchg.presentation.common :refer :all])
+  (:import [java.time LocalDateTime ZoneOffset])
   (:gen-class))
 
 (defn traitful-char-seq

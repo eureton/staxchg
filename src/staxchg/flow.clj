@@ -1,6 +1,6 @@
 (ns staxchg.flow
   (:require [staxchg.flow.item :as item])
-  (:import com.googlecode.lanterna.TextColor$ANSI)
+  (:import [com.googlecode.lanterna TextColor$ANSI])
   (:gen-class))
 
 (def zero

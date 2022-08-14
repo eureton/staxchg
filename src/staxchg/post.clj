@@ -1,6 +1,6 @@
 (ns staxchg.post
-  (:require [staxchg.markdown :as markdown])
-  (:require [staxchg.code :as code])
+  (:require [staxchg.code :as code]
+            [staxchg.markdown :as markdown])
   (:gen-class))
 
 (defn answer?

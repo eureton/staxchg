@@ -1,6 +1,5 @@
 (ns staxchg.presentation.common
-  (:import com.googlecode.lanterna.Symbols)
-  (:import com.googlecode.lanterna.TextColor$ANSI)
+  (:import [com.googlecode.lanterna Symbols TextColor$ANSI])
   (:gen-class))
 
 (def horz-bar Symbols/SINGLE_LINE_HORIZONTAL)

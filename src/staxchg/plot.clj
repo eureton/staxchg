@@ -1,9 +1,9 @@
 (ns staxchg.plot
-  (:require [clojure.string :as string])
-  (:require [clojure.set])
-  (:require [staxchg.plot.item :as item])
-  (:require [staxchg.code :as code])
-  (:require [staxchg.string])
+  (:require [clojure.set]
+            [clojure.string :as string]
+            [staxchg.plot.item :as item]
+            [staxchg.code :as code]
+            [staxchg.string])
   (:gen-class))
 
 (def ontology

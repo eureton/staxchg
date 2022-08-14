@@ -1,14 +1,13 @@
 (ns staxchg.presentation
-  (:require [clojure.string :as string])
-  (:require [flatland.useful.fn :as ufn])
-  (:require [staxchg.flow :as flow])
-  (:require [staxchg.post :as post])
-  (:require [staxchg.presentation.state :as state])
-  (:require [staxchg.presentation.flow :as presentation.flow])
-  (:require [staxchg.presentation.zone :as zone])
-  (:require [staxchg.presentation.recipe :as presentation.recipe])
-  (:require [staxchg.dev :as dev])
-  (:require [staxchg.recipe :as recipe])
+  (:require [clojure.string :as string]
+            [flatland.useful.fn :as ufn]
+            [staxchg.flow :as flow]
+            [staxchg.presentation.flow :as presentation.flow]
+            [staxchg.presentation.recipe :as presentation.recipe]
+            [staxchg.presentation.state :as state]
+            [staxchg.presentation.zone :as zone]
+            [staxchg.post :as post]
+            [staxchg.recipe :as recipe])
   (:gen-class))
 
 (def search-legend

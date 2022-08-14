@@ -1,10 +1,9 @@
 (ns staxchg.state.recipe
-  (:require [clojure.string :as string])
-  (:require [flatland.useful.fn :as ufn])
-  (:require [staxchg.dev :as dev])
-  (:require [staxchg.api :as api])
-  (:require [staxchg.state :as state])
-  (:require [staxchg.presentation :as presentation])
+  (:require [clojure.string :as string]
+            [flatland.useful.fn :as ufn]
+            [staxchg.api :as api]
+            [staxchg.presentation :as presentation]
+            [staxchg.state :as state])
   (:gen-class))
 
 (def poll-loop-latency

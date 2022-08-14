@@ -1,11 +1,8 @@
 (ns staxchg.recipe
-  (:require [flatland.useful.fn :as ufn])
-  (:require [staxchg.flow :as flow])
-  (:require [staxchg.flow.item :as flow.item])
-  (:require [staxchg.dev :as dev])
-  (:import com.googlecode.lanterna.SGR)
-  (:import com.googlecode.lanterna.TerminalPosition)
-  (:import com.googlecode.lanterna.TerminalSize)
+  (:require [flatland.useful.fn :as ufn]
+            [staxchg.flow :as flow]
+            [staxchg.flow.item :as flow.item])
+  (:import [com.googlecode.lanterna SGR TerminalPosition TerminalSize])
   (:gen-class))
 
 (defn sub-graphics

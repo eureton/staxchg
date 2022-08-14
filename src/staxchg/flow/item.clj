@@ -1,10 +1,9 @@
 (ns staxchg.flow.item
-  (:require [staxchg.markdown :as markdown])
-  (:require [staxchg.hilite :as hilite])
-  (:require [staxchg.plot :as plot])
-  (:require [staxchg.dev :as dev])
-  (:require [clojure.string :as string])
-  (:import com.googlecode.lanterna.TextColor$ANSI)
+  (:require [clojure.string :as string]
+            [staxchg.hilite :as hilite]
+            [staxchg.markdown :as markdown]
+            [staxchg.plot :as plot])
+  (:import [com.googlecode.lanterna TextColor$ANSI])
   (:gen-class))
 
 (defn within?

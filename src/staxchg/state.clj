@@ -1,12 +1,12 @@
 (ns staxchg.state
-  (:require [clojure.tools.logging :as log])
-  (:require [flatland.useful.fn :as ufn])
-  (:require [staxchg.presentation :as presentation])
-  (:require [staxchg.presentation.state :as presentation.state])
-  (:require [staxchg.api :as api])
-  (:require [staxchg.markdown :as markdown])
-  (:require [staxchg.hilite :as hilite])
-  (:require [staxchg.post :as post])
+  (:require [clojure.tools.logging :as log]
+            [flatland.useful.fn :as ufn]
+            [staxchg.api :as api]
+            [staxchg.hilite :as hilite]
+            [staxchg.markdown :as markdown]
+            [staxchg.presentation :as presentation]
+            [staxchg.presentation.state :as presentation.state]
+            [staxchg.post :as post])
   (:gen-class))
 
 (def ^:const MIN_QUESTIONS_LIST_SIZE 1)

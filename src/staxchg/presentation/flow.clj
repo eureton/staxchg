@@ -1,13 +1,11 @@
 (ns staxchg.presentation.flow
-  (:require [clojure.string :as string])
-  (:require [staxchg.presentation.common :refer :all])
-  (:require [staxchg.presentation.state :as state])
-  (:require [staxchg.presentation.render :as render])
-  (:require [staxchg.post :as post])
-  (:require [staxchg.flow :as flow])
-  (:require [staxchg.dev :as dev])
-  (:import com.googlecode.lanterna.SGR)
-  (:import com.googlecode.lanterna.TextColor$ANSI)
+  (:require [clojure.string :as string]
+            [staxchg.presentation.common :refer :all]
+            [staxchg.presentation.state :as state]
+            [staxchg.presentation.render :as render]
+            [staxchg.post :as post]
+            [staxchg.flow :as flow])
+  (:import [com.googlecode.lanterna SGR TextColor$ANSI])
   (:gen-class))
 
 (defn question-list-item
