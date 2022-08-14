@@ -1,5 +1,6 @@
 (ns staxchg.core
   (:require [smachine.core :as smachine])
+  (:require [staxchg.dev])
   (:require [staxchg.io :as io])
   (:require [staxchg.state :as state])
   (:require [staxchg.state.recipe :as state.recipe])

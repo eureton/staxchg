@@ -1,4 +1,5 @@
 (ns staxchg.state
+  (:require [clojure.tools.logging :as log])
   (:require [flatland.useful.fn :as ufn])
   (:require [staxchg.presentation :as presentation])
   (:require [staxchg.presentation.state :as presentation.state])
@@ -6,7 +7,6 @@
   (:require [staxchg.markdown :as markdown])
   (:require [staxchg.hilite :as hilite])
   (:require [staxchg.post :as post])
-  (:require [staxchg.dev :as dev])
   (:gen-class))
 
 (def ^:const MIN_QUESTIONS_LIST_SIZE 1)
@@ -25,16 +25,17 @@
   "Hash representing a cold state, loaded with the given questions."
   ([questions]
    (let [question-ids (map #(% "question_id") questions)]
-     {:line-offsets (zipmap question-ids (repeat 0))
-      :selected-question-index 0
-      :question-list-size (-> questions
-                              count
-                              (min MAX_QUESTIONS_LIST_SIZE)
-                              (max MIN_QUESTIONS_LIST_SIZE))
-      :question-list-offset 0
-      :questions questions
-      :active-pane :questions
-      :highlights {}}))
+     (-> {:line-offsets (zipmap question-ids (repeat 0))
+          :selected-question-index 0
+          :question-list-size (-> questions
+                                  count
+                                  (min MAX_QUESTIONS_LIST_SIZE)
+                                  (max MIN_QUESTIONS_LIST_SIZE))
+          :question-list-offset 0
+          :questions questions
+          :active-pane :questions
+          :highlights {}}
+         (with-meta {:type :world}))))
   ([]
    (make [])))
 
@@ -331,9 +332,9 @@
     (let [keycode (.getCharacter keystroke)
           ctrl? (.isCtrlDown keystroke)
           command (parse-command keycode ctrl?)]
-      (dev/log "[update-for-keystroke] code: '" keycode "', "
-               "ctrl? " ctrl? ", "
-               "command: " (if (some? command) (name command) "UNKNOWN"))
+      (log/info "[update-for-keystroke] code: '" keycode "', "
+                "ctrl? " ctrl? ", "
+                "command: " (if (some? command) (name command) "UNKNOWN"))
       (-> world
           (clear-marks)
           (effect-command command)
@@ -346,7 +347,7 @@
   (when (some? size)
     (let [width (.getColumns size)
           height (.getRows size)]
-      (dev/log "[update-for-resize] width: " width ", height: " height)))
+      (log/debug "[update-for-resize] width: " width ", height: " height)))
   (cond-> (clear-marks world)
     size (assoc :width (.getColumns size)
                 :height (.getRows size)
@@ -355,7 +356,7 @@
 (defn update-for-search-term
   "Applies the result of staxchg.io/query! to world."
   [world term]
-  (dev/log "[update-for-search-term] term: " (if (nil? term) "<canceled>" term))
+  (log/debug "[update-for-search-term] term: " (if (nil? term) "<canceled>" term))
   (let [blank? (clojure.string/blank? term)]
     (cond-> (clear-marks world)
       (not blank?) (assoc :search-term term)
@@ -382,7 +383,7 @@
   "Applies the result of staxchg.io/fetch-questions! to world."
   [world response]
   (let [{:strs [items error quota_remaining]} (api/parse-response response)]
-    (dev/log "[update-for-questions-response] " quota_remaining " quota left")
+    (log/info "[update-for-questions-response] " quota_remaining " quota left")
     (cond->
       world
       true (clear-marks)
@@ -418,7 +419,7 @@
   (let [index (question-id-to-index question-id world)
         {:strs [items has_more
                 error quota_remaining]} (api/parse-response response)]
-    (dev/log "[update-for-answers-response] " quota_remaining " quota left")
+    (log/info "[update-for-answers-response] " quota_remaining " quota left")
     (cond->
       world
       true (clear-marks)
@@ -440,10 +441,10 @@
   [world sh-out question-id answer-id]
   (let [hilite (hilite/parse sh-out)
         post-id (or answer-id question-id)]
-    (dev/log "[update-for-highlights] "
-             "question-id: '" question-id "', "
-             "answer-id: '" answer-id "'\r\n"
-             hilite)
+    (log/debug "[update-for-highlights] "
+               "question-id: '" question-id "', "
+               "answer-id: '" answer-id "'\r\n"
+               hilite)
     (-> world
         (clear-marks)
         (assoc (if answer-id :switched-answer? :switched-question?) true)
@@ -465,26 +466,29 @@
 
 (defn update-world
   "Applies I/O response to world."
-  [world
-   {:as result {:keys [function values]} :out}]
-  (dev/log result)
-  (if-some [f (case function
-                :acquire-screen! update-for-screen
-                :enable-screen! update-for-dimensions
-                :poll-key! update-for-keystroke
-                :poll-resize! update-for-resize
-                :query! update-for-search-term
-                :fetch-questions! update-for-questions-response
-                :fetch-answers! update-for-answers-response
-                :no-questions! update-for-no-posts
-                :no-answers! update-for-no-posts
-                :fetch-failed! update-for-no-posts
-                :highlight-code! update-for-highlights
-                :read-config! update-for-config
-                nil)]
-    (-> (apply f world values)
-        (assoc :previous (dissoc world :previous)))
-    world))
+  [world result]
+  (let [{{:keys [function values]} :out} result
+        result (with-meta result {:type :circum})]
+    (log/debug result)
+    (if-some [f (case function
+                  :acquire-screen! update-for-screen
+                  :enable-screen! update-for-dimensions
+                  :poll-key! update-for-keystroke
+                  :poll-resize! update-for-resize
+                  :query! update-for-search-term
+                  :fetch-questions! update-for-questions-response
+                  :fetch-answers! update-for-answers-response
+                  :no-questions! update-for-no-posts
+                  :no-answers! update-for-no-posts
+                  :fetch-failed! update-for-no-posts
+                  :highlight-code! update-for-highlights
+                  :read-config! update-for-config
+                  nil)]
+      (let [updated (apply f world values)]
+        (log/debug updated)
+        (-> updated
+            (assoc :previous (dissoc world :previous))))
+      world)))
 
 (def sanitize
   "Purges world of keys which don't reflect state."

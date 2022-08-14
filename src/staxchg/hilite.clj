@@ -210,14 +210,16 @@
    staxchg.io/run-highlight.js!"
   [sh-out]
   (let [iron #(string/replace % #"[\r\n]" "")
-        html #(iron (.html %))]
+        html #(iron (.html %))
+        fork (juxt identity html (comp traits-seq html) #(iron (.wholeText %)))]
     (when (util/shell-output-ok? sh-out)
-      (->> sh-out
-           :out
-           normalize
-           root-jsoup-elem
-           ((juxt identity html (comp traits-seq html) #(iron (.wholeText %))))
-           (zipmap [:raw :html :traits :text])))))
+      (with-meta (->> sh-out
+                      :out
+                      normalize
+                      root-jsoup-elem
+                      fork
+                      (zipmap [:raw :html :traits :text]))
+                 {:type :hilite}))))
 
 (defn annotate
   "Decorates the :traits sets within plot with syntax highlight keywords."

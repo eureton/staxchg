@@ -3,6 +3,7 @@
   (:require [clojure.java.io :as io])
   (:require [flatland.useful.fn :as ufn])
   (:require [staxchg.plot :as plot])
+  (:import [java.io Writer])
   (:gen-class))
 
 (defn decorate
@@ -84,77 +85,51 @@
 
 (defmethod log-recipe :default [_])
 
-(defn log-item-df
-  "Dispatch function for staxchg.dev/log-item"
-  [item]
-  (let [has-keys? #(every? (partial contains? item) %)
-        hash-with-keys? #(and (map? item)
-                              (has-keys? %&))]
-    (cond (hash-with-keys? :io/context :questions) :world
-          (hash-with-keys? :in :out :wrappers/time) :circum
-          (hash-with-keys? :raw :html :traits :text) :hilite)))
-
-(defmulti log-item
-  "Abstraction layer for logging domain structures.
-   Returns a string suitable for writing to a file."
-  log-item-df)
-
-(defmethod log-item :circum
-  [x]
+(defmethod print-method :circum
+  [x ^Writer writer]
   (let [fsym (-> x :in first)]
     (when-not (contains? #{:staxchg.io/poll-resize!
                            :staxchg.io/poll-key!
                            :staxchg.io/refresh!
                            :staxchg.io/sleep!} fsym)
-      (format "[%s][%s] %s"
-              (name fsym)
-              (->> x :wrappers/time (re-find #"\d*.\d{2}"))
-              (log-recipe (:in x))))))
+      (.write writer (format "[%s][%s] %s"
+                             (name fsym)
+                             (->> x :wrappers/time (re-find #"\d*.\d{2}"))
+                             (log-recipe (:in x)))))))
 
-(defmethod log-item :hilite
-  [{:keys [raw]}]
+(defmethod print-method :hilite
+  [hilite ^Writer writer]
   (->> ["HTML BEGIN"
-        (-> raw .html (string/replace #"\r" "") decorate)
+        (-> (:raw hilite) .html (string/replace #"\r" "") decorate)
         "HTML END"]
-       (string/join "\r\n")))
+       (string/join "\r\n")
+       (.write writer)))
 
-(defmethod log-item :world
-  [{:as world
-    :keys [active-pane switched-question? switched-answer? width height
-           snippets search-term fetch-answers no-questions no-answers
-           query? questions fetch-failed quit? previous]
-    pane? :switched-pane?
-    {:keys [screen]} :io/context}]
-  (let [question? (and (= active-pane :questions) switched-question?)
-        answer? (and (= active-pane :answers) switched-answer?)]
-    (->> (cond-> []
-           (nil? screen) (conj "[world] uninitialized screen")
-           (nil? width) (conj "[world] screen dimensions unknown")
-           no-questions (conj "[world] no questions")
-           no-answers (conj "[world] no answers")
-           fetch-failed (conj "[world] fetch failed")
-           (or query? (empty? questions)) (conj "[world] prompt query")
-           snippets (conj "[world] code snippets await highlighting")
-           search-term (conj "[world] search term submitted")
-           fetch-answers (conj "[world] answers requested")
-           pane? (conj "[world] switched pane")
-           question? (conj "[world] switched question")
-           answer? (conj "[world] switched answer")
-           quit? (conj "[world] quit"))
-         (string/join "\r\n"))))
-
-(defmethod log-item :default
-  [item]
-  item)
-
-(defn log
-  "Writes string representations of items to the log, if the LOGFILE environment
-   variable has been set."
-  [& items]
-  (when-let [pathname (System/getenv "LOGFILE")]
-    (with-open [writer (io/writer pathname :append true)]
-      (.write writer
-              (ufn/fix (->> items (map log-item) (remove nil?) string/join)
-                       (complement string/blank?)
-                       #(str % "\n"))))))
-
+(defmethod print-method :world
+  [world ^Writer writer]
+  (let [{:keys [active-pane switched-question? switched-answer? width height
+                snippets search-term fetch-answers no-questions no-answers
+                query? questions fetch-failed quit? previous]
+         pane? :switched-pane?
+         {:keys [screen]} :io/context} world
+        question? (and (= active-pane :questions) switched-question?)
+        answer? (and (= active-pane :answers) switched-answer?)
+        summary (->> (cond-> []
+                       (nil? screen) (conj "[world] uninitialized screen")
+                       (nil? width) (conj "[world] screen dimensions unknown")
+                       no-questions (conj "[world] no questions")
+                       no-answers (conj "[world] no answers")
+                       fetch-failed (conj "[world] fetch failed")
+                       (or query?
+                           (empty? questions)) (conj "[world] prompt query")
+                       snippets (conj "[world] snippets await highlighting")
+                       search-term (conj "[world] search term submitted")
+                       fetch-answers (conj "[world] answers requested")
+                       pane? (conj "[world] switched pane")
+                       question? (conj "[world] switched question")
+                       answer? (conj "[world] switched answer")
+                       quit? (conj "[world] quit"))
+                     (string/join "\r\n"))]
+    (if (string/blank? summary)
+      (.write writer "[NO CHANGE]")
+      (.write writer summary))))

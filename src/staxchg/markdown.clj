@@ -1,12 +1,12 @@
 (ns staxchg.markdown
   (:require [clojure.core.cache.wrapped :as cache])
   (:require [clojure.string :as string])
+  (:require [clojure.tools.logging :as log])
   (:require [flatland.useful.fn :as ufn])
   (:require [squirrel.tree :as tree])
   (:require [squirrel.node :as node])
   (:require [cljmd.ast])
   (:require [staxchg.plot :as plot])
-  (:require [staxchg.dev :as dev])
   (:gen-class))
 
 (defmulti normalize
@@ -71,14 +71,14 @@
   [string options]
   (let [digest (cache-key string options)
         preview (subs string 0 (min (count string) 32))]
-    (dev/log "[through-cache-plot] \"" preview "\" " options
-             " in cache? " (cache/has? plot-cache digest))
+    (log/debug "[through-cache-plot] \"" preview "\" " options
+               " in cache? " (cache/has? plot-cache digest))
     (cache/lookup-or-miss
       plot-cache
       digest
       (fn [_]
-        (dev/log "[through-cache-plot] cache miss for \"" preview "\""
-                 ", calculating...")
+        (log/debug "[through-cache-plot] cache miss for \"" preview "\""
+                   ", calculating...")
         (no-cache-plot string options)))))
 
 (defn plot
