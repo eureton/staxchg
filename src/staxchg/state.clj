@@ -317,7 +317,7 @@
 (defn update-for-screen
   "Applies the result of staxchg.io/acquire-screen! to world."
   [world screen]
-  (update world :io/context assoc :screen screen))
+  (assoc-in world [:io/context :screen] screen))
 
 (defn update-for-dimensions
   "Applies the result of staxchg.io/enable-screen! to world."
@@ -464,6 +464,9 @@
                  :config/max-questions-list-size list-size
                  :config/highlighter highlighter)))
 
+(defn mark-for-shutdown [world]
+  (assoc world :shutdown-complete? true))
+
 (defn update-world
   "Applies I/O response to world."
   [world result]
@@ -483,6 +486,7 @@
                   :fetch-failed! update-for-no-posts
                   :highlight-code! update-for-highlights
                   :read-config! update-for-config
+                  :quit! mark-for-shutdown
                   nil)]
       (let [updated (apply f world values)]
         (log/debug updated)
@@ -518,8 +522,7 @@
                           answer?
                           (dirty? (:previous world) world)))))
 
-(defn quit?
-  "True if user has asked to quit, false otherwise."
-  [world]
-  (:quit? world))
+(def shutdown?
+  "True if the app is ready to be shut down, false otherwise."
+  :shutdown-complete?)
 
